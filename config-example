@@ -1,0 +1,7 @@
+server-ip=1.1.1.1
+default-user=root
+user=usr
+default-passwd=123
+passwd=456
+keyname=key-usr
+passphrase=pass
