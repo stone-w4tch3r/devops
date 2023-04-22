@@ -1,3 +1,5 @@
+#!/bin/bash
+
 rollback_ssh(){    
     local keyname=$_keyname
     local ipaddress=$_ipaddress
