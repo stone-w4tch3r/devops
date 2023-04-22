@@ -42,13 +42,13 @@ modify_ssh_config(){
     if [ ! -f ~/.ssh/config ]; then
         touch ~/.ssh/config
     fi
-    if ! grep -q "Host *" ~/.ssh/config; then
-        {
-            echo ""
-            echo "Host *"
-            echo "  AddKeysToAgent yes"
-            echo "  UseKeychain yes"
-        } >> ~/.ssh/config
+    if ! grep -q "Host \*" ~/.ssh/config; then
+      echo ">>>adding keychain settings to ssh config"
+      {
+          echo "Host *"
+          echo "  AddKeysToAgent yes"
+          echo "  UseKeychain yes"
+      } >> ~/.ssh/config
     fi
     echo ">>>ssh config"
     cat ~/.ssh/config
