@@ -23,4 +23,4 @@ read -r -s password
 validate
 
 echo ">>>calling setup_ssh.sh"
-sh setup_ssh.sh "$keyname" "$username" "$ipaddress" "$password" "$passphrase"
+sh "$(dirname "$0")"/setup_ssh.sh "$keyname" "$username" "$ipaddress" "$password" "$passphrase"
