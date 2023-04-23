@@ -13,4 +13,4 @@ read -rp "Enter target username: " username
 read -rp "Enter target password: " -s password
 
 #run setup_puppet.sh on target system
-bolt script run setup_puppet.sh --targets "$ipaddress" --user "$username" --password "$password"
+bolt script run setup_puppet_agent.sh --targets "$ipaddress" --user "$username" --password "$password"
