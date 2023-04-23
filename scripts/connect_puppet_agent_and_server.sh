@@ -10,12 +10,13 @@ insert_certname(){
     sudo sed -i "s/\[main\]/\[main\]\ncertname = $agent_name/g" /etc/puppetlabs/puppet/puppet.conf
 }
 
-if [ $# -ne 1 ]; then
-    echo ">>>usage: connect_puppet_agent_and_server.sh <puppet_agent_name>"
+if [ $# -ne 2 ]; then
+    echo ">>>usage: connect_puppet_agent_and_server.sh <puppet_agent_name> <puppetserver_ip_address>"
     exit 1
 fi
 
 agent_name=$1
+server_ip=$2
 
 if grep -q "server = puppetserver" /etc/puppetlabs/puppet/puppet.conf; then
     echo ">>>puppet.conf already contains server = puppetserver"
@@ -31,4 +32,12 @@ if grep -q "certname = $agent_name" /etc/puppetlabs/puppet/puppet.conf; then
     echo ">>>puppet.conf already contains certname = $agent_name"
 else
     insert_certname
+fi
+
+#add puppet agent to /etc/hosts
+if grep -q "$agent_name" /etc/hosts; then
+    echo ">>>/etc/hosts already contains $agent_name"
+else
+    echo ">>>adding $agent_name to /etc/hosts"
+    echo "$server_ip $agent_name" | sudo tee -a /etc/hosts
 fi
