@@ -28,3 +28,6 @@ sudo /opt/puppetlabs/bin/puppet resource service puppet ensure=running enable=tr
 
 #add server to /etc/hosts
 echo "$server_ip puppetserver" | sudo tee -a /etc/hosts
+
+#add server to /etc/puppetlabs/puppet/puppet.conf
+sudo /opt/puppetlabs/bin/puppet config set server 'puppetserver' --section main
