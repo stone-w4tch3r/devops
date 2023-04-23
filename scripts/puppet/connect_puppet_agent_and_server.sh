@@ -5,12 +5,12 @@ echo ">>>should be run within puppet server system"
 echo ">>>dependencies: puppetserver, puppet-agent"
 
 if [ $# -ne 2 ]; then
-    echo ">>>usage: connect_puppet_agent_and_server.sh <puppet_agent_name> <puppetserver_ip_address>"
+    echo ">>>usage: connect_puppet_agent_and_server.sh <puppet_agent_name> <agent_ip>"
     exit 1
 fi
 
 agent_name=$1
-server_ip=$2
+agent_ip=$2
 
 #add server = puppetserver to /etc/puppetlabs/puppet/puppet.conf
 sudo /opt/puppetlabs/bin/puppet config set server 'puppetserver' --section main
@@ -26,5 +26,5 @@ if grep -q "$agent_name" /etc/hosts; then
     echo ">>>/etc/hosts already contains $agent_name"
 else
     echo ">>>adding $agent_name to /etc/hosts"
-    echo "$server_ip $agent_name" | sudo tee -a /etc/hosts
+    echo "$agent_ip $agent_name" | sudo tee -a /etc/hosts
 fi
