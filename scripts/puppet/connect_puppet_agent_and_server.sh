@@ -28,3 +28,11 @@ else
     echo ">>>adding $agent_name to /etc/hosts"
     echo "$agent_ip $agent_name" | sudo tee -a /etc/hosts
 fi
+
+#disable /etc/hosts clean on reboot
+if grep -q "clean /etc/hosts" /etc/cloud/cloud.cfg; then
+    echo ">>>clean /etc/hosts already disabled"
+else
+    echo ">>>disabling clean /etc/hosts"
+    sudo sed -i 's/^manage_etc_hosts.*/manage_etc_hosts: false/g' /etc/cloud/cloud.cfg
+fi
