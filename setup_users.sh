@@ -14,8 +14,8 @@ main(){
     echo "root:$root_password" | sudo chpasswd
     
     echo ">>>adding user"
-    #--gecos "" prevents user from being prompted for additional info (like full name)
-    sudo adduser --gecos "" "$username"
+    #--gecos "" prevents user from being prompted for additional info (like full name), --disabled-password prevents user from logging in with password
+    sudo useradd --gecos "" --disabled-password "$username"
     echo "$username:$password" | sudo chpasswd
     
     echo ">>>adding user to sudo and docker group"
