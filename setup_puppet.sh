@@ -1,8 +1,9 @@
 #!/bin/bash
 
 #this script sets up puppet agent on the system
+#should be run within target system
 #puppet7
-#requirements: ubuntu (debian?), wget, amd64 OR arm64+20.04
+#dependencies: ubuntu (debian?), wget, amd64 OR aarch64+20.04
 
 #get puppet repo (based on current system)
 wget https://apt.puppetlabs.com/puppet7-release-"$(lsb_release -cs)".deb
