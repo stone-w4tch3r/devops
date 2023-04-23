@@ -10,3 +10,6 @@ sudo ufw allow ssh
 
 echo ">>>allowing puppet"
 sudo ufw allow 8140
+
+echo ">>>restaring ufw"
+sudo ufw reload
