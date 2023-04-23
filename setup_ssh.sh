@@ -1,5 +1,6 @@
 #!/bin/bash
 #set -euo pipefail
+#dependencies: macos, bolt, security
 
 delete_key_on_remote(){
     if [ $# -ne 4 ]; then
