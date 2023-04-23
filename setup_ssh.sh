@@ -15,7 +15,7 @@ delete_key_on_remote(){
     
     local command
     #remove key from authorized_keys, and print authorized_keys
-    command="sed -i.bak '\|$(cat ~/.ssh/"$keyname".pub)|d' ~/.ssh/authorized_keys && cat ~/.ssh/authorized_keys"
+    command="sed -i.bak '\|$(cat ~/.ssh/"$keyname".pub)|d' ~/.ssh/authorized_keys && echo '>>>contents of authorized_keys:' && cat ~/.ssh/authorized_keys"
     bolt command run "$command" --targets "$ipaddress" --user "$username" --password "$remote_password"
 }
 
@@ -113,7 +113,7 @@ install_key_on_remote(){
     
     local command
     #create .ssh directory if it doesn't exist, append public key to authorized_keys, and print authorized_keys
-    command="mkdir -p ~/.ssh && echo $(cat ~/.ssh/"$keyname".pub) >> ~/.ssh/authorized_keys && cat ~/.ssh/authorized_keys"
+    command="mkdir -p ~/.ssh && echo $(cat ~/.ssh/"$keyname".pub) >> ~/.ssh/authorized_keys && echo '>>>contents of authorized_keys:' && cat ~/.ssh/authorized_keys"
     bolt command run "$command" --targets "$ipaddress" --user "$username" --password "$remote_password"
 }
 
