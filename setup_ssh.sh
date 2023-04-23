@@ -1,6 +1,7 @@
 #!/bin/bash
-#set -euo pipefail
-#dependencies: macos, bolt, security
+
+echo ">>>this script connects to a remote system and sets up ssh keys for passwordless login"
+echo ">>>dependencies: macos, bolt, security"
 
 delete_key_on_remote(){
     if [ $# -ne 4 ]; then

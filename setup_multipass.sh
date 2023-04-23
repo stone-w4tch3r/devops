@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#this script sets up multipass instance
-#should be run within multipass instance
+echo ">>>this script sets up multipass instance"
+echo ">>>should be run within multipass instance"
 
 echo ">>>setting up ubuntu user password"
 echo "ubuntu:ubuntu" | sudo chpasswd

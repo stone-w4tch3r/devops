@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo ">>>this is an interactive script that sets up ssh on the target system"
+echo ">>>dependencies: macos, bolt, security"
+
 validate(){
   #check if ip is reachable
   if ! ping -c 1 "$ipaddress" &>/dev/null; then

@@ -1,8 +1,6 @@
 #!/bin/bash
 
-#this script sets up users and groups for the system
-#it gets 3 arguments: new username, new password, and new root password
-#it changes root password, adds new user, and adds new user to sudo and docker group
+echo ">>>this script sets up users and groups for the system"
 
 main(){
     local username=$1
