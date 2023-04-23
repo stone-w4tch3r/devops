@@ -1,10 +1,32 @@
 #!/bin/bash
+#set -euo pipefail
+
+delete_key_on_remote(){
+    if [ $# -ne 4 ]; then
+        echo "Usage: delete_key_on_remote keyname username ipaddress remote_password"
+        return 1
+    fi
+    
+    local keyname=$1
+    local username=$2
+    local ipaddress=$3
+    local remote_password=$4
+    echo ">>>deleting key on remote"
+    
+    local command
+    #remove key from authorized_keys, and print authorized_keys
+    command="sed -i.bak '\|$(cat ~/.ssh/"$keyname".pub)|d' ~/.ssh/authorized_keys && cat ~/.ssh/authorized_keys"
+    bolt command run "$command" --targets "$ipaddress" --user "$username" --password "$remote_password"
+}
 
 rollback_ssh(){    
     local keyname=$_keyname
     local ipaddress=$_ipaddress
+    local username=$_username
+    local remote_password=$_remote_password
     echo ">>>restoring ssh"
     
+    delete_key_on_remote "$keyname" "$username" "$ipaddress" "$remote_password"
     eval "$(ssh-agent -k)" #kill ssh-agent
     ssh-keygen -R "$ipaddress" #remove ip from known_hosts
     ssh-add -d ~/.ssh/"$keyname" #remove key from ssh-agent
@@ -19,7 +41,7 @@ rollback_ssh(){
 create_keys(){
     if [ $# -ne 2 ]; then
         echo "Usage: create_keys keyname passphrase"
-        exit 1
+        return 1
     fi
     
     local keyname=$1
@@ -35,7 +57,7 @@ create_keys(){
 modify_ssh_config(){
     if [ $# -ne 1 ]; then
         echo "Usage: modify_ssh_config keyname"
-        exit 1
+        return 1
     fi
     
     local keyname=$1
@@ -60,7 +82,7 @@ modify_ssh_config(){
 install_key_locally(){
     if [ $# -ne 2 ]; then
         echo "Usage: install_key_locally keyname"
-        exit 1
+        return 1
     fi
     
     local keyname=$1
@@ -80,7 +102,7 @@ install_key_locally(){
 install_key_on_remote(){
     if [ $# -ne 4 ]; then
         echo "Usage: install_key_on_remote keyname username ipaddress remote_password"
-        exit 1
+        return 1
     fi
     
     local keyname=$1
@@ -96,8 +118,6 @@ install_key_on_remote(){
 }
 
 main(){
-  echo "enter sudo password:"
-  sudo echo "sudo password accepted"
   create_keys "$1" "$5"
   install_key_locally "$1" "$3"
   install_key_on_remote "$1" "$2" "$3" "$4"
@@ -105,11 +125,13 @@ main(){
 
 if [ $# -ne 5 ]; then
     echo "Usage: $0 keyname username ipaddress remote_password passphrase"
-    exit 1
+    return 1
 fi
 
 _keyname=$1
+_username=$2
 _ipaddress=$3
+_remote_password=$4
 
 # Set up a trap to catch errors and execute the rollback_ssh function
 #if ! trap -p ERR | grep -q rollback_ssh; then
