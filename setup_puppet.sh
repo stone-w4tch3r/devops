@@ -2,7 +2,7 @@
 
 echo ">>>this script sets up puppet agent on the system"
 echo ">>>should be run within target system"
-echo ">>> installs puppet7"
+echo ">>>installs puppet7"
 echo ">>>dependencies: ubuntu (debian?), wget, amd64 OR aarch64+20.04"
 
 #get puppet repo (based on current system)
