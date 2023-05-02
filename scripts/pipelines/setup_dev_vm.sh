@@ -6,7 +6,7 @@ echo ">>>should be run from host system"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 cd "$DIR"/../ || exit 1
-echo ">>>working directory: $(pwd)"
+echo ">>>working directory (should be 'scripts'): $(pwd)"
 
 read -p ">>>continue? (y/n) " -r
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
