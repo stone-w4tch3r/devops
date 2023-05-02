@@ -2,7 +2,7 @@
 
 echo ">>>this interactive script connects puppet agent to puppet server"
 echo ">>>should be run on any system with bolt installed"
-echo ">>>dependencies: bolt, ssh access to puppet server, puppet agent installed on puppet server"
+echo ">>>dependencies: bolt, ssh access to puppet server, puppet installed on puppet server"
 
 read -rp "Enter puppet agent name:" agent_name
 read -rp "Enter puppet server ip address:" puppetserver_ip
