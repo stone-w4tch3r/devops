@@ -3,7 +3,10 @@
 echo ">>>this script sets up ufw firewall"
 
 echo ">>>enabling ufw"
-sudo ufw enable
+sudo ufw --force enable
+
+echo ">>>denying all incoming traffic"
+sudo ufw default deny incoming
 
 echo ">>>allowing ssh"
 sudo ufw allow ssh

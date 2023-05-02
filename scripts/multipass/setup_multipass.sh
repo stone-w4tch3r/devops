@@ -11,4 +11,4 @@ sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/
 sudo systemctl restart sshd
 
 sudo groupadd docker
-sudo usermod -aG docker ubuntu
+sudo usermod -aG docker ubuntue
