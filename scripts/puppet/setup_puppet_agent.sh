@@ -32,5 +32,5 @@ echo "$server_ip puppetserver" | sudo tee -a /etc/hosts
 #add server to /etc/puppetlabs/puppet/puppet.conf
 sudo /opt/puppetlabs/bin/puppet config set server 'puppetserver' --section main
 
-#request puppetserver to sign certs
-sudo /opt/puppetlabs/bin/puppet agent -t
+#request puppetserver to sign certs, -t for testing, -v for verbose
+sudo /opt/puppetlabs/bin/puppet agent -t -v
