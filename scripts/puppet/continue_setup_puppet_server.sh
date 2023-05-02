@@ -21,5 +21,12 @@ sudo /opt/puppetlabs/bin/puppetserver ca setup
 echo ">>>certs in /etc/puppetlabs/puppet/ssl/certs/"
 ls /etc/puppetlabs/puppet/ssl/certs/
 
+echo ">>>deleting all certs (but why??? idk)"
+sudo systemctl stop puppetserver
+sudo /opt/puppetlabs/bin/puppetserver ca delete --all
+sudo systemctl start puppetserver
+
 echo ">>>signing certs"
 sudo /opt/puppetlabs/bin/puppetserver ca sign --certname "$puppet_agent_hostname"
+
+#than agent must request certs again
