@@ -2,6 +2,9 @@
 
 echo ">>>this script sets up ufw firewall"
 
+echo ">>>installing ufw"
+sudo apt-get install ufw -y
+
 echo ">>>enabling ufw"
 sudo ufw --force enable
 

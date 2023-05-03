@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo ">>>this interactive script sets up multipass instance"
-echo ">>>requires launched multipass instance, allowed password authentication and default user password set"
+echo ">>>this interactive script sets up ubuntu instance"
+echo ">>>requires launched instance, allowed password authentication and user password set"
 echo ">>>should be run from host system"
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -16,14 +16,14 @@ fi
 echo ">>>setting up ssh connection"
 sh setup_ssh.command
 
-echo ">>>enter instance ip"
-read -r instance_ip
+read -p ">>>enter instance ip: " -r instance_ip
+read -p ">>>enter instance username: " -r instance_username
 
 echo ">>>updating instance"
-ssh ubuntu@"$instance_ip" "bash -s" < update.sh
+ssh "$instance_username"@"$instance_ip" "bash -s" < update.sh
 
 echo ">>>waiting for instance to reboot (30s)"
 sleep 30
 
 echo ">>>setting up ufw"
-ssh ubuntu@"$instance_ip" "bash -s" < setup_ufw.sh
+ssh "$instance_username"@"$instance_ip" "bash -s" < setup_ufw.sh
