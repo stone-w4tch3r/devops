@@ -21,6 +21,9 @@ read -s -rp ">>>enter instance new root password: " new_root_password && echo
 read -rp ">>>enter keyname: " keyname
 read -s -rp ">>>enter passphrase: " passphrase && echo
 
+echo ">>>adding to known hosts"
+ssh-keyscan "$instance_ip" >> ~/.ssh/known_hosts
+
 echo ">>>setting up users and passwords"
 bolt script run setup_users.sh --targets "$instance_ip" --user root --password "$root_password" "$new_username" "$new_password" "$new_root_password"
 
@@ -45,4 +48,4 @@ ssh "$new_username"@"$instance_ip" "bash -s" < setup_ufw.sh
 
 echo ">>>disabling sudo nopasswd"
 command="sudo rm /etc/sudoers.d/$new_username"
-bolt command run "$command" --targets "$instance_ip" --user root --password "$new_root_password"
+bolt command run "$command" --targets "$instance_ip" --user "$new_username" --password "$new_root_password"
