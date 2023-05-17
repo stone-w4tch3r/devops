@@ -16,7 +16,8 @@ echo ">>>changing root password"
 echo "root:$new_root_password" | sudo chpasswd
 
 echo ">>>adding user"
-sudo useradd "$new_username"
+#-m means create home directory, -s means set shell
+sudo useradd "$new_username" -m -s /bin/bash
 echo "$new_username:$new_password" | sudo chpasswd
 
 echo ">>>creating docker group"
