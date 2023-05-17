@@ -136,6 +136,7 @@ _ipaddress=$3
 _remote_password=$4
 
 # Set up a trap to catch errors and execute the rollback_ssh function
+# commented out because it causes multiple rollback_ssh calls on every command in shell
 #if ! trap -p ERR | grep -q rollback_ssh; then
 #  trap rollback_ssh ERR
 #fi
