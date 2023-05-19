@@ -34,14 +34,14 @@ bolt command run "$command" --targets "$instance_ip" --user root --password "$ne
 echo ">>>setting up ssh connection"
 sh setup_ssh.sh "$keyname" "$new_username" "$instance_ip" "$new_password" "$passphrase"
 
-echo ">>>setting up ssh rules"
-ssh "$new_username"@"$instance_ip" "bash -s" < setup_ssh_rules.sh
-
 echo ">>>updating instance"
 ssh "$new_username"@"$instance_ip" "bash -s" < update.sh
 
 echo ">>>waiting for instance to reboot (30s)"
 sleep 30
+
+echo ">>>setting up ssh rules"
+ssh "$new_username"@"$instance_ip" "bash -s" < setup_ssh_rules.sh
 
 echo ">>>setting up ufw"
 ssh "$new_username"@"$instance_ip" "bash -s" < setup_ufw.sh
