@@ -21,6 +21,14 @@ delete_key_on_remote(){
     bolt command run "$command" --targets "$ipaddress" --user "$username" --password "$remote_password"
 }
 
+validate(){
+  #check if ip is reachable
+  if ! ping -c 1 "$_ipaddress" &>/dev/null; then
+    echo ">>>ipaddress is not reachable"
+    exit 1
+  fi
+}
+
 rollback_ssh(){    
     local keyname=$_keyname
     local ipaddress=$_ipaddress
@@ -127,7 +135,7 @@ main(){
 
 if [ $# -ne 5 ]; then
     echo "Usage: $0 keyname username ipaddress remote_password passphrase"
-    return 1
+    exit 1
 fi
 
 _keyname=$1
@@ -146,4 +154,5 @@ if ! trap -p INT | grep -q rollback_ssh; then
   trap rollback_ssh INT
 fi
 
+validate
 main "$1" "$2" "$3" "$4" "$5"
