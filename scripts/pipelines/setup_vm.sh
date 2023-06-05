@@ -4,26 +4,25 @@ echo ">>>this interactive script sets up ubuntu instance"
 echo ">>>requires launched instance, allowed password authentication and user password set"
 echo ">>>should be run from host system"
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd "$DIR"/../ || exit 1
-echo ">>>working directory (should be 'scripts'): $(pwd)"
-
-read -p ">>>continue? (y/n) " -r
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [ $# -ne 5 ]; then
+    echo "Usage: $0 keyname username ipaddress password passphrase"
     exit 1
 fi
 
-echo ">>>setting up ssh connection"
-sh setup_ssh.command
+keyname=$1
+username=$2
+ipaddress=$3
+password=$4
+passphrase=$5
 
-read -p ">>>enter instance ip: " -r instance_ip
-read -p ">>>enter instance username: " -r instance_username
+echo ">>>setting up ssh connection"
+sh "$(dirname "$0")"/../setup_ssh.sh "$keyname" "$username" "$ipaddress" "$password" "$passphrase"
 
 echo ">>>updating instance"
-ssh "$instance_username"@"$instance_ip" "bash -s" < update.sh
+ssh "$username"@"$ipaddress" "bash -s" < update.sh
 
 echo ">>>waiting for instance to reboot (30s)"
 sleep 30
 
 echo ">>>setting up ufw"
-ssh "$instance_username"@"$instance_ip" "bash -s" < setup_ufw.sh
+ssh "$username"@"$ipaddress" "bash -s" < setup_ufw.sh
