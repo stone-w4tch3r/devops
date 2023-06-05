@@ -14,6 +14,3 @@ echo "ubuntu:ubuntu" | sudo chpasswd
 echo ">>>allowing password authentication"
 sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
 sudo systemctl restart sshd
-
-sudo groupadd docker
-sudo usermod -aG docker ubuntu

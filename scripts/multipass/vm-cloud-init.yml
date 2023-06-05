@@ -1,0 +1,11 @@
+#cloud-config
+
+chpasswd:
+  list: |
+    ubuntu:ubuntu
+  expire: false
+
+ssh_pwauth: true
+
+runcmd:
+  - systemctl restart sshd
