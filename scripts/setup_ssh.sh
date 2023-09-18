@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo ">>>this script connects to a remote system and sets up ssh keys for passwordless login"
-echo ">>>dependencies: macos, bolt, security"
+echo ">>>dependencies: sshpass"
 
 delete_key_on_remote(){
     if [ $# -ne 4 ]; then
@@ -17,16 +17,20 @@ delete_key_on_remote(){
     
     local command
     #remove key from authorized_keys, and print authorized_keys
-    command="sed -i.bak '\|$(cat ~/.ssh/"$keyname".pub)|d' ~/.ssh/authorized_keys && echo '>>>contents of authorized_keys:' && cat ~/.ssh/authorized_keys"
-    bolt command run "$command" --targets "$ipaddress" --user "$username" --password "$remote_password"
+    command="sed -i.bak 's|$(cat ~/.ssh/"$keyname".pub)||g' ~/.ssh/authorized_keys && echo '>>>contents of authorized_keys:' && cat ~/.ssh/authorized_keys"
+    sshpass -p "$remote_password" ssh "$username"@"$ipaddress" "$command"
 }
 
-validate(){
+validate_and_prepare(){
   #check if ip is reachable
   if ! ping -c 1 "$_ipaddress" &>/dev/null; then
     echo ">>>ipaddress is not reachable"
-    exit 1
+    return 1
   fi
+
+  echo ">>>ipaddress has been successfully reached"
+
+  sudo apt install -y sshpass
 }
 
 rollback_ssh(){    
@@ -40,10 +44,10 @@ rollback_ssh(){
     eval "$(ssh-agent -k)" #kill ssh-agent
     ssh-keygen -R "$ipaddress" #remove ip from known_hosts
     ssh-add -d ~/.ssh/"$keyname" #remove key from ssh-agent
-    #remove key from keychain, -a: account, -s: service, -l: label
+    #macos: remove key from keychain, -a: account, -s: service, -l: label
     security delete-generic-password -a "$USER" -s "$keyname" -l "$keyname" 2>/dev/null
-    sed -i '' "/$keyname/d" ~/.ssh/config #remove key $keyname from ssh config
-    sed -i '' "/$ipaddress/d" ~/.ssh/config #remove key $ipaddress from ssh config
+    sed -i "s|.*$keyname.*||g" ~/.ssh/config #remove key $keyname from ssh config
+    sed -i "s|.*$ipaddress.*||g" ~/.ssh/config #remove key $ipaddress from ssh config
     rm ~/.ssh/"$keyname"
     rm ~/.ssh/"$keyname".pub
 }
@@ -65,12 +69,6 @@ create_keys(){
 }
 
 modify_ssh_config(){
-    if [ $# -ne 1 ]; then
-        echo "Usage: modify_ssh_config keyname"
-        return 1
-    fi
-    
-    local keyname=$1
     echo ">>>modifying ssh config"
     
     if [ ! -f ~/.ssh/config ]; then
@@ -80,8 +78,8 @@ modify_ssh_config(){
       echo ">>>adding keychain settings to ssh config"
       {
           echo "Host *"
-          echo "  AddKeysToAgent yes"
-          echo "  UseKeychain yes"
+          echo "  UseKeychain yes" #TODO is valid for linux?
+          echo "  AddKeysToAgent yes" #TODO is valid for linux?
       } >> ~/.ssh/config
     fi
     echo ">>>ssh config"
@@ -90,17 +88,20 @@ modify_ssh_config(){
 }
 
 install_key_locally(){
-    if [ $# -ne 2 ]; then
-        echo "Usage: install_key_locally keyname"
+    if [ $# -ne 3 ]; then
+        echo "Usage: install_key_locally keyname ipaddress passphrase"
         return 1
     fi
     
     local keyname=$1
     local ipaddress=$2
+    local passphrase=$3
     echo ">>>installing key locally"
     
+    eval "$(ssh-agent -s)" #launch ssh agent
     ssh-keyscan "$ipaddress" >> ~/.ssh/known_hosts #add server pub keys to known hosts
-    ssh-add --apple-use-keychain ~/.ssh/"$keyname"  #add key to keychain
+    #TODO add support for macos
+    { sleep .2; echo "$passphrase"; } | script -q /dev/null -c 'ssh-add ~/.ssh/pq_gb'  #add key to keychain with passphrase, '.2' - time to wait
     {
         echo "Host $ipaddress"
         echo "  HostName $ipaddress"
@@ -124,18 +125,19 @@ install_key_on_remote(){
     local command
     #create .ssh directory if it doesn't exist, append public key to authorized_keys, and print authorized_keys
     command="mkdir -p ~/.ssh && echo $(cat ~/.ssh/"$keyname".pub) >> ~/.ssh/authorized_keys && echo '>>>contents of authorized_keys:' && cat ~/.ssh/authorized_keys"
-    bolt command run "$command" --targets "$ipaddress" --user "$username" --password "$remote_password"
+    sshpass -p "$remote_password" ssh "$username"@"$ipaddress" "$command"
 }
 
 main(){
+  validate_and_prepare
   create_keys "$1" "$5"
-  install_key_locally "$1" "$3"
+  install_key_locally "$1" "$3" "$5"
   install_key_on_remote "$1" "$2" "$3" "$4"
 }
 
 if [ $# -ne 5 ]; then
     echo "Usage: $0 keyname username ipaddress remote_password passphrase"
-    exit 1
+    return 1
 fi
 
 _keyname=$1
@@ -154,5 +156,4 @@ if ! trap -p INT | grep -q rollback_ssh; then
   trap rollback_ssh INT
 fi
 
-validate
 main "$1" "$2" "$3" "$4" "$5"
