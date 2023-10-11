@@ -1,0 +1,9 @@
+[devices]
+user-kubuntu-redmibook ansible_host=user-kubuntu-redmibook.devices.stayherewith.me
+
+[servers]
+server-p5e3 ansible_host=server-p5e3.servers.stayherewith.me ansible_user=lord ansible_ssh_private_key_file=~/.ssh/server-p5e3
+
+[vps]
+vps-pq-gb
+vps-ae-nl
