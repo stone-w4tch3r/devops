@@ -1,5 +1,6 @@
-- hosts:
-    - all
-  roles:
-    # ping
-    - { role: ansible-role-ping }
+- name: Test PING.
+  hosts: primary
+  become: yes
+  tasks:
+    - name: ping
+      ping:
