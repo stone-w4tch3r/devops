@@ -1,13 +1,18 @@
 ---
 - hosts: all
   become: true
-  vars:
-#    container_count: 1
-#    default_container_name: docker
-#    default_container_image: ubuntu
-#    default_container_command: sleep 1d
 
   tasks:
+      
+    - name: "Assert required variables"
+      assert:
+        that:
+          - container_count is defined
+          - container_name is defined
+          - container_image is defined
+          - container_command is defined
+        fail_msg: "One or more required variables are not defined"
+
     - name: Install required system packages
       apt:
         pkg:
@@ -28,7 +33,7 @@
 
     - name: Add Docker Repository
       apt_repository:
-        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        repo: deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
         state: present
 
     - name: Update apt and install docker-ce
@@ -43,13 +48,13 @@
 
     - name: Pull default Docker image
       community.docker.docker_image:
-        name: "{{ default_container_image }}"
+        name: "{{ container_image | mandatory }}"
         source: pull
 
     - name: Create default containers
       community.docker.docker_container:
-        name: "{{ default_container_name }}{{ item }}"
-        image: "{{ default_container_image }}"
-        command: "{{ default_container_command }}"
+        name: "{{ container_name | mandatory }}{{ item }}"
+        image: "{{ container_image | mandatory }}"
+        command: "{{ container_command | mandatory }}"
         state: present
       with_sequence: count={{ container_count }}
