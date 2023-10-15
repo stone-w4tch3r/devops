@@ -1,20 +1,28 @@
 ---
-- hosts: all
+- name: Name1
+  hosts: all
   become: true
+  vars:
+    container_name: name1
+    container_image: hello-world
+    container_command: ls
 
   tasks:
-      
+
     - name: "Assert required variables"
-      assert:
+      ansible.builtin.assert:
         that:
-          - container_count is defined
           - container_name is defined
           - container_image is defined
           - container_command is defined
         fail_msg: "One or more required variables are not defined"
 
+    - name: Print variables
+      ansible.builtin.debug:
+        msg: "container_name {{ container_name }}"
+
     - name: Install required system packages
-      apt:
+      ansible.builtin.apt:
         pkg:
           - apt-transport-https
           - ca-certificates
@@ -23,27 +31,27 @@
           - python3-pip
           - virtualenv
           - python3-setuptools
-        state: latest
+        # state: latest
         update_cache: true
 
     - name: Add Docker GPG apt Key
-      apt_key:
+      ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
         state: present
 
     - name: Add Docker Repository
-      apt_repository:
+      ansible.builtin.apt_repository:
         repo: deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
         state: present
 
     - name: Update apt and install docker-ce
-      apt:
+      ansible.builtin.apt:
         name: docker-ce
-        state: latest
+        # state: latest
         update_cache: true
 
     - name: Install Docker Module for Python
-      pip:
+      ansible.builtin.pip:
         name: docker
 
     - name: Pull default Docker image
@@ -53,8 +61,8 @@
 
     - name: Create default containers
       community.docker.docker_container:
-        name: "{{ container_name | mandatory }}{{ item }}"
+        name: "{{ container_name | mandatory }}"
         image: "{{ container_image | mandatory }}"
         command: "{{ container_command | mandatory }}"
         state: present
-      with_sequence: count={{ container_count }}
+        

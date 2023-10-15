@@ -17,3 +17,9 @@ sudo apt-get install speedtest
 
 bash <(curl -sSL https://get.docker.com)
 dockerd-rootless-setuptool.sh install
+
+####
+#browsh
+####
+
+docker run -it browsh/browsh
