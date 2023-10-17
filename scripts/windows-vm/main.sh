@@ -16,6 +16,7 @@ echo ">>> Uncomment this lines if you want to install it"
 # sudo apt-get install quickgui
 
 echo ">>> setting up qemu bridged network"
+#https://spad.uk/really-simple-network-bridging-with-qemu/
 
 echo "allow brwin0" | sudo tee -a /etc/qemu/bridge.conf
 sudo chmod +s /usr/lib/qemu/qemu-bridge-helper
