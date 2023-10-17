@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sample Autounattend.xml for Windows 10 media. This has been tested on 1511, 1607, and 1709 - x64 architecture only
-     For more details visit my blog http://blogs.catapultsystems.com/mdowst/archive/2017/12/11/create-zero-touch-windows-10-iso/  --> 
-<unattend xmlns="urn:schemas-microsoft-com:unattend">
+<unattend 
+	xmlns="urn:schemas-microsoft-com:unattend"
+	xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 	<settings pass="windowsPE">
 		<component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
 			<DiskConfiguration>
@@ -115,19 +115,11 @@
 		</component>
 	</settings>
     <FirstLogonCommands>
-        <SynchronousCommand wcm:action="add"> <!-- TODO fix namespace-->
-          <Order>1</Order>
-          <!-- TODO maybe rewrite to ssh-->
-          <!-- 
-            https://madlabber.wordpress.com/2019/06/19/using-autounattend-xml-to-enable-ansible-support-in-windows/
-            https://www.catapultsystems.com/blogs/create-zero-touch-windows-10-iso/
-          -->
-          <CommandLine>
-            $url = "https://raw.githubusercontent.com/ansible/ansible-documentation/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
-            $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
-            (New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
-            powershell.exe -ExecutionPolicy ByPass -File $file
-        </CommandLine>
+        <SynchronousCommand wcm:action="add">
+			<Order>1</Order>
+			<CommandLine>powershell.exe -File %SystemDrive%\WinDir\Setup\Scripts\setup_ssh.ps1</CommandLine>
+            <Description>Enable ssh server</Description>
+            <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>              
       </FirstLogonCommands> 
 </unattend>
