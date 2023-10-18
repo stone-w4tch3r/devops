@@ -1,7 +1,8 @@
 # Setups SSH for Ansible
-Add-WindowsCapability -Online -Name OpenSSH.Server*
-Start-Service sshd
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0Start-Service sshd
 Set-Service -Name sshd -StartupType 'Automatic'
 Start-Service ssh-agent
 Set-Service -Name ssh-agent -StartupType 'Automatic'
-netsh advfirewall firewall add rule name="Open SSH Port 22" dir=in action=allow protocol=TCP localport=22 remoteip=any
+if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
+    New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+}
