@@ -1,0 +1,6 @@
+---
+- name: "Windows 10 1C setup"
+  hosts: all
+  roles:
+  
+    - windows-basic

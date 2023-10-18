@@ -1,0 +1,11 @@
+---
+- name: Ping
+  ansible.windows.win_ping:
+
+- name: Set the default shell to PowerShell
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\OpenSSH
+    name: DefaultShell
+    data: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+    type: string
+    state: present
