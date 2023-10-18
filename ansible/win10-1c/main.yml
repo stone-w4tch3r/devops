@@ -1,6 +1,7 @@
 ---
 - name: "Windows 10 1C setup"
   hosts: all
+  gather_facts: false
   roles:
-  
-    - windows-basic
+
+    - role: windows-basic
