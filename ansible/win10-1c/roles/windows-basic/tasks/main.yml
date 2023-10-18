@@ -6,3 +6,15 @@
 # - name: Enable PowerShell
 #   ansible.builtin.include_tasks:
 #     file: enable-powershell.yml
+
+# apache-httpd
+
+- name: install_chocolatey
+  win_chocolatey:
+    name: chocolatey -y
+    state: present
+
+- name: Install apache
+  include_role: 
+    name: apache
+    
