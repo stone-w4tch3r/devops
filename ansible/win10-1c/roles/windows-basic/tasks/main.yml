@@ -1,8 +1,8 @@
 ---
-- name: Enable PowerShell
-  ansible.builtin.include_tasks:
-    file: enable-powershell.yml
-    apply:
-      ignore_errors: true
-  vars:
-    ansible_shell_type: cmd
+
+# FUCK SSH SETTINGS IN FUCKING ANSIBLE!!
+# IDEMPOTENCY? SUCK COCK, RERUNNING PLAY
+# WILL SUDDENLY BRAKE EVERYTHING!!!
+# - name: Enable PowerShell
+#   ansible.builtin.include_tasks:
+#     file: enable-powershell.yml

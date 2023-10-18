@@ -1,5 +1,5 @@
 - name: Try enable PowerShell from cmd
-  ansible.builtin.include_tasks:
+  include_tasks:
     file: try-enable-powershell-from-cmd.yml
     apply:
       ignore_errors: true
@@ -7,16 +7,16 @@
     ansible_shell_type: cmd
 
 - name: Get current shell
-  ansible.windows.win_reg_stat:
+  win_reg_stat:
     path: HKLM:\SOFTWARE\OpenSSH
     name: DefaultShell
   register: current_shell
 
 - name: Print current shell
-  ansible.builtin.debug:
+  debug:
     msg: "{{ current_shell.value }}"
 
 - name: Assert that the shell is PowerShell
-  ansible.builtin.assert:
+  assert:
     that:
       - current_shell.value.find("powershell") != -1
