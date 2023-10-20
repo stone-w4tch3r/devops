@@ -4,7 +4,7 @@ echo ">>>this interactive script sets up ubuntu server"
 echo ">>>requires launched server, allowed root password authentication and root password set"
 echo ">>>should be run from remote system"
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd "$DIR"/../ || exit 1
 echo ">>>working directory (should be 'scripts'): $(pwd)"
 

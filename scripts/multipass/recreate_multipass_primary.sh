@@ -7,7 +7,7 @@ multipass delete primary1
 multipass purge 
 echo ">>>multipass instances stopped and deleted"
 
-script_path="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+script_path="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 multipass launch -d 15G -n primary1 --cloud-init "$script_path"/vm-cloud-init.yml
 
 primary_ip="$(multipass list | grep primary | awk -F' +' '{print $3}')"

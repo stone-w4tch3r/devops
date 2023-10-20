@@ -4,7 +4,7 @@ echo ">>>this interactive script sets up remote ubuntu instance (ssh, ufw, updat
 echo ">>>requires launched instance, allowed password authentication and user password set"
 echo ">>>may be run from any system"
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 cd "$DIR"/../ || exit 1
 echo ">>>working directory (should be 'scripts'): $(pwd)"
 
