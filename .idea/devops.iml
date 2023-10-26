@@ -7,4 +7,7 @@
     <orderEntry type="jdk" jdkName="Python 3.11 (devops)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PackageRequirementsSettings">
+    <option name="requirementsPath" value="$MODULE_DIR$/pyinfra/requirements.txt" />
+  </component>
 </module>

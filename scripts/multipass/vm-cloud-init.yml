@@ -7,5 +7,10 @@ chpasswd:
 
 ssh_pwauth: true
 
+users:
+  - name: ubuntu
+    shell: /bin/bash
+    sudo: ALL=(ALL) ALL:ALL
+
 runcmd:
   - systemctl restart sshd
