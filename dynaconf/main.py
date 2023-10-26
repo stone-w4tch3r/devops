@@ -1,3 +1,0 @@
-import dynaconf
-
-print('hello')
