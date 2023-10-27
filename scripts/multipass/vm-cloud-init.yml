@@ -7,10 +7,6 @@ chpasswd:
 
 ssh_pwauth: true
 
-users:
-  - name: ubuntu
-    shell: /bin/bash
-    sudo: ALL=(ALL) ALL:ALL
-
 runcmd:
   - systemctl restart sshd
+  - sudo sed -i 's|ubuntu ALL=(ALL).*|ubuntu ALL=(ALL) ALL|g' /etc/sudoers.d/90*
