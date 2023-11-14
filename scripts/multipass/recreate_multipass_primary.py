@@ -20,6 +20,8 @@ run(f"ssh-keygen -f /home/{os.getlogin()}/.ssh/known_hosts -R primary.multipass"
 print(">>>multipass instance launched")
 
 primary_ip = subprocess.check_output("multipass list", shell=True, universal_newlines=True).split("\n")[1].split()[2]
-
+if not any("primary.multipass" in line for line in open("/etc/hosts").readlines()):
+    run(f'sudo sed -i "3i {primary_ip} primary.multipass" /etc/hosts')
 run(f'sudo sed -i "s|.*primary.*|{primary_ip} primary.multipass|g" /etc/hosts')
+
 print(">>>done")
