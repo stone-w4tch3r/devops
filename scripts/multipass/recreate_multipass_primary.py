@@ -8,6 +8,8 @@ def run(cmd: str, ignore_errs: bool = False):
     return subprocess.run(cmd, shell=True, check=not ignore_errs)
 
 
+run("sudo echo '>>>This script restarts multipass instance and updates /etc/hosts'")
+
 run("multipass stop primary1", ignore_errs=True)
 run("multipass delete primary1", ignore_errs=True)
 run("multipass purge", ignore_errs=True)
