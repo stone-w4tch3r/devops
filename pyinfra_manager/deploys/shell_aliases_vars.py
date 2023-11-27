@@ -13,7 +13,7 @@ class AliasesVars:
 aliases_vars = AliasesVars(
     # noqa: W605
     AliasesNormal=[
-        'f=fuck',
+        'alias f=fuck',
         "alias cat=ccat",
         "alias less=cless",
         'alias git_cp="echo -n commit message:  && read -r message && echo \$message | git add . && git commit -m \$message && git push"',
