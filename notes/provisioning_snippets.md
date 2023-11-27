@@ -1,6 +1,15 @@
-#!/bin/bash
+### Install 3x-ui
 
-echo ">>>this script installs docker. should be run within target system"
+```bash
+git clone https://github.com/MHSanaei/3x-ui.git
+cd 3x-ui
+git checkout v1.7.8 #maybe later
+docker compose up -d #maybe docker-compose
+```
+
+### Install docker (full)
+
+```bash
 
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl gnupg
@@ -13,10 +22,34 @@ echo \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  
+
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 sudo groupadd docker
 sudo usermod -aG docker $USER
 newgrp docker
+```
+
+### Install speedtest
+
+```bash
+sudo apt-get install -y curl
+curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
+sudo apt-get install speedtest
+```
+
+### Install docker (quick)
+
+> !!! Unstable !!!
+
+```bash
+bash <(curl -sSL https://get.docker.com)
+# dockerd-rootless-setuptool.sh install # danger! may produce bugs
+```
+
+### Run Browsh
+
+```bash
+docker run -it browsh/browsh
+```
