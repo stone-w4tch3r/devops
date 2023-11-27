@@ -1,0 +1,59 @@
+# this is ansible version of the script
+# configures zsh on target machine
+# 1. apt update
+# 2. apt install -y git-core zsh fzf zsh-syntax-highlighting zsh-autosuggestions thefuck
+# 3. Install oh-my-zsh
+# 4. Set shell to zsh for current user
+# 5. install plugins:
+#   minimal:
+#     git
+#     ag
+#     colored-man-pages
+#     colorize
+#     command-not-found
+#     docker
+#     docker-compose
+#     debian #if debian
+#     npm
+#     pip
+#     extract #archives
+#     safe-paste #prevents pasted code from running
+#     sudo #esc-esc
+#     ubuntu #if ubuntu
+#     ufw
+#     zsh-interactive-cd
+#   extended: (for desktop)
+#     dotnet
+#     adb
+#     ansible
+#     chucknorris
+#     emoji #get emoji as $emoji[name]
+#     gh
+#     gitignore
+#     hitchhiker
+#     multipass
+# 6. sets global variables into /etc/environment:
+#     zic_case_insensitive=true #case-insensitive interactive cd
+# 7. install fonts into /usr/local/share/fonts:
+#     https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf
+#     https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf
+#     https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf
+#     https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf
+# 8. install powerlevel10k theme
+#     a. install
+#     b. add this lines to ~/.zshrc:
+#       ```
+#       To customize prompt, run "p10k configure" or edit ~/.p10k.zsh.
+#       [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+#       ```
+#     c. copy config ../files/.p10k.zsh to ~/.p10k.zsh
+# 9. aliases:
+#       minimal:
+#         gitignore=gi
+#         cat=ccat
+#         less=cless
+#         git_cp='echo -n commit message:  && read -r message && echo $message | git add . && git commit -m $message && git push'
+#         eval "$(thefuck -a)" #sets fuck alias
+#      extended:
+#         alias codium="NODE_OPTIONS='' codium --enable-features=UseOzonePlatform --ozone-platform=wayland"
+#

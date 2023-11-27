@@ -1,0 +1,7 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Setup linux instance
+  hosts: all
+  roles:
+    - role: zsh
+  

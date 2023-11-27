@@ -1,0 +1,8 @@
+skip_list:
+  - 'fqcn-builtins'
+  - 'fqcn[action]'
+  - 'yaml[trailing-spaces]'
+  - 'yaml[new-line-at-end-of-file]'
+  - 'yaml[empty-lines]'
+  - 'name[casing]'
+  - 'git[latest]

@@ -1,0 +1,13 @@
+parameters:
+  targets:
+    type: TargetSpec
+
+steps:
+  - description: TestTest1
+    name: configure
+    targets: $targets
+    resources:
+      - class: puppet_manager::docker_installer
+      - class: puppet_manager::shell_configurator
+  - message: $configure
+

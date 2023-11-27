@@ -1,0 +1,16 @@
+# This is an example inventory.yaml
+# To read more about inventory files, see https://pup.pt/bolt-inventory
+
+groups:
+- name: vms
+  targets:
+    - uri: primary.multipass
+      name: primary
+  config:
+    transport: ssh
+    ssh:
+      user: ubuntu
+      password: ubuntu
+      sudo-password: ubuntu
+      host-key-check: false
+      run-as: root
