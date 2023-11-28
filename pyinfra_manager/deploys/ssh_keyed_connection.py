@@ -51,8 +51,6 @@ def deploy_ssh_keyed_connection() -> None:
     if overwrite or not is_ssh_keyed_connection_deployed(local_known_hosts, ssh_key):
         python.call(lambda: generate_and_install_ssh_key_locally(ssh_key, local_known_hosts))
 
-    python.call(
-        lambda: server.user_authorized_keys(user=server_user, public_keys=[ssh_key + ".pub"], _sudo=True)
-    )
+    python.call(lambda: server.user_authorized_keys(user=server_user, public_keys=[ssh_key + ".pub"], _sudo=True))
 
     python.call(lambda: update_connection_data(ssh_key, server_user, server_user_password))
