@@ -15,11 +15,6 @@ def is_source_added(source_url_regex: str) -> bool:
 
 def are_all_packages_installed(packages: list[str]) -> bool:
     installed_packages = host.reload_fact(deb.DebPackages)
-    with open("packages.txt", "w") as f:
-        f.write("\n".join(packages))
-    with open("installed_packages.txt", "w") as f:
-        f.write("\n".join(installed_packages))
-
     return all([installed_package in packages for installed_package in installed_packages])
 
 
