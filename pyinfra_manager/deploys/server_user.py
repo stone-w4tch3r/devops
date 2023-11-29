@@ -17,7 +17,7 @@ def deploy_server_user() -> None:
     )
 
     server.shell(
-        name="Shell: Add password",
+        name="Shell: Ensure password",
         commands=f"echo '{server_user}:{server_user_password}' | sudo chpasswd",
         _sudo=True
     )
