@@ -211,3 +211,4 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,windows,linux,terraform,rider
 /config
+/pyinfra_manager/keys/*
