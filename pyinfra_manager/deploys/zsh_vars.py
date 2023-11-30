@@ -27,6 +27,7 @@ zsh_vars = ShellDeployVars(
         "thefuck",  # say 'fuck' and the error is fixed!
     ],
     MiscLinesAtEnd=[
+        'setopt rmstarsilent',  # disable zsh's prompts for rm
         'eval $(thefuck -a)',
         '# To customize prompt, run "p10k configure" or edit ~/.p10k.zsh.',
         '[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh',
