@@ -4,6 +4,7 @@ from dataclasses import dataclass
 # region dataclasses
 @dataclass
 class AliasesVars:
+    AliasesMinimal: list[str]
     AliasesNormal: list[str]
     AliasesExtended: list[str]
 
@@ -12,11 +13,13 @@ class AliasesVars:
 
 aliases_vars = AliasesVars(
     # noqa: W605
+    AliasesMinimal=[
+        'alias git_cp="echo -n commit message:  && read -r message && echo \$message | git add . && git commit -m \$message && git push"',
+    ],
     AliasesNormal=[
         'alias f=fuck',
         "alias cat=ccat",
         "alias less=cless",
-        'alias git_cp="echo -n commit message:  && read -r message && echo \$message | git add . && git commit -m \$message && git push"',
     ],
     AliasesExtended=[
         "alias gitignore=gi",
