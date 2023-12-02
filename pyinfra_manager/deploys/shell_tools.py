@@ -15,7 +15,7 @@ def is_source_added(source_url_regex: str) -> bool:
 
 def are_all_packages_installed(packages: list[str]) -> bool:
     installed_packages = host.reload_fact(deb.DebPackages)
-    return all([installed_package in packages for installed_package in installed_packages])
+    return all([package in installed_packages for package in packages])
 
 
 def deploy_shell_tools() -> None:
