@@ -44,7 +44,10 @@ def deploy_zsh() -> None:
     if not is_ohmyzsh_installed_initially(home_path):
         server.shell(commands=['sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'])
 
-    python.call(lambda: assert_zsh_correctly_installed_dynamic(home_path))
+    python.call(
+        name="Assert zsh correctly installed",
+        function=lambda: assert_zsh_correctly_installed_dynamic(home_path)
+    )
 
     if host.get_fact(facts_server.LinuxGui) and host.data.get("supress_linux_gui_warning") is not True:
         raise Exception("Linux GUI detected. Manually re-login to continue, than run again with '--data supress_linux_gui_warning=True'")
