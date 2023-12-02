@@ -12,7 +12,7 @@ my_hosts = [
             "ssh_key_path": "keys/primary.multipass.ssh-key",
             "server_user": "lord",
             "server_user_password": "rnd_p4ss",
-            # "root_password": "rnd_root_p4ss",
+            "root_password": "rnd_root_p4ss",
         },
     ),
 ]
