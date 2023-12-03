@@ -9,11 +9,11 @@ first_distro = "jammy"
 second_distro = "focal"
 third_distro = "file:///home/user1/VMs/debian-12-generic-amd64.qcow2"
 
-first_run = ("pyinfra inventory.py playbooks/all.py"
+first_run = ("pyinfra inventory.py playbooks/all.py "
              + "--data aliases_complexity=Normal "
              + "--data zsh_complexity=Normal "
              + "--data tools_complexity=Normal")
-second_run = ("pyinfra inventory.py playbooks/all.py"
+second_run = ("pyinfra inventory.py playbooks/all.py "
               + "--data aliases_complexity=Extended "
               + "--data zsh_complexity=Extended "
               + "--data tools_complexity=Extended")
