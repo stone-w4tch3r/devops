@@ -52,10 +52,23 @@ def deploy_zsh() -> None:
     )
 
     if host.get_fact(facts_server.LinuxGui) and host.data.get("supress_linux_gui_warning") is not True:
-        raise Exception("Linux GUI detected. Manually re-login to continue, than run again with '--data supress_linux_gui_warning=True'")
+        raise Exception("Linux GUI detected. Manually re-login to continue, than run again "
+                        + "with '--data supress_linux_gui_warning=True'")
 
-    git.repo(src="https://github.com/romkatv/powerlevel10k", dest=f"{home_path}/.oh-my-zsh/custom/themes/powerlevel10k", pull=False, _sudo=True)
-    files.put(src=p10k_to_put, dest=f"{home_path}/.p10k.zsh", mode="0644", _sudo=True)
+    git.repo(
+        src="https://github.com/romkatv/powerlevel10k",
+        dest=f"{home_path}/.oh-my-zsh/custom/themes/powerlevel10k",
+        pull=False,
+        _sudo=True
+    )
+    files.put(
+        src=p10k_to_put,
+        dest=f"{home_path}/.p10k.zsh",
+        user=host.data.server_user,
+        group=host.data.server_user,
+        mode="0644",
+        _sudo=True
+    )
 
     files.line(path="/etc/environment", line="zic_case_insensitive=true", _sudo=True)
 
