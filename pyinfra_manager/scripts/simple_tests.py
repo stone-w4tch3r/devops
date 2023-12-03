@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os
 import subprocess
 
 
@@ -35,31 +35,40 @@ enable_root_command = ("pyinfra inventory.py --sudo exec -- "
                        + "&& sudo systemctl reload sshd"
                        + "'")
 
-print("################################")
-print("running simple tests")
-print("################################")
+tests_to_run = [1, 2, 3, 4]
+if os.sys.argv[1:]:
+    tests_to_run = [int(arg) for arg in os.sys.argv[1:]]
 
-print("deploy: basic, ubuntu\n")
-run(f"scripts/recreate_target.py {ubuntu_distro}")
-run(run_basic_complexity_normal)
-run(run_basic_complexity_extended)
+print("##########################################")
+print(f"running simple tests: {tests_to_run}")
+print("##########################################")
 
-print("deploy: basic, debian\n")
-run(f"scripts/recreate_target.py {debian_distro}")
-run(run_basic_complexity_normal)
-run(run_basic_complexity_extended)
+if 1 in tests_to_run:
+    print("deploy: basic, ubuntu\n")
+    run(f"scripts/recreate_target.py {ubuntu_distro}")
+    run(run_basic_complexity_normal)
+    run(run_basic_complexity_extended)
 
-print("deploy: rooted, ubuntu\n")
-run(f"scripts/recreate_target.py {ubuntu_distro}")
-run(run_rooted_complexity_normal)
-run(run_rooted_complexity_extended)
+if 2 in tests_to_run:
+    print("deploy: basic, debian\n")
+    run(f"scripts/recreate_target.py {debian_distro}")
+    run(run_basic_complexity_normal)
+    run(run_basic_complexity_extended)
 
-print("deploy: rooted, debian\n")
-run(enable_root_command)
-run(f"scripts/recreate_target.py {debian_distro}")
-run(run_rooted_complexity_normal)
-run(run_rooted_complexity_extended)
+if 3 in tests_to_run:
+    print("deploy: rooted, ubuntu\n")
+    run(f"scripts/recreate_target.py {ubuntu_distro}")
+    run(enable_root_command)
+    run(run_rooted_complexity_normal)
+    run(run_rooted_complexity_extended)
 
-print("################################")
-print("tests passed")
-print("################################")
+if 4 in tests_to_run:
+    print("deploy: rooted, debian\n")
+    run(f"scripts/recreate_target.py {debian_distro}")
+    run(enable_root_command)
+    run(run_rooted_complexity_normal)
+    run(run_rooted_complexity_extended)
+
+print("##########################################")
+print(f"tests passed: {tests_to_run}")
+print("##########################################")
