@@ -9,8 +9,8 @@ from deploys.ssh_hardening import deploy_ssh_hardening
 from deploys.ssh_keys import deploy_ssh_keys
 from deploys.ufw import deploy_ufw
 
-if not host.data.aliases_complexity:
-    host.data.aliases_complexity = "Minimal"
+# todo remove, too ugly
+host.data.aliases_complexity = "Minimal"
 
 server_upgrade()
 deploy_server_user()
