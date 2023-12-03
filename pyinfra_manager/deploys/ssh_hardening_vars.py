@@ -8,8 +8,8 @@ class Rule:
 
 
 ssh_hardening_rules = [
-    Rule("PasswordAuthentication yes", r"^PasswordAuthentication"),
-    Rule("PermitRootLogin yes", r"^PermitRootLogin"),
+    Rule("PasswordAuthentication no", r"^PasswordAuthentication"),
+    Rule("PermitRootLogin no", r"^PermitRootLogin"),
     Rule("PermitEmptyPasswords no", r"^PermitEmptyPasswords"),
     Rule("X11Forwarding no", r"^X11Forwarding"),
 ]
