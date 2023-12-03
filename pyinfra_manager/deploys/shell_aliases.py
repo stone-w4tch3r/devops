@@ -1,8 +1,6 @@
 from pyinfra import host
 from pyinfra.operations import files, python
-from pyinfra.facts import server as facts_server
-from deploys.shell_aliases_vars import aliases_vars
-from inventory_types import InstanceComplexity
+from deploys.shell_aliases_vars import aliases_vars, AliasesComplexity
 
 
 def _find_target_file_and_write_aliases(aliases_block_content: str, home_path: str) -> None:
@@ -20,12 +18,12 @@ def _find_target_file_and_write_aliases(aliases_block_content: str, home_path: s
 
 
 def deploy_aliases() -> None:
-    instance_complexity = InstanceComplexity[host.data.instance_complexity]
+    aliases_complexity = AliasesComplexity[host.data.aliases_complexity]
     home_path = f"/home/{host.data.server_user}"
     aliases_block_content = aliases_vars.AliasesMinimal
-    if instance_complexity == InstanceComplexity.Normal:
+    if aliases_complexity == AliasesComplexity.Normal:
         aliases_block_content += aliases_vars.AliasesNormal
-    if instance_complexity == InstanceComplexity.Extended:
+    if aliases_complexity == AliasesComplexity.Extended:
         aliases_block_content += aliases_vars.AliasesNormal + aliases_vars.AliasesExtended
 
     python.call(

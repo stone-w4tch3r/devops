@@ -1,7 +1,14 @@
 from dataclasses import dataclass
+from enum import Enum
 
 
 # region dataclasses
+class AliasesComplexity(Enum):
+    Minimal = -1
+    Normal = 0
+    Extended = 1
+
+
 @dataclass
 class AliasesVars:
     AliasesMinimal: list[str]
