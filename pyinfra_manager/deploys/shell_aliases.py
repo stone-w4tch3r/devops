@@ -15,12 +15,13 @@ def _find_target_file_and_write_aliases(aliases_block_content: str, home_path: s
         content=aliases_block_content,
         marker="#### {mark} ALIASES BLOCK ####",
         try_prevent_shell_expansion=True,
+        _sudo=True
     )
 
 
 def deploy_aliases() -> None:
     instance_complexity = InstanceComplexity[host.data.instance_complexity]
-    home_path = f"/home/{host.get_fact(facts_server.User)}"
+    home_path = f"/home/{host.data.server_user}"
     aliases_block_content = aliases_vars.AliasesMinimal
     if instance_complexity == InstanceComplexity.Normal:
         aliases_block_content += aliases_vars.AliasesNormal
