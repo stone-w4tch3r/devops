@@ -1,11 +1,8 @@
 import re
-
 from pyinfra.operations import apt, server
 from pyinfra.facts import apt as facts_apt, deb
 from pyinfra import host
-
-from deploys.shell_tools_vars import tools_vars
-from inventory_types import InstanceComplexity
+from deploys.shell_tools_vars import tools_vars, ToolsComplexity
 
 
 def is_source_added(source_url_regex: str) -> bool:
@@ -19,9 +16,9 @@ def are_all_packages_installed(packages: list[str]) -> bool:
 
 
 def deploy_shell_tools() -> None:
-    instance_complexity = InstanceComplexity[host.data.instance_complexity]
+    tools_complexity = ToolsComplexity[host.data.tools_complexity]
     packages = tools_vars.PackagesFromUbuntuNormal + tools_vars.PackagesFromReposNormal \
-        if instance_complexity == InstanceComplexity.Normal \
+        if tools_complexity == ToolsComplexity.Normal \
         else (tools_vars.PackagesFromUbuntuNormal
               + tools_vars.PackagesFromReposNormal
               + tools_vars.PackagesFromUbuntuExtended
