@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import subprocess
 
 
@@ -26,34 +28,38 @@ run_rooted_complexity_extended = ("pyinfra inventory.py playbooks/all.py "
                                   + "--data aliases_complexity=Extended "
                                   + "--data zsh_complexity=Extended "
                                   + "--data tools_complexity=Extended")
+enable_root_command = ("pyinfra inventory.py --sudo exec -- "
+                       + "'"
+                       + 'echo "root:rnd_root_p4ss" | sudo chpasswd '
+                       + '&& echo "PermitRootLogin yes" | sudo tee /etc/ssh/sshd_config.d/90-enable-root-login.conf '
+                       + "&& sudo systemctl reload sshd"
+                       + "'")
 
-enable_root_command = """pyinfra inventory.py --sudo exec -- 'echo "root:rnd_root_p4ss" | sudo chpasswd'"""
-
-print("++++++++++++++++++++++++++++++++")
+print("################################")
 print("running simple tests")
-print("++++++++++++++++++++++++++++++++")
+print("################################")
 
-print("deploy: basic, ubuntu")
+print("deploy: basic, ubuntu\n")
 run(f"scripts/recreate_target.py {ubuntu_distro}")
 run(run_basic_complexity_normal)
 run(run_basic_complexity_extended)
 
-print("deploy: basic, debian")
+print("deploy: basic, debian\n")
 run(f"scripts/recreate_target.py {debian_distro}")
 run(run_basic_complexity_normal)
 run(run_basic_complexity_extended)
 
-print("deploy: rooted, ubuntu")
+print("deploy: rooted, ubuntu\n")
 run(f"scripts/recreate_target.py {ubuntu_distro}")
 run(run_rooted_complexity_normal)
 run(run_rooted_complexity_extended)
 
-print("deploy: rooted, debian")
+print("deploy: rooted, debian\n")
 run(enable_root_command)
 run(f"scripts/recreate_target.py {debian_distro}")
 run(run_rooted_complexity_normal)
 run(run_rooted_complexity_extended)
 
-print("++++++++++++++++++++++++++++++++")
+print("################################")
 print("tests passed")
-print("++++++++++++++++++++++++++++++++")
+print("################################")
