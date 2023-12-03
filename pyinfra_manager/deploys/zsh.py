@@ -5,7 +5,7 @@ from pyinfra.facts import files as facts_files
 from pyinfra.facts import server as facts_server
 from pyinfra.operations import apt, server, files, git, python
 
-from deploys.zsh_vars import zsh_vars
+from deploys.zsh_vars import zsh_vars, ZshComplexity
 from inventory_types import InstanceComplexity
 
 
@@ -19,17 +19,17 @@ def assert_zsh_correctly_installed_dynamic(home_path: str) -> None:
 
 
 def deploy_zsh() -> None:
-    instance_complexity = InstanceComplexity[host.data.instance_complexity]
+    zsh_complexity = ZshComplexity[host.data.zsh_complexity]
     packages = zsh_vars.Packages
     home_path = f"/home/{host.data.server_user}"
     fonts_links = zsh_vars.FontsLinks
     current_dir = os.path.dirname(os.path.abspath(__file__))
     p10k_to_put = f"{current_dir}/files/p10k_normal.zsh" \
-        if instance_complexity == InstanceComplexity.Normal \
+        if zsh_complexity == ZshComplexity.Normal \
         else f"{current_dir}/files/p10k_extended.zsh"
     misc_lines_block_content = zsh_vars.MiscLinesAtEnd
     plugins_str = " ".join(zsh_vars.ZshPluginsNormal) \
-        if instance_complexity == InstanceComplexity.Normal \
+        if zsh_complexity == ZshComplexity.Normal \
         else " ".join(zsh_vars.ZshPluginsNormal + zsh_vars.ZshPluginsExtended)
     if host.get_fact(facts_server.LinuxName) == "debian":
         plugins_str += " " + " ".join(zsh_vars.DebianPlugins)
@@ -76,7 +76,7 @@ def deploy_zsh() -> None:
         )
     )
 
-    if instance_complexity == InstanceComplexity.Extended:
+    if zsh_complexity == ZshComplexity.Extended:
         files.directory(path="/usr/share/fonts/truetype/", present=True, _sudo=True)
         for link in fonts_links:
             filename = link.split("/")[-1].replace("%20", " ")

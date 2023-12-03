@@ -1,7 +1,14 @@
 from dataclasses import dataclass
+from enum import Enum
 
 
 # region dataclasses
+
+class ZshComplexity(Enum):
+    Normal = 0
+    Extended = 1
+
+
 @dataclass
 class ShellDeployVars:
     Packages: list[str]
