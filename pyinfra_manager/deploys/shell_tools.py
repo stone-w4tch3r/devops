@@ -53,3 +53,11 @@ def deploy_shell_tools() -> None:
     if not are_all_packages_installed(packages):
         apt.update(_sudo=True)
         apt.packages(packages=packages, _sudo=True)
+
+    is_micro_installed = host.get_fact(deb.DebPackage, "micro")
+    if is_micro_installed:
+        server.shell(
+            name="Shell: Set micro as default editor",
+            commands="sudo update-alternatives --set editor /usr/bin/micro",
+            _sudo=True
+        )

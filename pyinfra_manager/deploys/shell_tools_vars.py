@@ -26,6 +26,7 @@ tools_vars = ToolsVars(
         "neofetch",
         "ncdu",
         "micro",
+        "wl-clipboard",  # for micro clipboard integration
         "net-tools",
         "silversearcher-ag",
     ],
