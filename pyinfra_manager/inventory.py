@@ -1,6 +1,6 @@
 import os
 
-my_hosts = [
+dev = [
     (
         "primary.multipass",
         {
@@ -12,10 +12,6 @@ my_hosts = [
             "server_user": "lord",
             "server_user_password": "rnd_p4ss",
             "root_password": "rnd_root_p4ss",
-            # for development purposes
-            "aliases_complexity": "Normal",
-            "zsh_complexity": "Normal",
-            "tools_complexity": "Normal",
         },
     ),
 ]
