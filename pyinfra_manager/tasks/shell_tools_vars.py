@@ -4,15 +4,14 @@ from enum import Enum
 
 # region dataclasses
 class ToolsComplexity(Enum):
-    Minimal = -1
     Normal = 0
     Extended = 1
 
 
 @dataclass
 class ToolsVars:
-    PackagesFromUbuntuNormal: list[str]
-    PackagesFromUbuntuExtended: list[str]
+    PackagesFromAptNormal: list[str]
+    PackagesFromAptExtended: list[str]
     PackagesFromReposNormal: list[str]
     PackagesFromReposExtended: list[str]
 
@@ -20,7 +19,7 @@ class ToolsVars:
 # endregion
 
 tools_vars = ToolsVars(
-    PackagesFromUbuntuNormal=[
+    PackagesFromAptNormal=[
         "tree",
         "mc",
         "neofetch",
@@ -30,7 +29,7 @@ tools_vars = ToolsVars(
         "net-tools",
         "silversearcher-ag",
     ],
-    PackagesFromUbuntuExtended=[
+    PackagesFromAptExtended=[
         "python3-venv",
         "python3-pip",
     ],
