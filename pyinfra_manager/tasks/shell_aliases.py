@@ -1,6 +1,6 @@
 from pyinfra import host
 from pyinfra.operations import files, python
-from deploys.shell_aliases_vars import aliases_vars, AliasesComplexity
+from tasks.shell_aliases_vars import aliases_vars, AliasesComplexity
 
 
 def _find_target_file_and_write_aliases(aliases_block_content: str, home_path: str) -> None:

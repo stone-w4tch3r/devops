@@ -2,7 +2,7 @@ import re
 from pyinfra.operations import apt, server
 from pyinfra.facts import apt as facts_apt, deb
 from pyinfra import host
-from deploys.shell_tools_vars import tools_vars, ToolsComplexity
+from tasks.shell_tools_vars import tools_vars, ToolsComplexity
 
 
 def is_source_added(source_url_regex: str) -> bool:

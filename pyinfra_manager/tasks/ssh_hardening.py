@@ -1,7 +1,7 @@
 from pyinfra import host
 from pyinfra.operations import files, server
 
-from deploys.ssh_hardening_vars import ssh_hardening_rules
+from tasks.ssh_hardening_vars import ssh_hardening_rules
 
 
 def deploy_ssh_hardening():

@@ -3,7 +3,7 @@ from pyinfra import host
 from pyinfra.facts import files as facts_files
 from pyinfra.facts import server as facts_server
 from pyinfra.operations import apt, server, files, git, python
-from deploys.zsh_vars import zsh_vars, ZshComplexity
+from tasks.zsh_vars import zsh_vars, ZshComplexity
 
 
 def is_ohmyzsh_installed_initially(home_path: str) -> bool:
