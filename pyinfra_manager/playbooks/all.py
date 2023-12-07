@@ -5,6 +5,7 @@ from tasks.shell_aliases import deploy_aliases
 from tasks.ssh_hardening import deploy_ssh_hardening
 from tasks.ssh_keys import deploy_ssh_keys
 from tasks.ufw import deploy_ufw
+from tasks.disable_ipv6_ufw import disable_ipv6_ufw
 from tasks.zsh import deploy_zsh
 from tasks.disable_ipv6 import disable_ipv6
 from tasks.shell_tools import deploy_shell_tools
@@ -19,3 +20,4 @@ deploy_ufw()
 deploy_ssh_hardening()
 deploy_root_password()
 disable_ipv6()
+disable_ipv6_ufw()

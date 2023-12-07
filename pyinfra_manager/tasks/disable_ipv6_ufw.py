@@ -7,7 +7,7 @@ def _assert_ufw_installed():
     assert host.reload_fact(deb.DebPackage, "ufw"), "ufw is not installed"
 
 
-def ufw_disable_ipv6():
+def disable_ipv6_ufw():
     python.call(
         name="Assert ufw installed",
         function=lambda: _assert_ufw_installed()
