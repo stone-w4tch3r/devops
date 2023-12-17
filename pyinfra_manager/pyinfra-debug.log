@@ -1,0 +1,23 @@
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/main.py", line 218, in cli
+    _main(*args, **kwargs)
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/main.py", line 357, in _main
+    state, config = _handle_commands(state, config, command, original_operations, operations, quiet)
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/main.py", line 617, in _handle_commands
+    state, kwargs = _run_func_operations(state, config, operations, original_operations, quiet)
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/main.py", line 684, in _run_func_operations
+    load_func(state, op, *args, **kwargs)
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/util.py", line 197, in load_func
+    _parallel_load_hosts(state, lambda: op_func(*args, **kwargs), op_func.__name__)
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/util.py", line 187, in _parallel_load_hosts
+    raise result
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/util.py", line 167, in load_file
+    callback()
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra_cli/util.py", line 197, in <lambda>
+    _parallel_load_hosts(state, lambda: op_func(*args, **kwargs), op_func.__name__)
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra/api/operation.py", line 213, in decorated_func
+    commands = [  # convert any strings -> StringCommand's
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra/api/operation.py", line 213, in <listcomp>
+    commands = [  # convert any strings -> StringCommand's
+  File "/home/user1/.local/lib/python3.10/site-packages/pyinfra/operations/files.py", line 911, in put
+    raise IOError("No such file: {0}".format(local_file))
+OSError: No such file: /home/user1/Desktop/cert
