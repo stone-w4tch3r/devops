@@ -8,9 +8,10 @@
 3. Bash pain points
 4. Same code in python
 5. How to use python for shell scripting
-6. Working with sudo in python
-7. Cross-platform code in python
-8. Conclusion
+6. Real code example
+7. Working with sudo in python
+8. Cross-platform code in python
+9. Conclusion
 
 ---
 ### Bash, its pros & cons
@@ -47,7 +48,8 @@ Pros:
 - IDE support
 - huge stdlib
 - libraries
-  Cons:
+
+Cons:
 - not for big projects
 - dynamic typing
 - duck typing
@@ -55,6 +57,7 @@ Pros:
 - inconsistent syntax and stdlib
 - interpreted
 
+---
 ### Bash pain points
 
 Differences between linux, macos, docker (!) and so on:
@@ -74,12 +77,11 @@ Mismatch between bash and zsh:
 - rm -rf * - works in bash, but not in zsh
 - shell expanding works differently
 
+---
 Math is awful:
 
 ```bash
-#
 # MAX
-#
 max=0
 numbers=(1 2 3 4 5)
 for i in "${numbers[@]}"; do
@@ -88,25 +90,27 @@ for i in "${numbers[@]}"; do
     fi
 done
 
-# or
+########## or
 max=echo "${numbers[@]}" | tr ' ' '\n' | sort -nr | head -n1
 
-#
+```
+
+```bash
 # AVERAGE
-#
 sum=0
 for i in "${numbers[@]}"; do
     sum=$((sum + i))
 done
 avg=$((sum / ${#numbers[@]}))
 
-# or
+########## or
 avg=$(echo "${numbers[@]}" | tr ' ' '\n' | awk '{sum+=$1} END {print sum/NR}')
 
-# or, using bc:
+########## or, using bc:
 avg=$(echo "${numbers[@]}" | tr ' ' '\n' | paste -sd+ | bc -l)
 ```
 
+---
 String globbing, expansion and escaping:
 
 ```bash
@@ -141,6 +145,7 @@ else
 fi
 ```
 
+---
 Get current dir:
 
 ```bash
@@ -159,6 +164,7 @@ set -euo pipefail
 
 And much, much more...
 
+---
 ### Same code in python
 
 ```python
@@ -190,6 +196,7 @@ for i in range(10):
 base_dir = os.path.dirname(os.path.abspath(__file__))
 ```
 
+---
 ### How to use python for shell scripting
 
 **Use `subprocess` for shell commands**
@@ -207,23 +214,30 @@ run('dotnet build', ignore_errs=True)
 run(f'dotnet build -c {config} && dotnet test')
 ```
 
-But this may not work in cross-platform way.
+But this may be not cross-platform.
 
+---
+### Real code example
+
+Here we will open code editor)
+
+---
 ### Working with sudo in python
 
 This is not so simple. You always can just `sudo mysript.py`, but this is not the best way.
 
 Options are:
 
-- run all script with sudo
+- run a whole script with sudo
 - run shell primitives with sudo via `subprocess`:
   ```python
   subprocess.run(['sudo', 'apt', 'install', 'python3'])
   ```
 - run dedicated file with sudo via `subprocess`:
   ```python
-  subprocess.run(['sudo', 'python3', 'script.py', arg1])
+  subprocess.run(['sudo', 'python3', 'dangerous_script.py', arg1])
   ```
+---
 - save function as text and run it with sudo via `subprocess` (BAD):
   ```python
   # 1. save code as text variable
@@ -241,6 +255,7 @@ Options are:
   subprocess.run(['sudo', 'python3', '-c', f'arg1="{arg1}";arg2="{arg2}";{func_as_text}'])
   ```
 
+---
 ### Cross-platform code in python
 
 - **Portable path**
@@ -266,6 +281,7 @@ Options are:
   shutil.move('source.txt', 'dest.txt')
   ```
 
+---
 ### Conclusion
 
 Python is better than bash for scripting. But it is still piece of shit)
