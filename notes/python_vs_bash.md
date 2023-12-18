@@ -1,31 +1,28 @@
 # Python scripting instead of Bash
 
+---
 ### Plan
 
-1. Intro
-2. What is bash, its pros & cons
-3. What is python, its pros & cons
-4. Bash pain points
-5. Same code in python
-6. How to use python for shell scripting
-7. Working with sudo in python
-8. Cross-platform code in python
-9. Conclusion
+1. What is bash, its pros & cons
+2. What is python, its pros & cons
+3. Bash pain points
+4. Same code in python
+5. How to use python for shell scripting
+6. Working with sudo in python
+7. Cross-platform code in python
+8. Conclusion
 
-### Intro
-
-...
-
+---
 ### Bash, its pros & cons
 
 Created in 80s, used widely in linux, macos, docker, android etc.
 
 Pros:
-
 - simple for simple tasks
 - cross-platform
 - you all know it
-  Cons:
+
+Cons:
 - not really cross-platform
 - difficult branching and loops
 - hard to read
@@ -35,6 +32,7 @@ Pros:
 - lack of modern features
 - difficult error handling
 
+---
 ### Python, its pros & cons
 
 Created in 90s, used widely in production, science and for scripting
