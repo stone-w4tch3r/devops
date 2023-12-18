@@ -3,22 +3,45 @@ version: "3.9"
 
 services:
   3x-ui:
-    image: ghcr.io/mhsanaei/3x-ui:latest
+    image: ghcr.io/mhsanaei/3x-ui:${UIVERSION}
     container_name: 3x-ui
     hostname: 3x-ui
     volumes:
-        - ./db/:/etc/x-ui/
+      - ./db/:/etc/x-ui/
     environment:
-        XRAY_VMESS_AEAD_FORCED: "false"
+      XRAY_VMESS_AEAD_FORCED: "false"
+    restart: always
+#    ports:
+#      - "443:443"
+    networks:
+      - caddy
+    labels:
+#      caddy.@denied.not: ${ALLOWEDIP}
+#      caddy.abort: "@denied"
+#      caddy: ${PANELDOMAIN}
+#      caddy.reverse_proxy: "{{upstreams http 2053}}"
+#      caddy_0: /3xui_panel /3xui_panel/*
+#      caddy_0.reverse_proxy: "{{upstreams http 2053}}"
+#      caddy_1: \*
+#      caddy_1.reverse_proxy: "{{upstreams https 443}}"
+      caddy_0: ${PANELDOMAIN}
+      caddy_0.reverse_proxy: "{{upstreams http 2053}}"
+      caddy_1: ${SERVERDOMAIN}
+      caddy_1.reverse_proxy: "{{upstreams https 443}}"
+
+  caddy:
+    image: lucaslorentz/caddy-docker-proxy:${CADDYVERSION}
     restart: always
     ports:
-        - "443:443"
-    network_mode: host
-    tty: true
-    # networks:
-    #     - caddy
-    # labels:
-    #     caddy.@denied.not: ${ALLOWEDIP}
-    #     caddy.abort: "@denied"
-    #     caddy: ${PANELDOMAIN}
-    #     caddy.reverse_proxy: "{{upstreams http 2053}}"
+      - "443:443"
+      - "80:80"
+    environment:
+      - CADDY_INGRESS_NETWORKS=caddy
+    networks:
+      - caddy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./caddydata:/data
+networks:
+  caddy:
+    external: true
