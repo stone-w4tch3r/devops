@@ -210,7 +210,9 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,windows,linux,terraform,rider
+# custom
 /config
 /pyinfra_manager/keys/*
 !/pyinfra_manager/keys/.placeholder
 /pyinfra_manager/inventory_prod.py
+/pyinfra_manager/*.log
