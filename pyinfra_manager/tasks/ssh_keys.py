@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+from pyinfra.facts.server import Home
 from pyinfra.operations import server, python
 from pyinfra import host
 
@@ -50,14 +51,20 @@ def deploy_ssh_keys() -> None:
     is_ssh_key_existing = os.path.isfile(ssh_key_path)
     if overwrite or not is_ssh_key_existing:
         python.call(
-            name="Assert user exists",
-            function=lambda: _assert_user_exists(server_user)
-        )
-        python.call(
             name="Generate keys",
             function=lambda: _generate_keys(ssh_key_path)
         )
-        python.call(
-            name="Install public key on server",
-            function=lambda: server.user_authorized_keys(user=server_user, public_keys=[ssh_key_path + ".pub"], _sudo=True)
+
+    python.call(
+        name="Assert user exists",
+        function=lambda: _assert_user_exists(server_user)
+    )
+    python.call(
+        name="Ensure public key on server",
+        function=lambda: server.user_authorized_keys(
+            user=server_user,
+            public_keys=[ssh_key_path + ".pub"],
+            authorized_key_directory=f"{host.get_fact(Home)}/.ssh",
+            _sudo=True
         )
+    )
