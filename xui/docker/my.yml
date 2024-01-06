@@ -11,11 +11,13 @@ services:
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
     restart: always
-#    ports:
-#      - "443:443"
     networks:
       - caddy
     labels:
+      caddy_0: ${PANELDOMAIN}
+      caddy_0.reverse_proxy: "{{upstreams http 2053}}"
+      caddy_1: ${SERVERDOMAIN}
+      caddy_1.reverse_proxy: "{{upstreams https 443}}"
 #      caddy.@denied.not: ${ALLOWEDIP}
 #      caddy.abort: "@denied"
 #      caddy: ${PANELDOMAIN}
@@ -24,10 +26,6 @@ services:
 #      caddy_0.reverse_proxy: "{{upstreams http 2053}}"
 #      caddy_1: \*
 #      caddy_1.reverse_proxy: "{{upstreams https 443}}"
-      caddy_0: ${PANELDOMAIN}
-      caddy_0.reverse_proxy: "{{upstreams http 2053}}"
-      caddy_1: ${SERVERDOMAIN}
-      caddy_1.reverse_proxy: "{{upstreams https 443}}"
 
   caddy:
     image: lucaslorentz/caddy-docker-proxy:${CADDYVERSION}
