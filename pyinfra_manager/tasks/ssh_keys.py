@@ -1,9 +1,9 @@
 import os
 import subprocess
 
-from pyinfra.facts.server import Home
-from pyinfra.operations import server, python
 from pyinfra import host
+from pyinfra.facts.server import Users
+from pyinfra.operations import server, python
 
 
 def _run_locally(cmd: str, ignore_errs: bool = False) -> None:
@@ -64,7 +64,7 @@ def deploy_ssh_keys() -> None:
         function=lambda: server.user_authorized_keys(
             user=server_user,
             public_keys=[ssh_key_path + ".pub"],
-            authorized_key_directory=f"{host.get_fact(Home)}/.ssh",
+            authorized_key_directory=f"{host.get_fact(Users)[server_user]['home']}/.ssh",
             _sudo=True
         )
     )
