@@ -18,15 +18,7 @@ services:
       caddy_0.reverse_proxy: "{{upstreams http 2053}}"
       caddy_1: ${SERVERDOMAIN}
       caddy_1.reverse_proxy: "{{upstreams https 443}}"
-#      caddy.@denied.not: ${ALLOWEDIP}
-#      caddy.abort: "@denied"
-#      caddy: ${PANELDOMAIN}
-#      caddy.reverse_proxy: "{{upstreams http 2053}}"
-#      caddy_0: /3xui_panel /3xui_panel/*
-#      caddy_0.reverse_proxy: "{{upstreams http 2053}}"
-#      caddy_1: \*
-#      caddy_1.reverse_proxy: "{{upstreams https 443}}"
-
+      
   caddy:
     image: lucaslorentz/caddy-docker-proxy:${CADDYVERSION}
     restart: always
