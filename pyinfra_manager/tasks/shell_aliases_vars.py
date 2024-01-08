@@ -30,7 +30,7 @@ aliases_vars = AliasesVars(
     ],
     AliasesExtended=[
         "alias gitignore=gi",
-        'alias codium="NODE_OPTIONS=\"\" codium --enable-features=UseOzonePlatform --ozone-platform=wayland"',  # wayland support
+        'alias codium="NODE_OPTIONS=\"\" codium --profile vscode-settings-profile --enable-features=UseOzonePlatform --ozone-platform=wayland"',  # wayland support
         'alias multipass_recreate-primary="~/Projects/devops/scripts/multipass_recreate_primary.py"',
         'alias \?\?="gh copilot suggest -t shell"',
         'alias \?!="gh copilot explain"',
