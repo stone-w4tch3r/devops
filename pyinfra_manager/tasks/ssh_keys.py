@@ -14,8 +14,8 @@ def _assert_user_exists(user: str) -> None:
     assert user in [user for user in host.reload_fact(server.Users)]
 
 
-def _update_known_hosts_locally(local_known_hosts: str) -> None:
-    _run_locally(f"ssh-keygen -f {local_known_hosts} -R primary.multipass", ignore_errs=True)
+def _update_known_hosts_locally(local_known_hosts: str, host_name: str) -> None:
+    _run_locally(f"ssh-keygen -f {local_known_hosts} -R {host_name}", ignore_errs=True)
     _run_locally(f"ssh-keyscan {host.name} >> {local_known_hosts}")
 
 
@@ -24,7 +24,7 @@ def _generate_keys(ssh_key: str) -> None:
         os.remove(ssh_key)
         os.remove(ssh_key + ".pub")
 
-    # -q: quiet, -N: passphrase, -f: filename
+    # -q: quiet, -N: passphrase, -f: filename, -t: type
     _run_locally(f"ssh-keygen -t rsa -f {ssh_key} -q -N ''", ignore_errs=True)
     _run_locally(f"chmod 600 {ssh_key}")
 
@@ -45,7 +45,7 @@ def deploy_ssh_keys() -> None:
     if overwrite or not is_server_in_known_hosts:
         python.call(
             name="Add server to known_hosts",
-            function=lambda: _update_known_hosts_locally(local_known_hosts)
+            function=lambda: _update_known_hosts_locally(local_known_hosts, host.name)
         )
 
     is_ssh_key_existing = os.path.isfile(ssh_key_path)
