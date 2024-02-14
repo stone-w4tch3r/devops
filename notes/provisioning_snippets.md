@@ -78,3 +78,11 @@ bash <(curl -sSL https://get.docker.com)
 ```bash
 docker run -it browsh/browsh
 ```
+
+## Create, add locally and push ssh keys
+
+```bash
+ssh-keygen -t rsa -f /home/user1/.ssh/myhost.ssh-key -q -N ''
+ssh-copy-id -i /home/user1/.ssh/myhost.ssh-key.pub knopka@myhost.knopka.int
+ssh-add /home/user1/.ssh/myhost.ssh-key
+```
