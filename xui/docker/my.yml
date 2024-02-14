@@ -14,17 +14,21 @@ services:
     networks:
       - caddy
     labels:
-      caddy_0: ${PANELDOMAIN}
+      caddy_0: ${PANELDOMAIN}:443
       caddy_0.reverse_proxy: "{{upstreams http 2053}}"
-      caddy_1: ${SERVERDOMAIN}
-      caddy_1.reverse_proxy: "{{upstreams https 443}}"
+      caddy_1: ${PANELDOMAIN}:2096
+      caddy_1.reverse_proxy: "{{upstreams http 2096}}"
+      caddy_2: ${SERVERDOMAIN}
+      caddy_2.reverse_proxy: "{{upstreams https 443}}"
       
-  caddy:
+  caddy-proxy:
     image: lucaslorentz/caddy-docker-proxy:${CADDYVERSION}
+    container_name: caddy-proxy
     restart: always
     ports:
       - "443:443"
       - "80:80"
+      - "2096:2096"
     environment:
       - CADDY_INGRESS_NETWORKS=caddy
     networks:
@@ -34,4 +38,4 @@ services:
       - ./caddydata:/data
 networks:
   caddy:
-    external: true
+    name: caddy
