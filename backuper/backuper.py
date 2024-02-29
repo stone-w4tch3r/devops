@@ -80,15 +80,19 @@ class BackupResult:
     Result: BackupResultType
 
 
+def rm(path: Path) -> None:
+    if path.is_file():
+        os.remove(path)
+    else:
+        shutil.rmtree(path)
+
+
 def backup(item: ToBackupItem) -> BackupResult:
     if not item.TargetPath.exists():
         return BackupResult(item.TargetPath, item.BackupPath, BackupResultType.TargetNotFound)
 
     if item.BackupPath.exists():
-        if item.BackupPath.is_file():
-            os.remove(item.BackupPath)
-        else:
-            shutil.rmtree(item.BackupPath)
+        rm(item.BackupPath)
 
     if item.TargetPath.is_file():
         shutil.copy(item.TargetPath, item.BackupPath)
@@ -123,7 +127,7 @@ def restore(item: ImportedConfigItem) -> RestoreResult:
     if item.TargetPath.exists():
         old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
         if (target_parent / old_name).exists():
-            shutil.rmtree(target_parent / old_name)
+            rm(target_parent / old_name)
         os.rename(item.TargetPath, target_parent / old_name)
 
     if item.BackupPath.is_file():
