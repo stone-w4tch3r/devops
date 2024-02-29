@@ -80,41 +80,29 @@ class BackupResult:
     Result: BackupResultType
 
 
-def backup(config_items: list[ToBackupItem]) -> list[BackupResult]:
-    target_not_found = []
-    success = []
+def backup(item: ToBackupItem) -> BackupResult:
+    if not item.TargetPath.exists():
+        return BackupResult(item.TargetPath, item.BackupPath, BackupResultType.TargetNotFound)
 
-    for item in config_items:
-        if not item.TargetPath.exists():
-            target_not_found.append(item)
-            continue
-
-        if item.BackupPath.exists():
-            if item.BackupPath.is_file():
-                os.remove(item.BackupPath)
-            else:
-                shutil.rmtree(item.BackupPath)
-
-        if item.TargetPath.is_file():
-            shutil.copy(item.TargetPath, item.BackupPath)
+    if item.BackupPath.exists():
+        if item.BackupPath.is_file():
+            os.remove(item.BackupPath)
         else:
-            shutil.copytree(item.TargetPath, item.BackupPath)
+            shutil.rmtree(item.BackupPath)
 
-        success.append(item)
+    if item.TargetPath.is_file():
+        shutil.copy(item.TargetPath, item.BackupPath)
+    else:
+        shutil.copytree(item.TargetPath, item.BackupPath)
 
-    return [
-        BackupResult(TargetPath=item.TargetPath, BackupPath=item.BackupPath, Result=BackupResultType.OK)
-        for item in success
-    ] + [
-        BackupResult(TargetPath=item.TargetPath, BackupPath=item.BackupPath, Result=BackupResultType.TargetNotFound)
-        for item in target_not_found
-    ]
+    return BackupResult(item.TargetPath, item.BackupPath, BackupResultType.OK)
 
 
 class RestoreResultType(Enum):
     OK = 1
     BackupNotFound = 2
     TargetParentNotFound = 3
+    PostRestoreError = 4
 
 
 @dataclass
@@ -124,49 +112,29 @@ class RestoreResult:
     Result: RestoreResultType
 
 
-def restore(config_items: list[ImportedConfigItem]) -> list[RestoreResult]:
-    backup_not_found = []
-    target_parent_not_found = []
-    post_restore_error = []
-    success = []
+def restore(item: ImportedConfigItem) -> RestoreResult:
+    if not item.BackupPath.exists():
+        return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.BackupNotFound)
 
-    for item in config_items:
-        if not item.BackupPath.exists():
-            backup_not_found.append(item)
-            continue
+    target_parent = item.TargetPath.parent
+    if not target_parent.exists():
+        return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.TargetParentNotFound)
 
-        target_parent = item.TargetPath.parent
-        if not target_parent.exists():
-            target_parent_not_found.append(item)
-            continue
+    if item.TargetPath.exists():
+        old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
+        if (target_parent / old_name).exists():
+            shutil.rmtree(target_parent / old_name)
+        os.rename(item.TargetPath, target_parent / old_name)
 
-        if item.TargetPath.exists():
-            old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
-            if (target_parent / old_name).exists():
-                shutil.rmtree(target_parent / old_name)
-            os.rename(item.TargetPath, target_parent / old_name)
+    if item.BackupPath.is_file():
+        shutil.copy(item.BackupPath, item.TargetPath)
+    else:
+        shutil.copytree(item.BackupPath, item.TargetPath)
 
-        if item.BackupPath.is_file():
-            shutil.copy(item.BackupPath, item.TargetPath)
-        else:
-            shutil.copytree(item.BackupPath, item.TargetPath)
+    if item.PostRestorePyFile:
+        try:
+            subprocess.run(["python", item.PostRestorePyFile, item.TargetPath], check=True)
+        except subprocess.CalledProcessError:
+            return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.PostRestoreError)
 
-        if item.PostRestorePyFile:
-            try:
-                subprocess.run(["python", item.PostRestorePyFile, item.TargetPath], check=True)
-            except subprocess.CalledProcessError:
-                post_restore_error.append(item)
-                continue
-
-        success.append(item)
-
-    return [
-        RestoreResult(TargetPath=item.TargetPath, BackupPath=item.BackupPath, Result=RestoreResultType.OK)
-        for item in success
-    ] + [
-        RestoreResult(TargetPath=item.TargetPath, BackupPath=item.BackupPath, Result=RestoreResultType.BackupNotFound)
-        for item in backup_not_found
-    ] + [
-        RestoreResult(TargetPath=item.TargetPath, BackupPath=item.BackupPath, Result=RestoreResultType.TargetParentNotFound)
-        for item in target_parent_not_found
-    ]
+    return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.OK)
