@@ -10,15 +10,7 @@ BACKUP_PATH = './testing_dir/backup'
 
 # noinspection DuplicatedCode
 class TestBackup(unittest.TestCase):
-    backup_result_target_not_found = [
-        BackupResult(TargetPath=Path(TARGET_PATH), BackupPath=Path(BACKUP_PATH), Result=BackupResultType.TargetNotFound)
-    ]
-    backup_result_ok = [
-        BackupResult(TargetPath=Path(TARGET_PATH), BackupPath=Path(BACKUP_PATH), Result=BackupResultType.OK)
-    ]
-    config_items = [
-        ToBackupItem(TargetPath=Path(TARGET_PATH), BackupPath=Path(BACKUP_PATH))
-    ]
+    config = ToBackupItem(TargetPath=Path(TARGET_PATH), BackupPath=Path(BACKUP_PATH))
 
     @staticmethod
     def rm_test_files():
@@ -44,10 +36,10 @@ class TestBackup(unittest.TestCase):
         self.assertFalse(os.path.exists(TARGET_PATH))
 
         # act
-        result = backup(self.config_items)
+        result = backup([self.config])
 
         # assert
-        self.assertEqual(result, self.backup_result_target_not_found)
+        self.assertEqual(result[0].Result, BackupResultType.TargetNotFound)
         self.assertFalse(os.path.exists(BACKUP_PATH))
 
     def test_target_exists_then_ok(self):
@@ -55,10 +47,10 @@ class TestBackup(unittest.TestCase):
         os.makedirs(TARGET_PATH, exist_ok=True)
 
         # act
-        result = backup(self.config_items)
+        result = backup([self.config])
 
         # assert
-        self.assertEqual(result, self.backup_result_ok)
+        self.assertEqual(result[0].Result, BackupResultType.OK)
         self.assertTrue(os.path.exists(BACKUP_PATH))
 
     def test_target_is_file_then_ok(self):
@@ -69,10 +61,10 @@ class TestBackup(unittest.TestCase):
             f.write(content)
 
         # act
-        result = backup(self.config_items)
+        result = backup([self.config])
 
         # assert
-        self.assertEqual(result, self.backup_result_ok)
+        self.assertEqual(result[0].Result, BackupResultType.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isfile(f'{BACKUP_PATH}'))
         with open(f'{BACKUP_PATH}', 'r') as f:
@@ -89,10 +81,10 @@ class TestBackup(unittest.TestCase):
             f.write(content)
 
         # act
-        result = backup(self.config_items)
+        result = backup([self.config])
 
         # assert
-        self.assertEqual(result, self.backup_result_ok)
+        self.assertEqual(result[0].Result, BackupResultType.OK)
         self.assertTrue(os.path.exists(BACKUP_PATH))
         self.assertTrue(os.path.isdir(BACKUP_PATH))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
@@ -109,17 +101,17 @@ class TestBackup(unittest.TestCase):
         # arrange
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(content)
-        backup(self.config_items)  # create initial backup
+        backup([self.config])  # create initial backup
 
         # change the content of the target
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(new_content)
 
         # act
-        result = backup(self.config_items)  # create a new backup
+        result = backup([self.config])  # create a new backup
 
         # assert
-        self.assertEqual(result, self.backup_result_ok)
+        self.assertEqual(result[0].Result, BackupResultType.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isfile(f'{BACKUP_PATH}'))
         with open(f'{BACKUP_PATH}', 'r') as f:
@@ -133,7 +125,7 @@ class TestBackup(unittest.TestCase):
         os.makedirs(f'{TARGET_PATH}', exist_ok=True)
         with open(f'{TARGET_PATH}/file1', 'w') as f:
             f.write(content)
-        backup(self.config_items)  # create initial backup
+        backup([self.config])  # create initial backup
 
         # change the content of the target
         with open(f'{TARGET_PATH}/file1', 'w') as f:
@@ -142,10 +134,10 @@ class TestBackup(unittest.TestCase):
             f.write(new_content)
 
         # act
-        result = backup(self.config_items)
+        result = backup([self.config])
 
         # assert
-        self.assertEqual(result, self.backup_result_ok)
+        self.assertEqual(result[0].Result, BackupResultType.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isdir(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
