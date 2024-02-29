@@ -42,8 +42,8 @@ import shutil
 
 # pipeline by types:
 # 1. load: dir_path -> RawConfig[] -> ImportedItem[]
-# 2. backup: ImportedItem -> BackupItem -> (BackupItem, PreCheckResult) -> (BackupItem, CopyResult) -> (BackupItem, VerificationResult) -> BackupResult -> ActionResult
-# 3. restore: ImportedItem -> RestoreItem -> (RestoreItem, PreCheckResult) -> (RestoreItem, CopyResult) -> (RestoreItem, VerificationResult) -> RestoreResult -> ActionResult
+# 2. backup: ImportedItem -> BackupItem -> (BackupItem, BackupPreCheckResult) -> (BackupItem, CopyResult) -> (BackupItem, BackupVerificationResult) -> BackupResult -> ActionResult
+# 3. restore: ImportedItem -> RestoreItem -> (RestoreItem, RestorePreCheckResult) -> (RestoreItem, CopyResult) -> (RestoreItem, RestoreVerificationResult) -> (RestoreItem, PostRestoreResult) -> RestoreResult -> ActionResult
 # 4. summary: ActionResult[] -> Summary
 
 
@@ -81,11 +81,57 @@ class RestoreItem:
     PostRestorePyFile: Path | None
 
 
-class BackupResult(Enum):
+class BackupPreCheckResult(Enum):
     OK = 1
     TargetNotFound = 2
 
 
+class CopyResultStatus(Enum):
+    OK = 1
+    Exception = 2
+
+
+@dataclass
+class CopyResult:
+    Status: CopyResultStatus
+    Exception: Exception | None
+
+
+class BackupVerificationResult(Enum):
+    OK = 1
+    BackupNotFound = 2
+
+
+class RestorePreCheckResult(Enum):
+    OK = 1
+    BackupNotFound = 2
+    TargetParentNotFound = 3
+
+
+class RestoreVerificationResult(Enum):
+    OK = 1
+    OkButOldTargetCopyNotFound = 2
+    TargetNotFound = 3
+
+
+class PostRestoreStatus(Enum):
+    OK = 1
+    Error = 2
+
+
+@dataclass
+class PostRestoreError:
+    ErrorCode: int
+    ErrorMessage: str
+
+
+@dataclass
+class PostRestoreResult:
+    Status: PostRestoreStatus
+    Error: PostRestoreError | None
+
+
+# todo remove
 class RestoreResult(Enum):
     OK = 1
     BackupNotFound = 2
@@ -103,9 +149,9 @@ def rm(path: Path) -> None:
         shutil.rmtree(path)
 
 
-def backup(item: BackupItem) -> BackupResult:
+def backup(item: BackupItem) -> BackupPreCheckResult:
     if not item.TargetPath.exists():
-        return BackupResult.TargetNotFound
+        return BackupPreCheckResult.TargetNotFound
 
     if item.BackupPath.exists():
         rm(item.BackupPath)
@@ -115,7 +161,7 @@ def backup(item: BackupItem) -> BackupResult:
     else:
         shutil.copytree(item.TargetPath, item.BackupPath)
 
-    return BackupResult.OK
+    return BackupPreCheckResult.OK
 
 
 def restore(item: RestoreItem) -> RestoreResult:

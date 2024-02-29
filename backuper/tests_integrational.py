@@ -1,6 +1,6 @@
 import unittest
 import shutil
-from backuper import backup, BackupItem, BackupResult, ImportedItem, restore, RestoreResult, RestoreItem
+from backuper import backup, BackupItem, BackupPreCheckResult, ImportedItem, restore, RestoreResult, RestoreItem
 from pathlib import Path
 import os
 
@@ -35,7 +35,7 @@ class TestBackup(unittest.TestCase):
         result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result, BackupResult.TargetNotFound)
+        self.assertEqual(result, BackupPreCheckResult.TargetNotFound)
         self.assertFalse(os.path.exists(BACKUP_PATH))
 
     def test_target_exists_then_ok(self):
@@ -46,7 +46,7 @@ class TestBackup(unittest.TestCase):
         result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result, BackupResult.OK)
+        self.assertEqual(result, BackupPreCheckResult.OK)
         self.assertTrue(os.path.exists(BACKUP_PATH))
 
     def test_target_is_file_then_ok(self):
@@ -60,7 +60,7 @@ class TestBackup(unittest.TestCase):
         result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result, BackupResult.OK)
+        self.assertEqual(result, BackupPreCheckResult.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isfile(f'{BACKUP_PATH}'))
         with open(f'{BACKUP_PATH}', 'r') as f:
@@ -80,7 +80,7 @@ class TestBackup(unittest.TestCase):
         result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result, BackupResult.OK)
+        self.assertEqual(result, BackupPreCheckResult.OK)
         self.assertTrue(os.path.exists(BACKUP_PATH))
         self.assertTrue(os.path.isdir(BACKUP_PATH))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
@@ -107,7 +107,7 @@ class TestBackup(unittest.TestCase):
         result = backup(self.backup_item)  # create a new backup
 
         # assert
-        self.assertEqual(result, BackupResult.OK)
+        self.assertEqual(result, BackupPreCheckResult.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isfile(f'{BACKUP_PATH}'))
         with open(f'{BACKUP_PATH}', 'r') as f:
@@ -133,7 +133,7 @@ class TestBackup(unittest.TestCase):
         result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result, BackupResult.OK)
+        self.assertEqual(result, BackupPreCheckResult.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isdir(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
