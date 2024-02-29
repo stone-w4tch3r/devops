@@ -40,8 +40,14 @@ import shutil
 # - failed items are stored to be shown in summary
 
 
-# todo: check shutil rm/copy/move functions for compatibility with files and dirs
+# pipeline by types:
+# 1. load: dir_path -> RawConfig[] -> ImportedItem[]
+# 2. backup: ImportedItem -> BackupItem -> (BackupItem, PreCheckResult) -> (BackupItem, CopyResult) -> (BackupItem, VerificationResult) -> BackupResult -> ActionResult
+# 3. restore: ImportedItem -> RestoreItem -> (RestoreItem, PreCheckResult) -> (RestoreItem, CopyResult) -> (RestoreItem, VerificationResult) -> RestoreResult -> ActionResult
+# 4. summary: ActionResult[] -> Summary
 
+
+# region data classes
 
 @dataclass
 class TargetAndPostRestore:
@@ -56,28 +62,38 @@ class RawConfig:
 
 
 @dataclass
-class ImportedConfigItem:
+class ImportedItem:
     TargetPath: Path
     BackupPath: Path
     PostRestorePyFile: Path | None
 
 
 @dataclass
-class ToBackupItem:
+class BackupItem:
     TargetPath: Path
     BackupPath: Path
 
 
-class BackupResultType(Enum):
+@dataclass
+class RestoreItem:
+    TargetPath: Path
+    BackupPath: Path
+    PostRestorePyFile: Path | None
+
+
+class BackupResult(Enum):
     OK = 1
     TargetNotFound = 2
 
 
-@dataclass
-class BackupResult:
-    TargetPath: Path
-    BackupPath: Path
-    Result: BackupResultType
+class RestoreResult(Enum):
+    OK = 1
+    BackupNotFound = 2
+    TargetParentNotFound = 3
+    PostRestoreError = 4
+
+
+# endregion
 
 
 def rm(path: Path) -> None:
@@ -87,9 +103,9 @@ def rm(path: Path) -> None:
         shutil.rmtree(path)
 
 
-def backup(item: ToBackupItem) -> BackupResult:
+def backup(item: BackupItem) -> BackupResult:
     if not item.TargetPath.exists():
-        return BackupResult(item.TargetPath, item.BackupPath, BackupResultType.TargetNotFound)
+        return BackupResult.TargetNotFound
 
     if item.BackupPath.exists():
         rm(item.BackupPath)
@@ -99,30 +115,16 @@ def backup(item: ToBackupItem) -> BackupResult:
     else:
         shutil.copytree(item.TargetPath, item.BackupPath)
 
-    return BackupResult(item.TargetPath, item.BackupPath, BackupResultType.OK)
+    return BackupResult.OK
 
 
-class RestoreResultType(Enum):
-    OK = 1
-    BackupNotFound = 2
-    TargetParentNotFound = 3
-    PostRestoreError = 4
-
-
-@dataclass
-class RestoreResult:
-    TargetPath: Path
-    BackupPath: Path
-    Result: RestoreResultType
-
-
-def restore(item: ImportedConfigItem) -> RestoreResult:
+def restore(item: RestoreItem) -> RestoreResult:
     if not item.BackupPath.exists():
-        return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.BackupNotFound)
+        return RestoreResult.BackupNotFound
 
     target_parent = item.TargetPath.parent
     if not target_parent.exists():
-        return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.TargetParentNotFound)
+        return RestoreResult.TargetParentNotFound
 
     if item.TargetPath.exists():
         old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
@@ -139,9 +141,9 @@ def restore(item: ImportedConfigItem) -> RestoreResult:
         try:
             subprocess.run(["python", item.PostRestorePyFile, item.TargetPath], check=True)
         except subprocess.CalledProcessError:
-            return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.PostRestoreError)
+            return RestoreResult.PostRestoreError
 
-    return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.OK)
+    return RestoreResult.OK
 
 
 def load_configs(dir_path: Path) -> list[RawConfig]:
@@ -150,7 +152,7 @@ def load_configs(dir_path: Path) -> list[RawConfig]:
     return []
 
 
-def import_config(raw_config: RawConfig) -> list[ImportedConfigItem]:
+def import_config(raw_config: RawConfig) -> list[ImportedItem]:
     # todo
     # raw_config is converted to list of ImportedConfigItem
     return []
