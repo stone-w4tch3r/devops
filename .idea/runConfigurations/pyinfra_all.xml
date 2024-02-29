@@ -1,13 +1,14 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="pyinfra_all" type="PythonConfigurationType" factoryName="Python">
     <module name="devops" />
+    <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
     <option name="SDK_HOME" value="" />
-    <option name="SDK_NAME" value="Python 3.10 (devops)" />
+    <option name="SDK_NAME" value="Python 3.10 (pyinfra)" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyinfra_manager" />
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
