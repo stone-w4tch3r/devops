@@ -1,6 +1,6 @@
 import unittest
 import shutil
-from backuper import backup, BackupItem, BackupPreCheckResult, ImportedItem, restore, RestoreResult, RestoreItem
+from backuper import backup_process_files, BackupItem, BackupPreCheckResult, ImportedItem, restore, RestoreResult, RestoreItem
 from pathlib import Path
 import os
 
@@ -32,7 +32,7 @@ class TestBackup(unittest.TestCase):
         self.assertFalse(os.path.exists(TARGET_PATH))
 
         # act
-        result = backup(self.backup_item)
+        result = backup_process_files(self.backup_item)
 
         # assert
         self.assertEqual(result, BackupPreCheckResult.TargetNotFound)
@@ -43,7 +43,7 @@ class TestBackup(unittest.TestCase):
         os.makedirs(TARGET_PATH, exist_ok=True)
 
         # act
-        result = backup(self.backup_item)
+        result = backup_process_files(self.backup_item)
 
         # assert
         self.assertEqual(result, BackupPreCheckResult.OK)
@@ -57,7 +57,7 @@ class TestBackup(unittest.TestCase):
             f.write(content)
 
         # act
-        result = backup(self.backup_item)
+        result = backup_process_files(self.backup_item)
 
         # assert
         self.assertEqual(result, BackupPreCheckResult.OK)
@@ -77,7 +77,7 @@ class TestBackup(unittest.TestCase):
             f.write(content)
 
         # act
-        result = backup(self.backup_item)
+        result = backup_process_files(self.backup_item)
 
         # assert
         self.assertEqual(result, BackupPreCheckResult.OK)
@@ -97,14 +97,14 @@ class TestBackup(unittest.TestCase):
         # arrange
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(content)
-        backup(self.backup_item)  # create initial backup
+        backup_process_files(self.backup_item)  # create initial backup
 
         # change the content of the target
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(new_content)
 
         # act
-        result = backup(self.backup_item)  # create a new backup
+        result = backup_process_files(self.backup_item)  # create a new backup
 
         # assert
         self.assertEqual(result, BackupPreCheckResult.OK)
@@ -121,7 +121,7 @@ class TestBackup(unittest.TestCase):
         os.makedirs(f'{TARGET_PATH}', exist_ok=True)
         with open(f'{TARGET_PATH}/file1', 'w') as f:
             f.write(content)
-        backup(self.backup_item)  # create initial backup
+        backup_process_files(self.backup_item)  # create initial backup
 
         # change the content of the target
         with open(f'{TARGET_PATH}/file1', 'w') as f:
@@ -130,7 +130,7 @@ class TestBackup(unittest.TestCase):
             f.write(new_content)
 
         # act
-        result = backup(self.backup_item)
+        result = backup_process_files(self.backup_item)
 
         # assert
         self.assertEqual(result, BackupPreCheckResult.OK)
