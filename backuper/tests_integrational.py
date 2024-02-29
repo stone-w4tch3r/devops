@@ -1,6 +1,6 @@
 import unittest
 import shutil
-from backuper import backup, ToBackupItem, BackupResultType, ImportedConfigItem, restore, RestoreResultType
+from backuper import backup, BackupItem, BackupResult, ImportedItem, restore, RestoreResult, RestoreItem
 from pathlib import Path
 import os
 
@@ -19,7 +19,7 @@ def rm_test_files():
 
 # noinspection DuplicatedCode
 class TestBackup(unittest.TestCase):
-    config = ToBackupItem(Path(TARGET_PATH), Path(BACKUP_PATH))
+    backup_item = BackupItem(Path(TARGET_PATH), Path(BACKUP_PATH))
 
     def tearDown(self):
         rm_test_files()
@@ -32,10 +32,10 @@ class TestBackup(unittest.TestCase):
         self.assertFalse(os.path.exists(TARGET_PATH))
 
         # act
-        result = backup(self.config)
+        result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result.Result, BackupResultType.TargetNotFound)
+        self.assertEqual(result, BackupResult.TargetNotFound)
         self.assertFalse(os.path.exists(BACKUP_PATH))
 
     def test_target_exists_then_ok(self):
@@ -43,10 +43,10 @@ class TestBackup(unittest.TestCase):
         os.makedirs(TARGET_PATH, exist_ok=True)
 
         # act
-        result = backup(self.config)
+        result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result.Result, BackupResultType.OK)
+        self.assertEqual(result, BackupResult.OK)
         self.assertTrue(os.path.exists(BACKUP_PATH))
 
     def test_target_is_file_then_ok(self):
@@ -57,10 +57,10 @@ class TestBackup(unittest.TestCase):
             f.write(content)
 
         # act
-        result = backup(self.config)
+        result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result.Result, BackupResultType.OK)
+        self.assertEqual(result, BackupResult.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isfile(f'{BACKUP_PATH}'))
         with open(f'{BACKUP_PATH}', 'r') as f:
@@ -77,10 +77,10 @@ class TestBackup(unittest.TestCase):
             f.write(content)
 
         # act
-        result = backup(self.config)
+        result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result.Result, BackupResultType.OK)
+        self.assertEqual(result, BackupResult.OK)
         self.assertTrue(os.path.exists(BACKUP_PATH))
         self.assertTrue(os.path.isdir(BACKUP_PATH))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
@@ -97,17 +97,17 @@ class TestBackup(unittest.TestCase):
         # arrange
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(content)
-        backup(self.config)  # create initial backup
+        backup(self.backup_item)  # create initial backup
 
         # change the content of the target
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(new_content)
 
         # act
-        result = backup(self.config)  # create a new backup
+        result = backup(self.backup_item)  # create a new backup
 
         # assert
-        self.assertEqual(result.Result, BackupResultType.OK)
+        self.assertEqual(result, BackupResult.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isfile(f'{BACKUP_PATH}'))
         with open(f'{BACKUP_PATH}', 'r') as f:
@@ -121,7 +121,7 @@ class TestBackup(unittest.TestCase):
         os.makedirs(f'{TARGET_PATH}', exist_ok=True)
         with open(f'{TARGET_PATH}/file1', 'w') as f:
             f.write(content)
-        backup(self.config)  # create initial backup
+        backup(self.backup_item)  # create initial backup
 
         # change the content of the target
         with open(f'{TARGET_PATH}/file1', 'w') as f:
@@ -130,10 +130,10 @@ class TestBackup(unittest.TestCase):
             f.write(new_content)
 
         # act
-        result = backup(self.config)
+        result = backup(self.backup_item)
 
         # assert
-        self.assertEqual(result.Result, BackupResultType.OK)
+        self.assertEqual(result, BackupResult.OK)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isdir(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
@@ -146,7 +146,7 @@ class TestBackup(unittest.TestCase):
 
 # noinspection DuplicatedCode
 class TestRestore(unittest.TestCase):
-    config = ImportedConfigItem(Path(TARGET_PATH), Path(BACKUP_PATH), None)
+    restore_item = RestoreItem(Path(TARGET_PATH), Path(BACKUP_PATH), None)
 
     def tearDown(self):
         rm_test_files()
@@ -159,23 +159,23 @@ class TestRestore(unittest.TestCase):
         self.assertFalse(os.path.exists(BACKUP_PATH))
 
         # act
-        result = restore(self.config)
+        result = restore(self.restore_item)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.BackupNotFound)
+        self.assertEqual(result, RestoreResult.BackupNotFound)
 
     def test_target_parent_not_exists_then_fail(self):
         # arrange
         target_path = f'{TESTING_DIR}/not_exists/item_to_backup'
-        config = ImportedConfigItem(Path(target_path), Path(BACKUP_PATH), None)
+        restore_item = RestoreItem(Path(target_path), Path(BACKUP_PATH), None)
         os.makedirs(BACKUP_PATH, exist_ok=True)
         self.assertFalse(os.path.exists(target_path))
 
         # act
-        result = restore(config)
+        result = restore(restore_item)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.TargetParentNotFound)
+        self.assertEqual(result, RestoreResult.TargetParentNotFound)
 
     def test_successful_restore_for_file_then_success(self):
         # arrange
@@ -184,10 +184,10 @@ class TestRestore(unittest.TestCase):
             f.write(content)
 
         # act
-        result = restore(self.config)
+        result = restore(self.restore_item)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertEqual(result, RestoreResult.OK)
         self.assertTrue(os.path.exists(TARGET_PATH))
         self.assertTrue(os.path.isfile(TARGET_PATH))
         with open(TARGET_PATH, 'r') as f:
@@ -201,10 +201,10 @@ class TestRestore(unittest.TestCase):
             f.write(content)
 
         # act
-        result = restore(self.config)
+        result = restore(self.restore_item)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertEqual(result, RestoreResult.OK)
         self.assertTrue(os.path.exists(TARGET_PATH))
         self.assertTrue(os.path.isdir(TARGET_PATH))
         self.assertTrue(os.path.exists(f'{TARGET_PATH}/file1'))
@@ -219,13 +219,13 @@ class TestRestore(unittest.TestCase):
         post_restore_py_file = Path(TESTING_DIR) / 'post_restore.py'
         with open(post_restore_py_file, 'w') as f:
             f.write("import sys; sys.exit(1)")
-        config = ImportedConfigItem(Path(TARGET_PATH), Path(BACKUP_PATH), post_restore_py_file)
+        restore_item = RestoreItem(Path(TARGET_PATH), Path(BACKUP_PATH), post_restore_py_file)
 
         # act
-        result = restore(config)
+        result = restore(restore_item)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.PostRestoreError)
+        self.assertEqual(result, RestoreResult.PostRestoreError)
 
     def test_post_restore_called_then_side_effects_present(self):
         # arrange
@@ -236,13 +236,13 @@ class TestRestore(unittest.TestCase):
         post_restore_output_file = Path(TARGET_PATH).parent / "post_restore_output.txt"
         with open(post_restore_py_file, 'w') as f:
             f.write(f"with open('{post_restore_output_file}', 'w') as f: f.write('post_restore was here')")
-        config = ImportedConfigItem(Path(TARGET_PATH), Path(BACKUP_PATH), post_restore_py_file)
+        restore_item = RestoreItem(Path(TARGET_PATH), Path(BACKUP_PATH), post_restore_py_file)
 
         # act
-        result = restore(config)
+        result = restore(restore_item)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertEqual(result, RestoreResult.OK)
         with open(post_restore_output_file, 'r') as f:
             self.assertEqual(f.read(), 'post_restore was here')
 
@@ -257,8 +257,8 @@ class TestRestore(unittest.TestCase):
             f.write(content)
 
         # act 1
-        result = restore(self.config)
-        self.assertEqual(result.Result, RestoreResultType.OK)
+        result = restore(self.restore_item)
+        self.assertEqual(result, RestoreResult.OK)
         self.assertTrue(os.path.exists(old_target_path))
         with open(old_target_path, 'r') as f:
             self.assertEqual(f.read(), content)
@@ -266,14 +266,14 @@ class TestRestore(unittest.TestCase):
         # act 2
         with open(TARGET_PATH, 'w') as f:
             f.write(content_new)
-        result = restore(self.config)
-        self.assertEqual(result.Result, RestoreResultType.OK)
+        result = restore(self.restore_item)
+        self.assertEqual(result, RestoreResult.OK)
         self.assertTrue(os.path.exists(old_target_path))
         with open(old_target_path, 'r') as f:
             self.assertEqual(f.read(), content_new)
 
         # assert
-        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertEqual(result, RestoreResult.OK)
         self.assertTrue(os.path.exists(TARGET_PATH))
         self.assertTrue(os.path.exists(old_target_path))
 
