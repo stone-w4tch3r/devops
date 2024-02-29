@@ -8,6 +8,7 @@ TARGET_PATH = './testing_dir/item_to_backup'
 BACKUP_PATH = './testing_dir/backup'
 
 
+# noinspection DuplicatedCode
 class TestBackup(unittest.TestCase):
     backup_result_target_not_found = [
         BackupResult(TargetPath=Path(TARGET_PATH), BackupPath=Path(BACKUP_PATH), Result=BackupResultType.TargetNotFound)
@@ -111,7 +112,6 @@ class TestBackup(unittest.TestCase):
         backup(self.config_items)  # create initial backup
 
         # change the content of the target
-        # noinspection DuplicatedCode
         with open(f'{TARGET_PATH}', 'w') as f:
             f.write(new_content)
 
@@ -148,7 +148,6 @@ class TestBackup(unittest.TestCase):
         self.assertEqual(result, self.backup_result_ok)
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}'))
         self.assertTrue(os.path.isdir(f'{BACKUP_PATH}'))
-        # noinspection DuplicatedCode
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file1'))
         self.assertTrue(os.path.exists(f'{BACKUP_PATH}/file2'))
         with open(f'{BACKUP_PATH}/file1', 'r') as f:
