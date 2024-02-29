@@ -90,7 +90,10 @@ def backup(config_items: list[ToBackupItem]) -> list[BackupResult]:
             continue
 
         if item.BackupPath.exists():
-            shutil.rmtree(item.BackupPath)
+            if item.BackupPath.is_file():
+                os.remove(item.BackupPath)
+            else:
+                shutil.rmtree(item.BackupPath)
 
         if item.TargetPath.is_file():
             shutil.copy(item.TargetPath, item.BackupPath)
