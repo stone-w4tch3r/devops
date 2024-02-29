@@ -1,35 +1,31 @@
 import unittest
 import shutil
-from backuper import backup, ToBackupItem, BackupResultType
+from backuper import backup, ToBackupItem, BackupResultType, ImportedConfigItem, restore, RestoreResultType
 from pathlib import Path
 import os
 
-TARGET_PATH = './testing_dir/item_to_backup'
-BACKUP_PATH = './testing_dir/backup'
+TESTING_DIR = './testing_dir'
+TARGET_PATH = f'{TESTING_DIR}/item_to_backup'
+BACKUP_PATH = f'{TESTING_DIR}/backup'
+
+
+def rm_test_files():
+    for root, dirs, files in os.walk(TESTING_DIR):
+        for file in files:
+            os.remove(f'{root}/{file}')
+        for directory in dirs:
+            shutil.rmtree(f'{root}/{directory}')
 
 
 # noinspection DuplicatedCode
 class TestBackup(unittest.TestCase):
     config = ToBackupItem(Path(TARGET_PATH), Path(BACKUP_PATH))
 
-    @staticmethod
-    def rm_test_files():
-        if os.path.exists(TARGET_PATH):
-            if os.path.isfile(TARGET_PATH):
-                os.remove(TARGET_PATH)
-            else:
-                shutil.rmtree(TARGET_PATH)
-        if os.path.exists(BACKUP_PATH):
-            if os.path.isfile(BACKUP_PATH):
-                os.remove(BACKUP_PATH)
-            else:
-                shutil.rmtree(BACKUP_PATH)
-
     def tearDown(self):
-        self.rm_test_files()
+        rm_test_files()
 
     def setUp(self):
-        self.rm_test_files()
+        rm_test_files()
 
     def test_target_not_exists_then_fail(self):
         # arrange
@@ -146,6 +142,140 @@ class TestBackup(unittest.TestCase):
             self.assertEqual(f.read(), new_content)
         with open(f'{BACKUP_PATH}/file2', 'r') as f:
             self.assertEqual(f.read(), new_content)
+
+
+# noinspection DuplicatedCode
+class TestRestore(unittest.TestCase):
+    config = ImportedConfigItem(Path(TARGET_PATH), Path(BACKUP_PATH), None)
+
+    def tearDown(self):
+        rm_test_files()
+
+    def setUp(self):
+        rm_test_files()
+
+    def test_backup_not_exists_then_fail(self):
+        # arrange
+        self.assertFalse(os.path.exists(BACKUP_PATH))
+
+        # act
+        result = restore(self.config)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.BackupNotFound)
+
+    def test_target_parent_not_exists_then_fail(self):
+        # arrange
+        target_path = f'{TESTING_DIR}/not_exists/item_to_backup'
+        config = ImportedConfigItem(Path(target_path), Path(BACKUP_PATH), None)
+        os.makedirs(BACKUP_PATH, exist_ok=True)
+        self.assertFalse(os.path.exists(target_path))
+
+        # act
+        result = restore(config)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.TargetParentNotFound)
+
+    def test_successful_restore_for_file_then_success(self):
+        # arrange
+        content = 'test'
+        with open(BACKUP_PATH, 'w') as f:
+            f.write(content)
+
+        # act
+        result = restore(self.config)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertTrue(os.path.exists(TARGET_PATH))
+        self.assertTrue(os.path.isfile(TARGET_PATH))
+        with open(TARGET_PATH, 'r') as f:
+            self.assertEqual(f.read(), content)
+
+    def test_successful_restore_for_directory_then_success(self):
+        # arrange
+        content = 'test'
+        os.makedirs(BACKUP_PATH, exist_ok=True)
+        with open(f'{BACKUP_PATH}/file1', 'w') as f:
+            f.write(content)
+
+        # act
+        result = restore(self.config)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertTrue(os.path.exists(TARGET_PATH))
+        self.assertTrue(os.path.isdir(TARGET_PATH))
+        self.assertTrue(os.path.exists(f'{TARGET_PATH}/file1'))
+        with open(f'{TARGET_PATH}/file1', 'r') as f:
+            self.assertEqual(f.read(), content)
+
+    def test_post_restore_error_then_fail(self):
+        # arrange
+        content = 'test'
+        with open(BACKUP_PATH, 'w') as f:
+            f.write(content)
+        post_restore_py_file = Path(TESTING_DIR) / 'post_restore.py'
+        with open(post_restore_py_file, 'w') as f:
+            f.write("import sys; sys.exit(1)")
+        config = ImportedConfigItem(Path(TARGET_PATH), Path(BACKUP_PATH), post_restore_py_file)
+
+        # act
+        result = restore(config)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.PostRestoreError)
+
+    def test_post_restore_called_then_side_effects_present(self):
+        # arrange
+        content = 'test'
+        with open(BACKUP_PATH, 'w') as f:
+            f.write(content)
+        post_restore_py_file = Path(TARGET_PATH).parent / "post_restore.py"
+        post_restore_output_file = Path(TARGET_PATH).parent / "post_restore_output.txt"
+        with open(post_restore_py_file, 'w') as f:
+            f.write(f"with open('{post_restore_output_file}', 'w') as f: f.write('post_restore was here')")
+        config = ImportedConfigItem(Path(TARGET_PATH), Path(BACKUP_PATH), post_restore_py_file)
+
+        # act
+        result = restore(config)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.OK)
+        with open(post_restore_output_file, 'r') as f:
+            self.assertEqual(f.read(), 'post_restore was here')
+
+    def test_old_target_renamed_and_then_removed(self):
+        # arrange
+        content = 'test'
+        content_new = 'new test'
+        old_target_path = f'{TARGET_PATH}.old_restored'
+        with open(BACKUP_PATH, 'w') as f:
+            f.write(content)
+        with open(TARGET_PATH, 'w') as f:
+            f.write(content)
+
+        # act 1
+        result = restore(self.config)
+        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertTrue(os.path.exists(old_target_path))
+        with open(old_target_path, 'r') as f:
+            self.assertEqual(f.read(), content)
+
+        # act 2
+        with open(TARGET_PATH, 'w') as f:
+            f.write(content_new)
+        result = restore(self.config)
+        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertTrue(os.path.exists(old_target_path))
+        with open(old_target_path, 'r') as f:
+            self.assertEqual(f.read(), content_new)
+
+        # assert
+        self.assertEqual(result.Result, RestoreResultType.OK)
+        self.assertTrue(os.path.exists(TARGET_PATH))
+        self.assertTrue(os.path.exists(old_target_path))
 
 
 if __name__ == '__main__':
