@@ -142,3 +142,26 @@ def restore(item: ImportedConfigItem) -> RestoreResult:
             return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.PostRestoreError)
 
     return RestoreResult(item.TargetPath, item.BackupPath, RestoreResultType.OK)
+
+
+def load_configs(dir_path: Path) -> list[RawConfig]:
+    # todo
+    # config.yml files are searched in dir_path and its 1st level sub-dirs
+    return []
+
+
+def import_config(raw_config: RawConfig) -> list[ImportedConfigItem]:
+    # todo
+    # raw_config is converted to list of ImportedConfigItem
+    return []
+
+
+def entry_point() -> None:
+    # 0. parse args
+    # 1. load configs from dirs
+    # 2. import configs
+    # 3. do pre-checks
+    # 4. do backup/restore
+    # 5. verify results
+    # 6. create summary
+    return
