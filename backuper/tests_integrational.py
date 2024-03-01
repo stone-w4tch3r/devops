@@ -225,7 +225,7 @@ class TestRestore(unittest.TestCase):
         result = restore(restore_item)
 
         # assert
-        self.assertEqual(result, RestoreResult.PostRestoreError)
+        self.assertEqual(result, RestoreResult._PostRestoreError)
 
     def test_post_restore_called_then_side_effects_present(self):
         # arrange
