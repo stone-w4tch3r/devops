@@ -11,13 +11,6 @@ import json
 import argparse
 
 
-# pipeline by types:
-# 1. load: dir_path -> RawConfig[] -> ImportedItem[]
-# 2. backup: ImportedItem -> BackupItem -> (BackupItem, BackupPreCheckResult) -> (BackupItem, FileManipulationResult) -> (BackupItem, BackupVerificationResult) -> ActionResult
-# 3. restore: ImportedItem -> RestoreItem -> (RestoreItem, RestorePreCheckResult) -> (RestoreItem, FileManipulationResult) -> (RestoreItem, RestoreVerificationResult) -> (RestoreItem, PostRestoreResult) -> ActionResult
-# 4. summary: ActionResult[] -> Summary
-
-
 # region data classes
 
 @dataclass
@@ -44,38 +37,21 @@ class ConfigLoadError:
 
 
 @dataclass
-class BackupItem:
-    TargetPath: Path
-    BackupPath: Path
-
-
-@dataclass
 class RestoreItem:
     TargetPath: Path
     BackupPath: Path
     PostRestorePyFile: Path | None
 
 
-class BackupPreCheckResult(Enum):
-    OK = 1
-    TargetNotFound = 2
-
-
-class CopyResultStatus(Enum):
+class FileManipulationStatus(Enum):
     OK = 1
     Exception = 2
 
 
 @dataclass
 class FileManipulationResult:
-    Status: CopyResultStatus
+    Status: FileManipulationStatus
     Exception: Exception | None
-
-
-class BackupVerificationResult(Enum):
-    OK = 1
-    BackupNotFound = 2
-    BackupDifferentThanTarget = 3
 
 
 class RestorePreCheckResult(Enum):
@@ -108,7 +84,7 @@ class PostRestoreResult:
     Error: PostRestoreError | None
 
 
-class ActionResultStatus(Enum):
+class ActionStatus(Enum):
     OK = 1
     Error = 2
     DryRun = 3
@@ -116,7 +92,8 @@ class ActionResultStatus(Enum):
 
 @dataclass
 class ActionResult:
-    Status: ActionResultStatus
+    TargetPath: Path
+    Status: ActionStatus
     ErrorText: str | None
 
 
@@ -132,6 +109,104 @@ class Mode:
 
 
 # endregion
+
+
+class Backuper:
+    @dataclass
+    class BackupItem:
+        TargetPath: Path
+        BackupPath: Path
+
+    class _BackupVerificationResult(Enum):
+        OK = 1
+        BackupNotFound = 2
+        BackupDifferentThanTarget = 3
+
+    class _BackupPreCheckResult(Enum):
+        OK = 1
+        TargetNotFound = 2
+
+    @staticmethod
+    def _backup_pre_check(item: BackupItem) -> _BackupPreCheckResult:
+        return Backuper._BackupPreCheckResult.OK \
+            if item.TargetPath.exists() \
+            else Backuper._BackupPreCheckResult.TargetNotFound
+
+    @staticmethod
+    def _backup_process_files(item: BackupItem) -> FileManipulationResult:
+        try:
+            if item.BackupPath.exists():
+                rm(item.BackupPath)
+
+            if item.TargetPath.is_file():
+                shutil.copy(item.TargetPath, item.BackupPath)
+            else:
+                shutil.copytree(item.TargetPath, item.BackupPath)
+
+            return FileManipulationResult(FileManipulationStatus.OK, None)
+        except Exception as e:
+            return FileManipulationResult(FileManipulationStatus.Exception, e)
+
+    @staticmethod
+    def _backup_verify(item: BackupItem) -> _BackupVerificationResult:
+        if not item.BackupPath.exists():
+            return Backuper._BackupVerificationResult.BackupNotFound
+
+        if item.TargetPath.is_file():
+            return Backuper._BackupVerificationResult.OK \
+                if are_files_same(item.TargetPath, item.BackupPath) \
+                else Backuper._BackupVerificationResult.BackupDifferentThanTarget
+
+        return Backuper._BackupVerificationResult.OK \
+            if are_dirs_same(item.TargetPath, item.BackupPath) \
+            else Backuper._BackupVerificationResult.BackupDifferentThanTarget
+
+    @staticmethod
+    def backup(items: list[BackupItem], is_dry_run: bool) -> list[ActionResult]:
+        pre_check_failed: list[tuple[Backuper.BackupItem, Backuper._BackupPreCheckResult]] = []
+        process_files_failed: list[tuple[Backuper.BackupItem, FileManipulationResult]] = []
+        verify_failed: list[tuple[Backuper.BackupItem, Backuper._BackupVerificationResult]] = []
+        dry_run: list[Backuper.BackupItem] = []
+        success: list[Backuper.BackupItem] = []
+
+        for item in items:
+            pre_check_result = Backuper._backup_pre_check(item)
+            if pre_check_result != Backuper._BackupPreCheckResult.OK:
+                pre_check_failed.append((item, pre_check_result))
+                continue
+
+            if is_dry_run:
+                dry_run.append(item)
+                continue
+
+            process_files_result = Backuper._backup_process_files(item)
+            if process_files_result.Status != FileManipulationStatus.OK:
+                process_files_failed.append((item, process_files_result))
+                continue
+
+            verify_result = Backuper._backup_verify(item)
+            if verify_result != Backuper._BackupVerificationResult.OK:
+                verify_failed.append((item, verify_result))
+                continue
+
+            success.append(item)
+
+        return [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed for {item.TargetPath} [{result.name}]")
+            for item, result in pre_check_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
+            for item, result in process_files_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed for {item.TargetPath} [{result.name}]")
+            for item, result in verify_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.OK, None)
+            for item in success
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.DryRun, None)
+            for item in dry_run
+        ]
 
 
 def rm(path: Path) -> None:
@@ -176,41 +251,6 @@ def are_files_same(file1: Path, file2: Path) -> bool:
     return hash_file(file1) == hash_file(file2)
 
 
-def backup_pre_check(item: BackupItem) -> BackupPreCheckResult:
-    return BackupPreCheckResult.OK \
-        if item.TargetPath.exists() \
-        else BackupPreCheckResult.TargetNotFound
-
-
-def backup_process_files(item: BackupItem) -> FileManipulationResult:
-    try:
-        if item.BackupPath.exists():
-            rm(item.BackupPath)
-
-        if item.TargetPath.is_file():
-            shutil.copy(item.TargetPath, item.BackupPath)
-        else:
-            shutil.copytree(item.TargetPath, item.BackupPath)
-
-        return FileManipulationResult(CopyResultStatus.OK, None)
-    except Exception as e:
-        return FileManipulationResult(CopyResultStatus.Exception, e)
-
-
-def backup_verify(item: BackupItem) -> BackupVerificationResult:
-    if not item.BackupPath.exists():
-        return BackupVerificationResult.BackupNotFound
-
-    if item.TargetPath.is_file():
-        return BackupVerificationResult.OK \
-            if are_files_same(item.TargetPath, item.BackupPath) \
-            else BackupVerificationResult.BackupDifferentThanTarget
-
-    return BackupVerificationResult.OK \
-        if are_dirs_same(item.TargetPath, item.BackupPath) \
-        else BackupVerificationResult.BackupDifferentThanTarget
-
-
 def restore_pre_check(item: RestoreItem) -> RestorePreCheckResult:
     if not item.BackupPath.exists():
         return RestorePreCheckResult.BackupNotFound
@@ -233,9 +273,9 @@ def restore_process_files(item: RestoreItem) -> FileManipulationResult:
             shutil.copy(item.BackupPath, item.TargetPath)
         else:
             shutil.copytree(item.BackupPath, item.TargetPath)
-        return FileManipulationResult(CopyResultStatus.OK, None)
+        return FileManipulationResult(FileManipulationStatus.OK, None)
     except Exception as e:
-        return FileManipulationResult(CopyResultStatus.Exception, e)
+        return FileManipulationResult(FileManipulationStatus.Exception, e)
 
 
 def restore_verify(item: RestoreItem) -> RestoreVerificationResult:
@@ -262,59 +302,13 @@ def run_post_restore_py(item: RestoreItem) -> PostRestoreResult:
         return PostRestoreResult(PostRestoreStatus.Error, PostRestoreError(e.returncode, e.stderr.decode("utf-8")))
 
 
-def backup(items: list[BackupItem], is_dry_run: bool) -> list[ActionResult]:
-    pre_check_failed: list[tuple[BackupItem, BackupPreCheckResult]] = []
-    process_files_failed: list[tuple[BackupItem, FileManipulationResult]] = []
-    verify_failed: list[tuple[BackupItem, BackupVerificationResult]] = []
-    dry_run: list[BackupItem] = []
-    success: list[BackupItem] = []
-
-    for item in items:
-        pre_check_result = backup_pre_check(item)
-        if pre_check_result != BackupPreCheckResult.OK:
-            pre_check_failed.append((item, pre_check_result))
-            continue
-
-        if is_dry_run:
-            dry_run.append(item)
-            continue
-
-        process_files_result = backup_process_files(item)
-        if process_files_result.Status != CopyResultStatus.OK:
-            process_files_failed.append((item, process_files_result))
-            continue
-
-        verify_result = backup_verify(item)
-        if verify_result != BackupVerificationResult.OK:
-            verify_failed.append((item, verify_result))
-            continue
-
-        success.append(item)
-
-    return [
-        ActionResult(ActionResultStatus.Error, f"Pre-check failed for {item.TargetPath} [{result.name}]")
-        for item, result in pre_check_failed
-    ] + [
-        ActionResult(ActionResultStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
-        for item, result in process_files_failed
-    ] + [
-        ActionResult(ActionResultStatus.Error, f"Verify failed for {item.TargetPath} [{result.name}]")
-        for item, result in verify_failed
-    ] + [
-        ActionResult(ActionResultStatus.OK, None)
-        for _ in success
-    ] + [
-        ActionResult(ActionResultStatus.DryRun, None)
-        for _ in dry_run
-    ]
-
-
 def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
     pre_check_failed: list[tuple[RestoreItem, RestorePreCheckResult]] = []
     process_files_failed: list[tuple[RestoreItem, FileManipulationResult]] = []
     verify_failed: list[tuple[RestoreItem, RestoreVerificationResult]] = []
     post_restore_failed: list[tuple[RestoreItem, PostRestoreResult]] = []
     success: list[RestoreItem] = []
+    dry_run: list[RestoreItem] = []
 
     for item in items:
         pre_check_result = restore_pre_check(item)
@@ -323,10 +317,11 @@ def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
             continue
 
         if is_dry_run:
+            dry_run.append(item)
             continue
 
         process_files_result = restore_process_files(item)
-        if process_files_result.Status != CopyResultStatus.OK:
+        if process_files_result.Status != FileManipulationStatus.OK:
             process_files_failed.append((item, process_files_result))
             continue
 
@@ -344,20 +339,24 @@ def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
         success.append(item)
 
     return [
-        ActionResult(ActionResultStatus.Error, f"Pre-check failed for {item.TargetPath}: {result}")
+        ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed for {item.TargetPath} [{result}]")
         for item, result in pre_check_failed
     ] + [
-        ActionResult(ActionResultStatus.Error, f"Process files failed for {item.TargetPath}: {result.Exception}")
+        ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
         for item, result in process_files_failed
     ] + [
-        ActionResult(ActionResultStatus.Error, f"Verify failed for {item.TargetPath}: {result}")
+        ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed for {item.TargetPath} [{result}]")
         for item, result in verify_failed
     ] + [
-        ActionResult(ActionResultStatus.Error, f"Post-restore failed for {item.TargetPath}: {result.Error}")
+        ActionResult(item.TargetPath, ActionStatus.Error, f"Post-restore failed for {item.TargetPath} [{result.Error}]")
         for item, result in post_restore_failed
     ] + [
-        ActionResult(ActionResultStatus.OK, None)
-        for _ in success
+        ActionResult(item.TargetPath, ActionStatus.OK, None)
+        for item in success
+    ] + [
+        ActionResult(item.TargetPath, ActionStatus.DryRun, None)
+        for item in dry_run
+        if is_dry_run
     ]
 
 
@@ -435,8 +434,8 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
     ), configs)
 
     if mode.ActionType == ActionType.Backup:
-        items = [BackupItem(item.TargetPath, item.BackupPath) for item in configs]
-        return backup(items, mode.IsDryRun)
+        items = [Backuper.BackupItem(item.TargetPath, item.BackupPath) for item in configs]
+        return Backuper.backup(items, mode.IsDryRun)
 
     if mode.ActionType == ActionType.Restore:
         items = [RestoreItem(item.TargetPath, item.BackupPath, item.PostRestorePyFile) for item in configs]
@@ -489,9 +488,9 @@ def cli_entry_point() -> None:
     results = run(mode, success_configs)
     print('Processing finished')
 
-    success_results = list(filter(lambda x: x.Status == ActionResultStatus.OK, results))
-    failed_results = list(filter(lambda x: x.Status == ActionResultStatus.Error, results))
-    dry_run_results = list(filter(lambda x: x.Status == ActionResultStatus.DryRun, results))
+    success_results = list(filter(lambda x: x.Status == ActionStatus.OK, results))
+    failed_results = list(filter(lambda x: x.Status == ActionStatus.Error, results))
+    dry_run_results = list(filter(lambda x: x.Status == ActionStatus.DryRun, results))
     print(
         f'Success: {len(success_results)}',
         f'Failed: {len(failed_results)}',
