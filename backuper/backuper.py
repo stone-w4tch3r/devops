@@ -11,16 +11,7 @@ import json
 import argparse
 
 
-# region data classes
-
-@dataclass
-class RawConfigItem:
-    TargetPath: Path
-    PostRestorePyFile: Path | None
-
-
-raw_config_target_path_json_key = "path"
-raw_config_post_restore_py_file_json_key = "post_restore_py_file"
+# region common
 
 
 @dataclass
@@ -28,12 +19,6 @@ class ImportedItem:
     TargetPath: Path
     BackupPath: Path
     PostRestorePyFile: Path | None
-
-
-@dataclass
-class ConfigLoadError:
-    ConfigPath: Path
-    Error: Exception
 
 
 class FileManipulationStatus(Enum):
@@ -71,7 +56,89 @@ class Mode:
     IsDryRun: bool
 
 
+def _rm(path: Path) -> None:
+    if path.is_file():
+        os.remove(path)
+    else:
+        shutil.rmtree(path)
+
+
 # endregion
+
+
+class ConfigLoader:
+    CONFIG_NAME = 'config.json'
+
+    raw_config_target_path_json_key = "path"
+    raw_config_post_restore_py_file_json_key = "post_restore_py_file"
+
+    @dataclass
+    class ConfigItem:
+        TargetPath: Path
+        PostRestorePyFile: Path | None
+
+    @dataclass
+    class ConfigLoadError:
+        ConfigPath: Path
+        Error: Exception
+
+    @staticmethod
+    def _get_content_from_json(data: dict) -> ConfigItem | list[ConfigItem]:
+        if isinstance(data, list):
+            return [ConfigLoader._get_content_from_json(item) for item in data]
+
+        post_restore_py_file = Path(data[ConfigLoader.raw_config_post_restore_py_file_json_key]) \
+            if ConfigLoader.raw_config_post_restore_py_file_json_key in data \
+            else None
+        return ConfigLoader.ConfigItem(
+            Path(data[ConfigLoader.raw_config_target_path_json_key]),
+            post_restore_py_file
+        )
+
+    @staticmethod
+    def load_configs(directory: Path) -> list[ImportedItem | ConfigLoadError]:
+        @dataclass
+        class LoadedConfig:
+            ConfigPath: Path
+            Content: ConfigLoader.ConfigItem | list[ConfigLoader.ConfigItem]
+
+        config_files: list[Path] = []
+        for child in directory.iterdir():
+            if child.is_file() and child.name == ConfigLoader.CONFIG_NAME:
+                config_files.append(child)
+            if child.is_dir() and (child / ConfigLoader.CONFIG_NAME).exists():
+                config_files.append(child / ConfigLoader.CONFIG_NAME)
+
+        loaded_configs: list[LoadedConfig] = []
+        failed_configs: list[ConfigLoader.ConfigLoadError] = []
+        for config_file in config_files:
+            with open(config_file, 'r') as f:
+                try:
+                    data = json.load(f)
+                except Exception as e:
+                    failed_configs.append(ConfigLoader.ConfigLoadError(config_file, e))
+                    continue
+                loaded_configs.append(LoadedConfig(config_file, ConfigLoader._get_content_from_json(data)))
+
+        imported_configs: list[ImportedItem] = []
+        for loaded_config in loaded_configs:
+            if isinstance(loaded_config.Content, list):
+                imported_configs += [ImportedItem(
+                    item.TargetPath,
+                    loaded_config.ConfigPath.parent / item.TargetPath.name,
+                    item.PostRestorePyFile
+                ) for item in loaded_config.Content]
+                continue
+            if isinstance(loaded_config.Content, ConfigLoader.ConfigItem):
+                imported_configs.append(ImportedItem(
+                    loaded_config.Content.TargetPath,
+                    loaded_config.ConfigPath.parent / loaded_config.Content.TargetPath.name,
+                    loaded_config.Content.PostRestorePyFile
+                ))
+                continue
+            raise ValueError(f"Unknown config content type: {loaded_config.Content}")
+
+        return imported_configs + failed_configs
 
 
 class SimilarityVerifier:
@@ -144,7 +211,7 @@ class Backuper:
     def _backup_process_files(item: BackupItem) -> FileManipulationResult:
         try:
             if item.BackupPath.exists():
-                rm(item.BackupPath)
+                _rm(item.BackupPath)
 
             if item.TargetPath.is_file():
                 shutil.copy(item.TargetPath, item.BackupPath)
@@ -195,13 +262,13 @@ class Backuper:
             success.append(item)
 
         return [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed for {item.TargetPath} [{result.name}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{result.name}]")
             for item, result in pre_check_failed
         ] + [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed [{result.Exception}]")
             for item, result in process_files_failed
         ] + [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed for {item.TargetPath} [{result.name}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{result.name}]")
             for item, result in verify_failed
         ] + [
             ActionResult(item.TargetPath, ActionStatus.OK, None)
@@ -260,7 +327,7 @@ class Restorer:
             if item.TargetPath.exists():
                 old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
                 if (item.TargetPath.parent / old_name).exists():
-                    rm(item.TargetPath.parent / old_name)
+                    _rm(item.TargetPath.parent / old_name)
                 os.rename(item.TargetPath, item.TargetPath.parent / old_name)
 
             if item.BackupPath.is_file():
@@ -301,7 +368,7 @@ class Restorer:
     @staticmethod
     def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
         # noinspection PyPep8Naming,PyProtectedMember
-        statusType = Restorer._PostRestoreResult._PostRestoreStatus
+        PostRestoreStatusType = Restorer._PostRestoreResult._PostRestoreStatus
 
         pre_check_failed: list[tuple[Restorer.RestoreItem, Restorer._RestorePreCheckResult]] = []
         process_files_failed: list[tuple[Restorer.RestoreItem, FileManipulationResult]] = []
@@ -332,23 +399,23 @@ class Restorer:
 
             if item.PostRestorePyFile is not None:
                 post_restore_result = Restorer._run_post_restore_py(item)
-                if post_restore_result.Status != statusType.OK:
+                if post_restore_result.Status != PostRestoreStatusType.OK:
                     post_restore_failed.append((item, post_restore_result))
                     continue
 
             success.append(item)
 
         return [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed for {item.TargetPath} [{result}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{result}]")
             for item, result in pre_check_failed
         ] + [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed [{result.Exception}]")
             for item, result in process_files_failed
         ] + [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed for {item.TargetPath} [{result}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{result}]")
             for item, result in verify_failed
         ] + [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Post-restore failed for {item.TargetPath} [{result.Error}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Post-restore failed [{result.Error}]")
             for item, result in post_restore_failed
         ] + [
             ActionResult(item.TargetPath, ActionStatus.OK, None)
@@ -360,77 +427,76 @@ class Restorer:
         ]
 
 
-def rm(path: Path) -> None:
-    if path.is_file():
-        os.remove(path)
-    else:
-        shutil.rmtree(path)
+class CLI:
+    @staticmethod
+    def _parse_args() -> tuple[Path, Mode]:
+        parser = argparse.ArgumentParser(description='Backup/restore files and directories')
+        parser.add_argument('mode', type=str, help='Mode: backup, restore', choices=['backup', 'restore'])
+        parser.add_argument('--dir', type=str, help='Directory with config files', default='.')
+        parser.add_argument('--dry-run', action='store_true', help='Dry run')
+        args = parser.parse_args()
 
+        return Path(args.dir), Mode(ActionType[args.mode.capitalize()], args.dry_run)
 
-def get_config_content_from_json(data: dict) -> RawConfigItem | list[RawConfigItem]:
-    if isinstance(data, list):
-        return [get_config_content_from_json(item) for item in data]
+    @staticmethod
+    def _create_summary(results: list[ActionResult]) -> str:
+        # todo
+        return ""
 
-    return RawConfigItem(
-        Path(data[raw_config_target_path_json_key]),
-        Path(data[raw_config_post_restore_py_file_json_key]) if raw_config_post_restore_py_file_json_key in data else None
-    )
+    @staticmethod
+    def cli_entry_point() -> None:
+        directory, mode = CLI._parse_args()
+        directory = directory.resolve()
 
+        print(
+            'Starting...',
+            f'Directory: {directory}',
+            f'Mode: {mode.ActionType.name}',
+            'Dry run' if mode.IsDryRun else '',
+            sep='\n'
+        )
 
-def load_configs(directory: Path) -> list[ImportedItem | ConfigLoadError]:
-    @dataclass
-    class LoadedConfig:
-        ConfigPath: Path
-        Content: RawConfigItem | list[RawConfigItem]
+        # todo: check permissions and directory/ies existence
+        if not directory.is_dir():
+            print('\n' + f'Directory {directory} does not exist, exiting...')
+            return
+        if not os.access(directory, os.R_OK):
+            print('\n' + f'Directory {directory} is not readable, exiting...')
+            return
 
-    config_name = 'config.json'
-    config_files: list[Path] = []
-    for child in directory.iterdir():
-        if child.is_file() and child.name == config_name:
-            config_files.append(child)
-        if child.is_dir() and (child / config_name).exists():
-            config_files.append(child / config_name)
+        config_load_results = ConfigLoader.load_configs(directory)
+        failed_configs: list[ConfigLoader.ConfigLoadError] = list(filter(lambda x: isinstance(x, ConfigLoader.ConfigLoadError), config_load_results))
+        success_configs: list[ImportedItem] = list(filter(lambda x: isinstance(x, ImportedItem), config_load_results))
+        if not config_load_results:
+            print('\n' + 'No configs found, exiting...')
+            return
+        print(f'Configs found: {len(config_load_results)}')
+        if any(failed_configs):
+            print(f'Configs failed to load: {len(failed_configs)}')
+            for error, i in zip(failed_configs, range(len(failed_configs))):
+                print(f'\t{i + 1}. {error.ConfigPath} [{error.Error}]')
+            print(f'Configs loaded: {len(success_configs)}')
+        else:
+            print('All configs loaded successfully')
 
-    loaded_configs: list[LoadedConfig] = []
-    failed_configs: list[ConfigLoadError] = []
-    for config_file in config_files:
-        with open(config_file, 'r') as f:
-            try:
-                data = json.load(f)
-            except Exception as e:
-                failed_configs.append(ConfigLoadError(config_file, e))
-                continue
-            loaded_configs.append(LoadedConfig(config_file, get_config_content_from_json(data)))
+        print('Starting processing...')
+        results = run(mode, success_configs)
+        print('Processing finished')
 
-    imported_configs: list[ImportedItem] = []
-    for loaded_config in loaded_configs:
-        if isinstance(loaded_config.Content, list):
-            imported_configs += [ImportedItem(
-                item.TargetPath,
-                loaded_config.ConfigPath.parent / item.TargetPath.name,
-                item.PostRestorePyFile
-            ) for item in loaded_config.Content]
-            continue
-        if isinstance(loaded_config.Content, RawConfigItem):
-            imported_configs.append(ImportedItem(
-                loaded_config.Content.TargetPath,
-                loaded_config.ConfigPath.parent / loaded_config.Content.TargetPath.name,
-                loaded_config.Content.PostRestorePyFile
-            ))
-            continue
-        raise ValueError(f"Unknown config content type: {loaded_config.Content}")
-
-    return imported_configs + failed_configs
-
-
-def parse_args() -> tuple[Path, Mode]:
-    parser = argparse.ArgumentParser(description='Backup/restore files and directories')
-    parser.add_argument('mode', type=str, help='Mode: backup, restore', choices=['backup', 'restore'])
-    parser.add_argument('--dir', type=str, help='Directory with config files', default='.')
-    parser.add_argument('--dry-run', action='store_true', help='Dry run')
-    args = parser.parse_args()
-
-    return Path(args.dir), Mode(ActionType[args.mode.capitalize()], args.dry_run)
+        success_results = list(filter(lambda x: x.Status == ActionStatus.OK, results))
+        failed_results = list(filter(lambda x: x.Status == ActionStatus.Error, results))
+        dry_run_results = list(filter(lambda x: x.Status == ActionStatus.DryRun, results))
+        print(
+            f'Success: {len(success_results)}',
+            f'Failed: {len(failed_results)}',
+            f'Dry run: {len(dry_run_results)}',
+            sep='\n'
+        )
+        if any(failed_results):
+            for error, i in zip(failed_results, range(len(failed_results))):
+                print(f'\t{i + 1}. {error.ErrorText}')
+        # summary = create_summary(results)
+        # print(summary)
 
 
 def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
@@ -451,65 +517,5 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
     raise ValueError(f"Unknown mode: {mode}")
 
 
-def create_summary(results: list[ActionResult]) -> str:
-    # todo
-    return ""
-
-
-def cli_entry_point() -> None:
-    directory, mode = parse_args()
-    directory = directory.resolve()
-
-    print(
-        'Starting...',
-        f'Directory: {directory}',
-        f'Mode: {mode.ActionType.name}',
-        'Dry run' if mode.IsDryRun else '',
-        sep='\n'
-    )
-
-    # todo: check permissions and directory/ies existence
-    if not directory.is_dir():
-        print('\n' + f'Directory {directory} does not exist, exiting...')
-        return
-    if not os.access(directory, os.R_OK):
-        print('\n' + f'Directory {directory} is not readable, exiting...')
-        return
-
-    config_load_results = load_configs(directory)
-    failed_configs: list[ConfigLoadError] = list(filter(lambda x: isinstance(x, ConfigLoadError), config_load_results))
-    success_configs: list[ImportedItem] = list(filter(lambda x: isinstance(x, ImportedItem), config_load_results))
-    if not config_load_results:
-        print('\n' + 'No configs found, exiting...')
-        return
-    print(f'Configs found: {len(config_load_results)}')
-    if any(failed_configs):
-        print(f'Configs failed to load: {len(failed_configs)}')
-        for error, i in zip(failed_configs, range(len(failed_configs))):
-            print(f'\t{i + 1}. {error.ConfigPath} [{error.Error}]')
-        print(f'Configs loaded: {len(success_configs)}')
-    else:
-        print('All configs loaded successfully')
-
-    print('Starting processing...')
-    results = run(mode, success_configs)
-    print('Processing finished')
-
-    success_results = list(filter(lambda x: x.Status == ActionStatus.OK, results))
-    failed_results = list(filter(lambda x: x.Status == ActionStatus.Error, results))
-    dry_run_results = list(filter(lambda x: x.Status == ActionStatus.DryRun, results))
-    print(
-        f'Success: {len(success_results)}',
-        f'Failed: {len(failed_results)}',
-        f'Dry run: {len(dry_run_results)}',
-        sep='\n'
-    )
-    if any(failed_results):
-        for error, i in zip(failed_results, range(len(failed_results))):
-            print(f'\t{i + 1}. {error.ErrorText}')
-    # summary = create_summary(results)
-    # print(summary)
-
-
 if __name__ == "__main__":
-    cli_entry_point()
+    CLI.cli_entry_point()
