@@ -36,13 +36,6 @@ class ConfigLoadError:
     Error: Exception
 
 
-@dataclass
-class RestoreItem:
-    TargetPath: Path
-    BackupPath: Path
-    PostRestorePyFile: Path | None
-
-
 class FileManipulationStatus(Enum):
     OK = 1
     Exception = 2
@@ -79,6 +72,51 @@ class Mode:
 
 
 # endregion
+
+
+class SimilarityVerifier:
+    @staticmethod
+    def _get_directory_info(directory: Path) -> tuple[int, int]:
+        assert directory.is_dir(), "Path must be a directory"
+        total_size = 0
+        file_count = 0
+        for root, _, files in os.walk(directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                total_size += os.path.getsize(file_path)
+                file_count += 1
+        return total_size, file_count
+
+    @staticmethod
+    def _hash_file(filepath: Path) -> str:
+        assert filepath.is_file(), "Path must be a file"
+        hasher = hashlib.sha256()
+        with open(filepath, 'rb') as f:
+            while chunk := f.read(8192):
+                hasher.update(chunk)
+        return hasher.hexdigest()
+
+    @staticmethod
+    def _are_dirs_same(dir1: Path, dir2: Path) -> bool:
+        assert dir1.is_dir() and dir2.is_dir(), "Both paths must be directories"
+        if dir1.stat().st_size != dir2.stat().st_size:
+            return False
+        return SimilarityVerifier._get_directory_info(dir1) == SimilarityVerifier._get_directory_info(dir2)
+
+    @staticmethod
+    def _are_files_same(file1: Path, file2: Path) -> bool:
+        assert file1.is_file() and file2.is_file(), "Both paths must be files"
+        if file1.stat().st_size != file2.stat().st_size:
+            return False
+        return SimilarityVerifier._hash_file(file1) == SimilarityVerifier._hash_file(file2)
+
+    @staticmethod
+    def verify_same(path1: Path, path2: Path) -> bool:
+        if path1.is_file() and path2.is_file():
+            return SimilarityVerifier._are_files_same(path1, path2)
+        if path1.is_dir() and path2.is_dir():
+            return SimilarityVerifier._are_dirs_same(path1, path2)
+        return False
 
 
 class Backuper:
@@ -122,13 +160,8 @@ class Backuper:
         if not item.BackupPath.exists():
             return Backuper._BackupVerificationResult.BackupNotFound
 
-        if item.TargetPath.is_file():
-            return Backuper._BackupVerificationResult.OK \
-                if are_files_same(item.TargetPath, item.BackupPath) \
-                else Backuper._BackupVerificationResult.BackupDifferentThanTarget
-
         return Backuper._BackupVerificationResult.OK \
-            if are_dirs_same(item.TargetPath, item.BackupPath) \
+            if SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath) \
             else Backuper._BackupVerificationResult.BackupDifferentThanTarget
 
     @staticmethod
@@ -180,43 +213,49 @@ class Backuper:
 
 
 class Restorer:
-    class RestorePreCheckResult(Enum):
+    @dataclass
+    class RestoreItem:
+        TargetPath: Path
+        BackupPath: Path
+        PostRestorePyFile: Path | None
+
+    class _RestorePreCheckResult(Enum):
         OK = 1
         BackupNotFound = 2
         TargetParentNotFound = 3
 
-    class RestoreVerificationResult(Enum):
+    class _RestoreVerificationResult(Enum):
         OK = 1
         OkButOldTargetCopyNotFound = 2
         TargetNotFound = 3
         BackupDifferentThanTarget = 4
 
     @dataclass
-    class PostRestoreResult:
-        class PostRestoreStatus(Enum):
+    class _PostRestoreResult:
+        class _PostRestoreStatus(Enum):
             OK = 1
             Error = 2
 
         @dataclass
-        class PostRestoreError:
+        class _PostRestoreError:
             ErrorCode: int
             ErrorMessage: str
 
-        Status: PostRestoreStatus
-        Error: PostRestoreError | None
+        Status: _PostRestoreStatus
+        Error: _PostRestoreError | None
 
     @staticmethod
-    def restore_pre_check(item: RestoreItem) -> RestorePreCheckResult:
+    def _restore_pre_check(item: RestoreItem) -> _RestorePreCheckResult:
         if not item.BackupPath.exists():
-            return Restorer.RestorePreCheckResult.BackupNotFound
+            return Restorer._RestorePreCheckResult.BackupNotFound
 
         if not item.TargetPath.parent.exists():
-            return Restorer.RestorePreCheckResult.TargetParentNotFound
+            return Restorer._RestorePreCheckResult.TargetParentNotFound
 
-        return Restorer.RestorePreCheckResult.OK
+        return Restorer._RestorePreCheckResult.OK
 
     @staticmethod
-    def restore_process_files(item: RestoreItem) -> FileManipulationResult:
+    def _restore_process_files(item: RestoreItem) -> FileManipulationResult:
         try:
             if item.TargetPath.exists():
                 old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
@@ -233,52 +272,47 @@ class Restorer:
             return FileManipulationResult(FileManipulationStatus.Exception, e)
 
     @staticmethod
-    def restore_verify(item: RestoreItem) -> RestoreVerificationResult:
+    def _restore_verify(item: RestoreItem) -> _RestoreVerificationResult:
         if not item.TargetPath.exists():
-            return Restorer.RestoreVerificationResult.TargetNotFound
+            return Restorer._RestoreVerificationResult.TargetNotFound
 
-        if item.TargetPath.is_file():
-            return Restorer.RestoreVerificationResult.OK \
-                if are_files_same(item.TargetPath, item.BackupPath) \
-                else Restorer.RestoreVerificationResult.BackupDifferentThanTarget
-
-        return Restorer.RestoreVerificationResult.OK \
-            if are_dirs_same(item.TargetPath, item.BackupPath) \
-            else Restorer.RestoreVerificationResult.BackupDifferentThanTarget
+        return Restorer._RestoreVerificationResult.OK \
+            if SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath) \
+            else Restorer._RestoreVerificationResult.BackupDifferentThanTarget
 
     @staticmethod
-    def run_post_restore_py(item: RestoreItem) -> PostRestoreResult:
-        # noinspection PyPep8Naming
-        statusType = Restorer.PostRestoreResult.PostRestoreStatus
-        # noinspection PyPep8Naming
-        errorType = Restorer.PostRestoreResult.PostRestoreError
+    def _run_post_restore_py(item: RestoreItem) -> _PostRestoreResult:
+        # noinspection PyPep8Naming,PyProtectedMember
+        statusType = Restorer._PostRestoreResult._PostRestoreStatus
+        # noinspection PyPep8Naming,PyProtectedMember
+        errorType = Restorer._PostRestoreResult._PostRestoreError
 
         assert item.PostRestorePyFile is not None, "PostRestorePyFile must be set"
         assert item.PostRestorePyFile.exists(), "PostRestorePyFile must exist"
         try:
             subprocess.run(["python", item.PostRestorePyFile, item.TargetPath], check=True)
-            return Restorer.PostRestoreResult(statusType.OK, None)
+            return Restorer._PostRestoreResult(statusType.OK, None)
         except subprocess.CalledProcessError as e:
-            return Restorer.PostRestoreResult(
+            return Restorer._PostRestoreResult(
                 statusType.Error,
                 errorType(e.returncode, e.stderr.decode("utf-8"))
             )
 
     @staticmethod
     def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
-        # noinspection PyPep8Naming
-        statusType = Restorer.PostRestoreResult.PostRestoreStatus
+        # noinspection PyPep8Naming,PyProtectedMember
+        statusType = Restorer._PostRestoreResult._PostRestoreStatus
 
-        pre_check_failed: list[tuple[RestoreItem, Restorer.RestorePreCheckResult]] = []
-        process_files_failed: list[tuple[RestoreItem, FileManipulationResult]] = []
-        verify_failed: list[tuple[RestoreItem, Restorer.RestoreVerificationResult]] = []
-        post_restore_failed: list[tuple[RestoreItem, Restorer.PostRestoreResult]] = []
-        success: list[RestoreItem] = []
-        dry_run: list[RestoreItem] = []
+        pre_check_failed: list[tuple[Restorer.RestoreItem, Restorer._RestorePreCheckResult]] = []
+        process_files_failed: list[tuple[Restorer.RestoreItem, FileManipulationResult]] = []
+        verify_failed: list[tuple[Restorer.RestoreItem, Restorer._RestoreVerificationResult]] = []
+        post_restore_failed: list[tuple[Restorer.RestoreItem, Restorer._PostRestoreResult]] = []
+        success: list[Restorer.RestoreItem] = []
+        dry_run: list[Restorer.RestoreItem] = []
 
         for item in items:
-            pre_check_result = Restorer.restore_pre_check(item)
-            if pre_check_result != Restorer.RestorePreCheckResult.OK:
+            pre_check_result = Restorer._restore_pre_check(item)
+            if pre_check_result != Restorer._RestorePreCheckResult.OK:
                 pre_check_failed.append((item, pre_check_result))
                 continue
 
@@ -286,18 +320,18 @@ class Restorer:
                 dry_run.append(item)
                 continue
 
-            process_files_result = Restorer.restore_process_files(item)
+            process_files_result = Restorer._restore_process_files(item)
             if process_files_result.Status != FileManipulationStatus.OK:
                 process_files_failed.append((item, process_files_result))
                 continue
 
-            verify_result = Restorer.restore_verify(item)
-            if verify_result != Restorer.RestoreVerificationResult.OK:
+            verify_result = Restorer._restore_verify(item)
+            if verify_result != Restorer._RestoreVerificationResult.OK:
                 verify_failed.append((item, verify_result))
                 continue
 
             if item.PostRestorePyFile is not None:
-                post_restore_result = Restorer.run_post_restore_py(item)
+                post_restore_result = Restorer._run_post_restore_py(item)
                 if post_restore_result.Status != statusType.OK:
                     post_restore_failed.append((item, post_restore_result))
                     continue
@@ -331,41 +365,6 @@ def rm(path: Path) -> None:
         os.remove(path)
     else:
         shutil.rmtree(path)
-
-
-def get_directory_info(directory: Path) -> tuple[int, int]:
-    assert directory.is_dir(), "Path must be a directory"
-    total_size = 0
-    file_count = 0
-    for root, _, files in os.walk(directory):
-        for file in files:
-            file_path = os.path.join(root, file)
-            total_size += os.path.getsize(file_path)
-            file_count += 1
-    return total_size, file_count
-
-
-def are_dirs_same(dir1: Path, dir2: Path) -> bool:
-    assert dir1.is_dir() and dir2.is_dir(), "Both paths must be directories"
-    if dir1.stat().st_size != dir2.stat().st_size:
-        return False
-    return get_directory_info(dir1) == get_directory_info(dir2)
-
-
-def hash_file(filepath: Path) -> str:
-    assert filepath.is_file(), "Path must be a file"
-    hasher = hashlib.sha256()
-    with open(filepath, 'rb') as f:
-        while chunk := f.read(8192):
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-
-def are_files_same(file1: Path, file2: Path) -> bool:
-    assert file1.is_file() and file2.is_file(), "Both paths must be files"
-    if file1.stat().st_size != file2.stat().st_size:
-        return False
-    return hash_file(file1) == hash_file(file2)
 
 
 def get_config_content_from_json(data: dict) -> RawConfigItem | list[RawConfigItem]:
@@ -446,7 +445,7 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
         return Backuper.backup(items, mode.IsDryRun)
 
     if mode.ActionType == ActionType.Restore:
-        items = [RestoreItem(item.TargetPath, item.BackupPath, item.PostRestorePyFile) for item in configs]
+        items = [Restorer.RestoreItem(item.TargetPath, item.BackupPath, item.PostRestorePyFile) for item in configs]
         return Restorer.restore(items, mode.IsDryRun)
 
     raise ValueError(f"Unknown mode: {mode}")
