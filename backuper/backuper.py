@@ -355,13 +355,13 @@ class _Restorer:
             success.append(item)
 
         return [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{result}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{result.name}]")
             for item, result in pre_check_failed
         ] + [
             ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed [{result.Exception}]")
             for item, result in process_files_failed
         ] + [
-            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{result}]")
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{result.name}]")
             for item, result in verify_failed
         ] + [
             ActionResult(item.TargetPath, ActionStatus.Error, f"Post-restore failed [{result.Error}]")
@@ -503,22 +503,21 @@ class _CLI:
         else:
             print('All configs loaded successfully')
 
-        print('Starting processing...')
+        print('\nStarting processing...')
         results = run(mode, success_configs)
-        print('Processing finished')
 
-        success_results = list(filter(lambda x: x.Status == ActionStatus.OK, results))
-        failed_results = list(filter(lambda x: x.Status == ActionStatus.Error, results))
-        dry_run_results = list(filter(lambda x: x.Status == ActionStatus.DryRun, results))
+        success_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.OK, results))
+        failed_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.Error, results))
+        dry_run_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.DryRun, results))
         print(
-            f'Success: {len(success_results)}',
-            f'Failed: {len(failed_results)}',
-            f'Dry run: {len(dry_run_results)}',
-            sep='\n'
+            '\nProcessing finished:' +
+            f'\nSuccess: {len(success_results)}' +
+            f', Failed: {len(failed_results)}' +
+            (f'\nDry run: {len(dry_run_results)}' if mode.IsDryRun else '')
         )
         if any(failed_results):
             for error, i in zip(failed_results, range(len(failed_results))):
-                print(f'\t{i + 1}. {error.ErrorText}')
+                print(f'\t{i + 1}. [{error.TargetPath}] {error.ErrorText}')
         # summary = create_summary(results)
         # print(summary)
 
