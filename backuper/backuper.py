@@ -54,36 +54,6 @@ class FileManipulationResult:
     Exception: Exception | None
 
 
-class RestorePreCheckResult(Enum):
-    OK = 1
-    BackupNotFound = 2
-    TargetParentNotFound = 3
-
-
-class RestoreVerificationResult(Enum):
-    OK = 1
-    OkButOldTargetCopyNotFound = 2
-    TargetNotFound = 3
-    BackupDifferentThanTarget = 4
-
-
-class PostRestoreStatus(Enum):
-    OK = 1
-    Error = 2
-
-
-@dataclass
-class PostRestoreError:
-    ErrorCode: int
-    ErrorMessage: str
-
-
-@dataclass
-class PostRestoreResult:
-    Status: PostRestoreStatus
-    Error: PostRestoreError | None
-
-
 class ActionStatus(Enum):
     OK = 1
     Error = 2
@@ -209,6 +179,153 @@ class Backuper:
         ]
 
 
+class Restorer:
+    class RestorePreCheckResult(Enum):
+        OK = 1
+        BackupNotFound = 2
+        TargetParentNotFound = 3
+
+    class RestoreVerificationResult(Enum):
+        OK = 1
+        OkButOldTargetCopyNotFound = 2
+        TargetNotFound = 3
+        BackupDifferentThanTarget = 4
+
+    @dataclass
+    class PostRestoreResult:
+        class PostRestoreStatus(Enum):
+            OK = 1
+            Error = 2
+
+        @dataclass
+        class PostRestoreError:
+            ErrorCode: int
+            ErrorMessage: str
+
+        Status: PostRestoreStatus
+        Error: PostRestoreError | None
+
+    @staticmethod
+    def restore_pre_check(item: RestoreItem) -> RestorePreCheckResult:
+        if not item.BackupPath.exists():
+            return Restorer.RestorePreCheckResult.BackupNotFound
+
+        if not item.TargetPath.parent.exists():
+            return Restorer.RestorePreCheckResult.TargetParentNotFound
+
+        return Restorer.RestorePreCheckResult.OK
+
+    @staticmethod
+    def restore_process_files(item: RestoreItem) -> FileManipulationResult:
+        try:
+            if item.TargetPath.exists():
+                old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
+                if (item.TargetPath.parent / old_name).exists():
+                    rm(item.TargetPath.parent / old_name)
+                os.rename(item.TargetPath, item.TargetPath.parent / old_name)
+
+            if item.BackupPath.is_file():
+                shutil.copy(item.BackupPath, item.TargetPath)
+            else:
+                shutil.copytree(item.BackupPath, item.TargetPath)
+            return FileManipulationResult(FileManipulationStatus.OK, None)
+        except Exception as e:
+            return FileManipulationResult(FileManipulationStatus.Exception, e)
+
+    @staticmethod
+    def restore_verify(item: RestoreItem) -> RestoreVerificationResult:
+        if not item.TargetPath.exists():
+            return Restorer.RestoreVerificationResult.TargetNotFound
+
+        if item.TargetPath.is_file():
+            return Restorer.RestoreVerificationResult.OK \
+                if are_files_same(item.TargetPath, item.BackupPath) \
+                else Restorer.RestoreVerificationResult.BackupDifferentThanTarget
+
+        return Restorer.RestoreVerificationResult.OK \
+            if are_dirs_same(item.TargetPath, item.BackupPath) \
+            else Restorer.RestoreVerificationResult.BackupDifferentThanTarget
+
+    @staticmethod
+    def run_post_restore_py(item: RestoreItem) -> PostRestoreResult:
+        # noinspection PyPep8Naming
+        statusType = Restorer.PostRestoreResult.PostRestoreStatus
+        # noinspection PyPep8Naming
+        errorType = Restorer.PostRestoreResult.PostRestoreError
+
+        assert item.PostRestorePyFile is not None, "PostRestorePyFile must be set"
+        assert item.PostRestorePyFile.exists(), "PostRestorePyFile must exist"
+        try:
+            subprocess.run(["python", item.PostRestorePyFile, item.TargetPath], check=True)
+            return Restorer.PostRestoreResult(statusType.OK, None)
+        except subprocess.CalledProcessError as e:
+            return Restorer.PostRestoreResult(
+                statusType.Error,
+                errorType(e.returncode, e.stderr.decode("utf-8"))
+            )
+
+    @staticmethod
+    def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
+        # noinspection PyPep8Naming
+        statusType = Restorer.PostRestoreResult.PostRestoreStatus
+
+        pre_check_failed: list[tuple[RestoreItem, Restorer.RestorePreCheckResult]] = []
+        process_files_failed: list[tuple[RestoreItem, FileManipulationResult]] = []
+        verify_failed: list[tuple[RestoreItem, Restorer.RestoreVerificationResult]] = []
+        post_restore_failed: list[tuple[RestoreItem, Restorer.PostRestoreResult]] = []
+        success: list[RestoreItem] = []
+        dry_run: list[RestoreItem] = []
+
+        for item in items:
+            pre_check_result = Restorer.restore_pre_check(item)
+            if pre_check_result != Restorer.RestorePreCheckResult.OK:
+                pre_check_failed.append((item, pre_check_result))
+                continue
+
+            if is_dry_run:
+                dry_run.append(item)
+                continue
+
+            process_files_result = Restorer.restore_process_files(item)
+            if process_files_result.Status != FileManipulationStatus.OK:
+                process_files_failed.append((item, process_files_result))
+                continue
+
+            verify_result = Restorer.restore_verify(item)
+            if verify_result != Restorer.RestoreVerificationResult.OK:
+                verify_failed.append((item, verify_result))
+                continue
+
+            if item.PostRestorePyFile is not None:
+                post_restore_result = Restorer.run_post_restore_py(item)
+                if post_restore_result.Status != statusType.OK:
+                    post_restore_failed.append((item, post_restore_result))
+                    continue
+
+            success.append(item)
+
+        return [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed for {item.TargetPath} [{result}]")
+            for item, result in pre_check_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
+            for item, result in process_files_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed for {item.TargetPath} [{result}]")
+            for item, result in verify_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.Error, f"Post-restore failed for {item.TargetPath} [{result.Error}]")
+            for item, result in post_restore_failed
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.OK, None)
+            for item in success
+        ] + [
+            ActionResult(item.TargetPath, ActionStatus.DryRun, None)
+            for item in dry_run
+            if is_dry_run
+        ]
+
+
 def rm(path: Path) -> None:
     if path.is_file():
         os.remove(path)
@@ -249,115 +366,6 @@ def are_files_same(file1: Path, file2: Path) -> bool:
     if file1.stat().st_size != file2.stat().st_size:
         return False
     return hash_file(file1) == hash_file(file2)
-
-
-def restore_pre_check(item: RestoreItem) -> RestorePreCheckResult:
-    if not item.BackupPath.exists():
-        return RestorePreCheckResult.BackupNotFound
-
-    if not item.TargetPath.parent.exists():
-        return RestorePreCheckResult.TargetParentNotFound
-
-    return RestorePreCheckResult.OK
-
-
-def restore_process_files(item: RestoreItem) -> FileManipulationResult:
-    try:
-        if item.TargetPath.exists():
-            old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
-            if (item.TargetPath.parent / old_name).exists():
-                rm(item.TargetPath.parent / old_name)
-            os.rename(item.TargetPath, item.TargetPath.parent / old_name)
-
-        if item.BackupPath.is_file():
-            shutil.copy(item.BackupPath, item.TargetPath)
-        else:
-            shutil.copytree(item.BackupPath, item.TargetPath)
-        return FileManipulationResult(FileManipulationStatus.OK, None)
-    except Exception as e:
-        return FileManipulationResult(FileManipulationStatus.Exception, e)
-
-
-def restore_verify(item: RestoreItem) -> RestoreVerificationResult:
-    if not item.TargetPath.exists():
-        return RestoreVerificationResult.TargetNotFound
-
-    if item.TargetPath.is_file():
-        return RestoreVerificationResult.OK \
-            if are_files_same(item.TargetPath, item.BackupPath) \
-            else RestoreVerificationResult.BackupDifferentThanTarget
-
-    return RestoreVerificationResult.OK \
-        if are_dirs_same(item.TargetPath, item.BackupPath) \
-        else RestoreVerificationResult.BackupDifferentThanTarget
-
-
-def run_post_restore_py(item: RestoreItem) -> PostRestoreResult:
-    assert item.PostRestorePyFile is not None, "PostRestorePyFile must be set"
-    assert item.PostRestorePyFile.exists(), "PostRestorePyFile must exist"
-    try:
-        subprocess.run(["python", item.PostRestorePyFile, item.TargetPath], check=True)
-        return PostRestoreResult(PostRestoreStatus.OK, None)
-    except subprocess.CalledProcessError as e:
-        return PostRestoreResult(PostRestoreStatus.Error, PostRestoreError(e.returncode, e.stderr.decode("utf-8")))
-
-
-def restore(items: list[RestoreItem], is_dry_run: bool) -> list[ActionResult]:
-    pre_check_failed: list[tuple[RestoreItem, RestorePreCheckResult]] = []
-    process_files_failed: list[tuple[RestoreItem, FileManipulationResult]] = []
-    verify_failed: list[tuple[RestoreItem, RestoreVerificationResult]] = []
-    post_restore_failed: list[tuple[RestoreItem, PostRestoreResult]] = []
-    success: list[RestoreItem] = []
-    dry_run: list[RestoreItem] = []
-
-    for item in items:
-        pre_check_result = restore_pre_check(item)
-        if pre_check_result != RestorePreCheckResult.OK:
-            pre_check_failed.append((item, pre_check_result))
-            continue
-
-        if is_dry_run:
-            dry_run.append(item)
-            continue
-
-        process_files_result = restore_process_files(item)
-        if process_files_result.Status != FileManipulationStatus.OK:
-            process_files_failed.append((item, process_files_result))
-            continue
-
-        verify_result = restore_verify(item)
-        if verify_result != RestoreVerificationResult.OK:
-            verify_failed.append((item, verify_result))
-            continue
-
-        if item.PostRestorePyFile is not None:
-            post_restore_result = run_post_restore_py(item)
-            if post_restore_result.Status != PostRestoreStatus.OK:
-                post_restore_failed.append((item, post_restore_result))
-                continue
-
-        success.append(item)
-
-    return [
-        ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed for {item.TargetPath} [{result}]")
-        for item, result in pre_check_failed
-    ] + [
-        ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed for {item.TargetPath} [{result.Exception}]")
-        for item, result in process_files_failed
-    ] + [
-        ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed for {item.TargetPath} [{result}]")
-        for item, result in verify_failed
-    ] + [
-        ActionResult(item.TargetPath, ActionStatus.Error, f"Post-restore failed for {item.TargetPath} [{result.Error}]")
-        for item, result in post_restore_failed
-    ] + [
-        ActionResult(item.TargetPath, ActionStatus.OK, None)
-        for item in success
-    ] + [
-        ActionResult(item.TargetPath, ActionStatus.DryRun, None)
-        for item in dry_run
-        if is_dry_run
-    ]
 
 
 def get_config_content_from_json(data: dict) -> RawConfigItem | list[RawConfigItem]:
@@ -439,7 +447,7 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
 
     if mode.ActionType == ActionType.Restore:
         items = [RestoreItem(item.TargetPath, item.BackupPath, item.PostRestorePyFile) for item in configs]
-        return restore(items, mode.IsDryRun)
+        return Restorer.restore(items, mode.IsDryRun)
 
     raise ValueError(f"Unknown mode: {mode}")
 
