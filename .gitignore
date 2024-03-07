@@ -217,3 +217,4 @@ $RECYCLE.BIN/
 /pyinfra_manager/inventory_prod.py
 /pyinfra_manager/*.log
 /pyinfra_manager/inventory_work.py
+/backup_tool/testing_dir*
