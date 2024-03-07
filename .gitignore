@@ -218,3 +218,4 @@ $RECYCLE.BIN/
 /pyinfra_manager/*.log
 /pyinfra_manager/inventory_work.py
 /backup_tool/testing_dir*
+/backup_tool/__pycache__
