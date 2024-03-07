@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig connectionConfig="{&quot;serverAliveInterval&quot;:300}" host="mir.knopka.int" id="3a47bcf2-406c-4961-a51e-d2615408b8fd" keyPath="$USER_HOME$/.ssh/work/mir.ssh-key" port="22" customName="test" nameFormat="CUSTOM" username="knopka" useOpenSSHConfig="true">
+        <option name="customName" value="test" />
+      </sshConfig>
+    </configs>
+  </component>
+</project>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="22ad740b-8762-4d09-9b25-7791f10641ae" name="test" url="http://mir.knopka.int">
+        <fileTransfer rootFolder="/home/knopka" accessType="SFTP" host="mir.knopka.int" port="22" sshConfigId="3a47bcf2-406c-4961-a51e-d2615408b8fd" sshConfig="test" keyPair="true">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
