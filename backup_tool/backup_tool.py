@@ -47,13 +47,13 @@ class Mode:
 
 
 def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
-    configs = map(
-        lambda x: ImportedItem(
+    configs = [
+        ImportedItem(
             Path(os.path.expanduser(x.TargetPath)).resolve(),
             Path(os.path.expanduser(x.BackupPath)).resolve(),
             Path(os.path.expanduser(x.PostRestorePyFile)).resolve() if x.PostRestorePyFile is not None else None
-        ), configs
-    )
+        ) for x in configs
+    ]
 
     if mode.ActionType == ActionType.Backup:
         items = [_Backuper.BackupItem(item.TargetPath, item.BackupPath) for item in configs]
@@ -63,15 +63,15 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
         items = [_Restorer.RestoreItem(config.TargetPath, config.BackupPath) for config in configs]
         restored = [_Restorer.restore(item, mode.IsDryRun) for item in items]
 
-        restored_and_config = [(r, c) for r in restored for c in configs if r.TargetPath == c.TargetPath]
-        not_to_execute: list[ActionResult] = list(filter(
-            lambda x: x[0].Status not in [ActionStatus.OK, ActionStatus.DryRun] or x[1].PostRestorePyFile is None,
-            restored_and_config
-        ))
-        to_execute: list[ImportedItem] = filter(
-            lambda x: x[0].Status in [ActionStatus.OK, ActionStatus.DryRun] and x[1].PostRestorePyFile is not None,
-            restored_and_config
-        )
+        results_and_configs = [(r, c) for r in restored for c in configs if r.TargetPath == c.TargetPath]
+        not_to_execute: list[ActionResult] = [
+            result for result, config in results_and_configs
+            if result.Status not in [ActionStatus.OK, ActionStatus.DryRun] or config.PostRestorePyFile is None
+        ]
+        to_execute: list[ImportedItem] = [
+            config for result, config in results_and_configs
+            if result.Status in [ActionStatus.OK, ActionStatus.DryRun] and config.PostRestorePyFile is not None
+        ]
         execution_results = [
             ActionResult(r.TargetPath, backup_path, r.Status, r.ErrorText)
             for x in to_execute
@@ -79,7 +79,7 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
             (_PyExecutor.execute_py(x.TargetPath, x.PostRestorePyFile, mode.IsDryRun), x.BackupPath)
         ]
 
-        return not_to_execute + execution_results
+        return [*not_to_execute, *execution_results]
 
     raise ValueError(f"Unknown mode: {mode}")
 
@@ -563,9 +563,9 @@ class _CLI:
 
     @staticmethod
     def _create_run_summary(result: list[ActionResult]) -> str:
-        success_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.OK, result))
-        failed_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.Error, result))
-        dry_run_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.DryRun, result))
+        success_results = [x for x in result if x.Status == ActionStatus.OK]
+        failed_results = [x for x in result if x.Status == ActionStatus.Error]
+        dry_run_results = [x for x in result if x.Status == ActionStatus.DryRun]
         if len(failed_results) == len(result):
             return ('Processing finished.\n' +
                     f'All {len(result)} failed!')
