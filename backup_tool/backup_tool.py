@@ -196,9 +196,12 @@ class _Backuper:
     @staticmethod
     def backup(item: BackupItem, is_dry_run: bool) -> ActionResult:
         pre_check_result = _Backuper._backup_pre_check(item)
-        # todo check same
+        # noinspection DuplicatedCode
         if pre_check_result != _Backuper._BackupPreCheckResult.OK:
             return ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{pre_check_result.name}]")
+
+        if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
+            return ActionResult(item.TargetPath, ActionStatus.OK, None)
 
         if is_dry_run:
             return ActionResult(item.TargetPath, ActionStatus.DryRun, None)
@@ -270,9 +273,12 @@ class _Restorer:
     @staticmethod
     def restore(item: RestoreItem, is_dry_run: bool) -> ActionResult:
         pre_check_result = _Restorer._restore_pre_check(item)
-        # todo check same
+        # noinspection DuplicatedCode
         if pre_check_result != _Restorer._RestorePreCheckResult.OK:
             return ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{pre_check_result.name}]")
+
+        if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
+            return ActionResult(item.TargetPath, ActionStatus.OK, None)
 
         if is_dry_run:
             return ActionResult(item.TargetPath, ActionStatus.DryRun, None)
@@ -297,10 +303,17 @@ class _PyExecutor:
             return ActionResult(target_path, ActionStatus.DryRun, None)
 
         try:
-            subprocess.run(["python", py_file, target_path], check=True)
+            subprocess.run(["python", py_file, target_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             return ActionResult(target_path, ActionStatus.OK, None)
         except subprocess.CalledProcessError as e:
-            return ActionResult(target_path, ActionStatus.Error, e.stderr.decode("utf-8"))
+            stdout = ''.join('>>>>' + line for line in e.stdout.decode('utf-8').splitlines(True))
+            stderr = ''.join('>>>>' + line for line in e.stderr.decode('utf-8').splitlines(True))
+            error_message = (
+                    f"Command [{' '.join(e.cmd)}'] returned non-zero exit code [{e.returncode}]\n" +
+                    (f"Standard Output:\n{stdout}\n" if stdout else "") +
+                    (f"Standard Error:\n{stderr}\n" if stderr else "")
+            )
+            return ActionResult(target_path, ActionStatus.Error, error_message)
 
 
 class ConfigLoader:
