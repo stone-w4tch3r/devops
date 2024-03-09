@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
+import argparse
+import hashlib
+import json
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-import shutil
-import hashlib
-import json
-import argparse
 
 
 # region public
@@ -328,9 +328,22 @@ class ConfigLoader:
         PostRestorePyFile: Path | None
 
     @dataclass
-    class ConfigLoadError:
-        ConfigPath: Path
-        Error: Exception
+    class ConfigLoadResult:
+        class ConfigLoadStatus(Enum):
+            AllOK = 1
+            SomeFailed = 2
+            AllFailed = 3
+            ConfigDirNotExists = 4
+            ConfigDirNotReadable = 5
+
+        @dataclass
+        class ConfigLoadError:
+            ConfigPath: Path
+            Error: Exception
+
+        Status: ConfigLoadStatus
+        Success: list[ImportedItem]
+        Failed: list[ConfigLoadError]
 
     @staticmethod
     def _get_content_from_json(data: dict) -> ConfigItem | list[ConfigItem]:
@@ -346,7 +359,17 @@ class ConfigLoader:
         )
 
     @staticmethod
-    def load_configs(directory: Path) -> list[ImportedItem | ConfigLoadError]:
+    def load_configs(directory: Path) -> ConfigLoadResult:
+        # noinspection PyPep8Naming
+        statusType = ConfigLoader.ConfigLoadResult.ConfigLoadStatus
+        # noinspection PyPep8Naming
+        loadErrorType = ConfigLoader.ConfigLoadResult.ConfigLoadError
+
+        if not directory.is_dir():
+            return ConfigLoader.ConfigLoadResult(statusType.ConfigDirNotExists, [], [])
+        if not os.access(directory, os.R_OK):
+            return ConfigLoader.ConfigLoadResult(statusType.ConfigDirNotReadable, [], [])
+
         @dataclass
         class LoadedConfig:
             ConfigPath: Path
@@ -360,13 +383,13 @@ class ConfigLoader:
                 config_files.append(child / ConfigLoader.CONFIG_NAME)
 
         loaded_configs: list[LoadedConfig] = []
-        failed_configs: list[ConfigLoader.ConfigLoadError] = []
+        failed_configs: list[loadErrorType] = []
         for config_file in config_files:
             with open(config_file, 'r') as f:
                 try:
                     data = json.load(f)
                 except Exception as e:
-                    failed_configs.append(ConfigLoader.ConfigLoadError(config_file, e))
+                    failed_configs.append(loadErrorType(config_file, e))
                     continue
                 loaded_configs.append(LoadedConfig(config_file, ConfigLoader._get_content_from_json(data)))
 
@@ -388,7 +411,12 @@ class ConfigLoader:
                 continue
             raise ValueError(f"Unknown config content type: {loaded_config.Content}")
 
-        return imported_configs + failed_configs
+        result_status: statusType = statusType.AllOK
+        if failed_configs:
+            result_status = statusType.SomeFailed
+        if len(failed_configs) == len(config_files):
+            result_status = statusType.AllFailed
+        return ConfigLoader.ConfigLoadResult(result_status, imported_configs, failed_configs)
 
 
 class _CLI:
@@ -421,12 +449,6 @@ class _CLI:
         )
 
         # todo: check permissions and directory/ies existence
-        if not directory.is_dir():
-            print('\n' + f'Directory {directory} does not exist, exiting...')
-            return
-        if not os.access(directory, os.R_OK):
-            print('\n' + f'Directory {directory} is not readable, exiting...')
-            return
 
         config_load_results = ConfigLoader.load_configs(directory)
         failed_configs: list[ConfigLoader.ConfigLoadError] = list(filter(lambda x: isinstance(x, ConfigLoader.ConfigLoadError), config_load_results))
