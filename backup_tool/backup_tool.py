@@ -30,6 +30,7 @@ class ActionStatus(Enum):
 @dataclass
 class ActionResult:
     TargetPath: Path
+    BackupPath: Path
     Status: ActionStatus
     ErrorText: str | None
 
@@ -46,11 +47,13 @@ class Mode:
 
 
 def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
-    configs = map(lambda x: ImportedItem(
-        Path(os.path.expanduser(x.TargetPath)).resolve(),
-        Path(os.path.expanduser(x.BackupPath)).resolve(),
-        Path(os.path.expanduser(x.PyFile)).resolve() if x.PyFile is not None else None
-    ), configs)
+    configs = map(
+        lambda x: ImportedItem(
+            Path(os.path.expanduser(x.TargetPath)).resolve(),
+            Path(os.path.expanduser(x.BackupPath)).resolve(),
+            Path(os.path.expanduser(x.PostRestorePyFile)).resolve() if x.PostRestorePyFile is not None else None
+        ), configs
+    )
 
     if mode.ActionType == ActionType.Backup:
         items = [_Backuper.BackupItem(item.TargetPath, item.BackupPath) for item in configs]
@@ -69,7 +72,12 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
             lambda x: x[0].Status in [ActionStatus.OK, ActionStatus.DryRun] and x[1].PostRestorePyFile is not None,
             restored_and_config
         )
-        execution_results = [_PyExecutor.execute_py(x.TargetPath, x.PostRestorePyFile, mode.IsDryRun) for x in to_execute]
+        execution_results = [
+            ActionResult(r.TargetPath, backup_path, r.Status, r.ErrorText)
+            for x in to_execute
+            for r, backup_path in
+            (_PyExecutor.execute_py(x.TargetPath, x.PostRestorePyFile, mode.IsDryRun), x.BackupPath)
+        ]
 
         return not_to_execute + execution_results
 
@@ -236,23 +244,32 @@ class _Backuper:
         pre_check_result = _Backuper._backup_pre_check(item)
         # noinspection DuplicatedCode
         if pre_check_result != _Backuper._BackupPreCheckResult.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{_Backuper._pre_check_result_to_str_map[pre_check_result]}]")
+            return ActionResult(
+                item.TargetPath,
+                item.BackupPath,
+                ActionStatus.Error, f"Pre-check failed [{_Backuper._pre_check_result_to_str_map[pre_check_result]}]"
+            )
 
         if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
-            return ActionResult(item.TargetPath, ActionStatus.OK, None)
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.OK, None)
 
         if is_dry_run:
-            return ActionResult(item.TargetPath, ActionStatus.DryRun, None)
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.DryRun, None)
 
         process_files_result = _Backuper._backup_process_files(item)
         if process_files_result.Status != _FileManipulationStatus.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed [{process_files_result.Exception}]")
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.Error, f"Process files failed [{process_files_result.Exception}]")
 
         verify_result = _Backuper._backup_verify(item)
         if verify_result != _Backuper._BackupVerificationResult.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{_Backuper._verification_result_to_str_map[verify_result]}]")
+            return ActionResult(
+                item.TargetPath,
+                item.BackupPath,
+                ActionStatus.Error,
+                f"Verify failed [{_Backuper._verification_result_to_str_map[verify_result]}]"
+            )
 
-        return ActionResult(item.TargetPath, ActionStatus.OK, None)
+        return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.OK, None)
 
 
 class _Restorer:
@@ -351,36 +368,42 @@ class _Restorer:
         pre_check_result = _Restorer._restore_pre_check(item)
         # noinspection DuplicatedCode
         if pre_check_result != _Restorer._RestorePreCheckResult.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{pre_check_result.name}]")
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.Error, f"Pre-check failed [{pre_check_result.name}]")
 
         if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
-            return ActionResult(item.TargetPath, ActionStatus.OK, None)
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.OK, None)
 
         if is_dry_run:
-            return ActionResult(item.TargetPath, ActionStatus.DryRun, None)
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.DryRun, None)
 
         process_files_result = _Restorer._restore_process_files(item)
         if process_files_result.Status != _FileManipulationStatus.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Process files failed [{process_files_result.Exception}]")
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.Error, f"Process files failed [{process_files_result.Exception}]")
 
         verify_result = _Restorer._restore_verify(item)
         if verify_result != _Restorer._RestoreVerificationResult.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{verify_result.name}]")
+            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.Error, f"Verify failed [{verify_result.name}]")
 
-        return ActionResult(item.TargetPath, ActionStatus.OK, None)
+        return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.OK, None)
 
 
 class _PyExecutor:
+    @dataclass
+    class ExecutePyResult:
+        TargetPath: Path
+        Status: ActionStatus
+        ErrorText: str | None
+
     @staticmethod
-    def execute_py(target_path: Path, py_file: Path, is_dry_run: bool) -> ActionResult:
+    def execute_py(target_path: Path, py_file: Path, is_dry_run: bool) -> ExecutePyResult:
         assert py_file.exists(), f"Py file must exist [{py_file}]"
 
         if is_dry_run:
-            return ActionResult(target_path, ActionStatus.DryRun, None)
+            return _PyExecutor.ExecutePyResult(target_path, ActionStatus.DryRun, None)
 
         try:
             subprocess.run(["python", py_file, target_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return ActionResult(target_path, ActionStatus.OK, None)
+            return _PyExecutor.ExecutePyResult(target_path, ActionStatus.OK, None)
         except subprocess.CalledProcessError as e:
             stdout = ''.join('>>>>' + line for line in e.stdout.decode('utf-8').splitlines(True))
             stderr = ''.join('>>>>' + line for line in e.stderr.decode('utf-8').splitlines(True))
@@ -389,7 +412,7 @@ class _PyExecutor:
                     (f"Standard Output:\n{stdout}\n" if stdout else "") +
                     (f"Standard Error:\n{stderr}\n" if stderr else "")
             )
-            return ActionResult(target_path, ActionStatus.Error, error_message)
+            return _PyExecutor.ExecutePyResult(target_path, ActionStatus.Error, error_message)
 
 
 class ConfigLoader:
@@ -479,11 +502,13 @@ class ConfigLoader:
                 ) for item in loaded_config.Content]
                 continue
             if isinstance(loaded_config.Content, ConfigLoader.ConfigItem):
-                imported_configs.append(ImportedItem(
-                    loaded_config.Content.TargetPath,
-                    loaded_config.ConfigPath.parent / loaded_config.Content.TargetPath.name,
-                    loaded_config.Content.PostRestorePyFile
-                ))
+                imported_configs.append(
+                    ImportedItem(
+                        loaded_config.Content.TargetPath,
+                        loaded_config.ConfigPath.parent / loaded_config.Content.TargetPath.name,
+                        loaded_config.Content.PostRestorePyFile
+                    )
+                )
                 continue
             raise ValueError(f"Unknown config content type: {loaded_config.Content}")
 
@@ -542,7 +567,13 @@ class _CLI:
         if len(dry_run_results) == len(result):
             return ('Processing finished.\n' +
                     f'All {len(result)} dry run, no errors.')
-        errors = [f'\t{i + 1}. [{error.TargetPath}] {error.ErrorText}' for error, i in zip(failed_results, range(len(failed_results)))]
+        errors = [
+            (f'>>>>{i + 1}.\n' +
+             f'>>>>Target path [{error.TargetPath}]\n' +
+             f'>>>>Backup path [{error.BackupPath}]\n' +
+             f'>>>>Error: {error.ErrorText}')
+            for error, i in zip(failed_results, range(len(failed_results)))
+        ]
         return ('Processing finished.\n' +
                 (f'Success: {len(success_results)}\n' if any(success_results) else '') +
                 (f'Dry run: {len(dry_run_results)}\n' if any(dry_run_results) else '') +
