@@ -115,8 +115,11 @@ def _is_write_allowed(path: Path) -> bool:
 
 def _is_read_allowed(path: Path) -> bool:
     assert path.exists(), f"Path must exist [{path}]"
-    return (os.access(path, os.R_OK)
-            and all([_is_read_allowed(p) for p in path.iterdir() if p.is_dir()]))
+    if path.is_file():
+        return os.access(path, os.R_OK)
+
+    if path.is_dir():
+        return all([_is_read_allowed(p) for p in path.iterdir()])
 
 
 # endregion
