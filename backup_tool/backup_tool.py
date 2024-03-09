@@ -100,6 +100,16 @@ def _rm(path: Path) -> None:
         shutil.rmtree(path)
 
 
+def _is_write_allowed(path: Path) -> bool:
+    return path.exists() and os.access(path, os.W_OK)
+
+
+def _is_read_allowed(path: Path) -> bool:
+    return (path.exists()
+            and os.access(path, os.R_OK)
+            and all([_is_read_allowed(p) for p in path.iterdir() if p.is_dir()]))
+
+
 # endregion
 
 
@@ -162,12 +172,40 @@ class _Backuper:
     class _BackupPreCheckResult(Enum):
         OK = 1
         TargetNotFound = 2
+        PermissionsError_TargetReadable_BackupNotWritable = 3
+        PermissionsError_TargetNotReadable_BackupWritable = 4
+        PermissionsError_TargetNotReadable_BackupNotWritable = 5
+
+    _verification_result_to_str_map = {
+        _BackupVerificationResult.OK: "OK",
+        _BackupVerificationResult.BackupNotFound: "Backup not found",
+        _BackupVerificationResult.BackupDifferentThanTarget: "Backup different than target"
+    }
+
+    _pre_check_result_to_str_map = {
+        _BackupPreCheckResult.OK: "OK",
+        _BackupPreCheckResult.TargetNotFound: "Target not found",
+        _BackupPreCheckResult.PermissionsError_TargetReadable_BackupNotWritable: "Permissions error: backup path not writable",
+        _BackupPreCheckResult.PermissionsError_TargetNotReadable_BackupWritable: "Permissions error: target path or it's subdirectories not readable",
+        _BackupPreCheckResult.PermissionsError_TargetNotReadable_BackupNotWritable:
+            "Permissions error: target path or it's subdirectories not readable, backup path not writable"
+    }
 
     @staticmethod
     def _backup_pre_check(item: BackupItem) -> _BackupPreCheckResult:
-        return _Backuper._BackupPreCheckResult.OK \
-            if item.TargetPath.exists() \
-            else _Backuper._BackupPreCheckResult.TargetNotFound
+        if not item.TargetPath.exists():
+            return _Backuper._BackupPreCheckResult.TargetNotFound
+
+        is_target_read_allowed = _is_read_allowed(item.TargetPath)
+        is_backup_write_allowed = _is_write_allowed(item.BackupPath)
+        if is_target_read_allowed and not is_backup_write_allowed:
+            return _Backuper._BackupPreCheckResult.PermissionsError_TargetReadable_BackupNotWritable
+        if not is_target_read_allowed and is_backup_write_allowed:
+            return _Backuper._BackupPreCheckResult.PermissionsError_TargetNotReadable_BackupWritable
+        if not is_target_read_allowed and not is_backup_write_allowed:
+            return _Backuper._BackupPreCheckResult.PermissionsError_TargetNotReadable_BackupNotWritable
+
+        return _Backuper._BackupPreCheckResult.OK
 
     @staticmethod
     def _backup_process_files(item: BackupItem) -> _FileManipulationResult:
@@ -198,7 +236,7 @@ class _Backuper:
         pre_check_result = _Backuper._backup_pre_check(item)
         # noinspection DuplicatedCode
         if pre_check_result != _Backuper._BackupPreCheckResult.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{pre_check_result.name}]")
+            return ActionResult(item.TargetPath, ActionStatus.Error, f"Pre-check failed [{_Backuper._pre_check_result_to_str_map[pre_check_result]}]")
 
         if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
             return ActionResult(item.TargetPath, ActionStatus.OK, None)
@@ -212,7 +250,7 @@ class _Backuper:
 
         verify_result = _Backuper._backup_verify(item)
         if verify_result != _Backuper._BackupVerificationResult.OK:
-            return ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{verify_result.name}]")
+            return ActionResult(item.TargetPath, ActionStatus.Error, f"Verify failed [{_Backuper._verification_result_to_str_map[verify_result]}]")
 
         return ActionResult(item.TargetPath, ActionStatus.OK, None)
 
@@ -227,12 +265,36 @@ class _Restorer:
         OK = 1
         BackupNotFound = 2
         TargetParentNotFound = 3
+        PermissionsError_TargetWritable_BackupNotReadable = 4
+        PermissionsError_TargetNotWritable_BackupReadable = 5
+        PermissionsError_TargetNotWritable_BackupNotReadable = 6
 
     class _RestoreVerificationResult(Enum):
         OK = 1
-        OkButOldTargetCopyNotFound = 2
+        OKButOldTargetBackupNotFound = 2
         TargetNotFound = 3
         BackupDifferentThanTarget = 4
+
+    _pre_check_result_to_str_map = {
+        _RestorePreCheckResult.OK: "OK",
+        _RestorePreCheckResult.BackupNotFound: "Backup not found",
+        _RestorePreCheckResult.TargetParentNotFound: "Target parent not found",
+        _RestorePreCheckResult.PermissionsError_TargetWritable_BackupNotReadable:
+            "Permissions error: backup path or it's subdirectories not readable",
+        _RestorePreCheckResult.PermissionsError_TargetNotWritable_BackupReadable: "Permissions error: target path not writable",
+        _RestorePreCheckResult.PermissionsError_TargetNotWritable_BackupNotReadable:
+            "Permissions error: target path not writable, backup path or it's subdirectories not readable"
+    }
+
+    _verification_result_to_str_map = {
+        _RestoreVerificationResult.OK: "OK",
+        _RestoreVerificationResult.OKButOldTargetBackupNotFound:
+            "OK, but old target backup not found (failed to backup old target or backup already was same as target, so no backup was made)",
+        _RestoreVerificationResult.TargetNotFound: "Target not found",
+        _RestoreVerificationResult.BackupDifferentThanTarget: "After restore, backup is different than target"
+    }
+
+    _old_target_backup_suffix = ".before_restore"
 
     @staticmethod
     def _restore_pre_check(item: RestoreItem) -> _RestorePreCheckResult:
@@ -242,13 +304,22 @@ class _Restorer:
         if not item.TargetPath.parent.exists():
             return _Restorer._RestorePreCheckResult.TargetParentNotFound
 
+        is_target_write_allowed = _is_write_allowed(item.TargetPath)
+        is_backup_read_allowed = _is_read_allowed(item.BackupPath)
+        if is_target_write_allowed and not is_backup_read_allowed:
+            return _Restorer._RestorePreCheckResult.PermissionsError_TargetWritable_BackupNotReadable
+        if not is_target_write_allowed and is_backup_read_allowed:
+            return _Restorer._RestorePreCheckResult.PermissionsError_TargetNotWritable_BackupReadable
+        if not is_target_write_allowed and not is_backup_read_allowed:
+            return _Restorer._RestorePreCheckResult.PermissionsError_TargetNotWritable_BackupNotReadable
+
         return _Restorer._RestorePreCheckResult.OK
 
     @staticmethod
     def _restore_process_files(item: RestoreItem) -> _FileManipulationResult:
         try:
             if item.TargetPath.exists():
-                old_name = item.TargetPath.stem + ".old_restored" + item.TargetPath.suffix
+                old_name = item.TargetPath.stem + _Restorer._old_target_backup_suffix + item.TargetPath.suffix
                 if (item.TargetPath.parent / old_name).exists():
                     _rm(item.TargetPath.parent / old_name)
                 os.rename(item.TargetPath, item.TargetPath.parent / old_name)
@@ -266,9 +337,14 @@ class _Restorer:
         if not item.TargetPath.exists():
             return _Restorer._RestoreVerificationResult.TargetNotFound
 
-        return _Restorer._RestoreVerificationResult.OK \
-            if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath) \
-            else _Restorer._RestoreVerificationResult.BackupDifferentThanTarget
+        if not _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
+            return _Restorer._RestoreVerificationResult.BackupDifferentThanTarget
+
+        old_target_copy = Path(item.TargetPath.parent / (item.TargetPath.stem + _Restorer._old_target_backup_suffix + item.TargetPath.suffix))
+        if not old_target_copy.exists():
+            return _Restorer._RestoreVerificationResult.OKButOldTargetBackupNotFound
+
+        return _Restorer._RestoreVerificationResult.OK
 
     @staticmethod
     def restore(item: RestoreItem, is_dry_run: bool) -> ActionResult:
@@ -367,7 +443,7 @@ class ConfigLoader:
 
         if not directory.is_dir():
             return ConfigLoader.ConfigLoadResult(statusType.ConfigDirNotExists, [], [])
-        if not os.access(directory, os.R_OK):
+        if not _is_read_allowed(directory):
             return ConfigLoader.ConfigLoadResult(statusType.ConfigDirNotReadable, [], [])
 
         @dataclass
@@ -437,7 +513,7 @@ class _CLI:
         if result.Status is configLoadStatusType.ConfigDirNotExists:
             return 'Config directory not exists!'
         if result.Status is configLoadStatusType.ConfigDirNotReadable:
-            return 'Config directory not readable!'
+            return "Config directory or it's subdirectories not readable!"
         if result.Status is configLoadStatusType.AllFailed:
             return (f'Found {len(result.Failed)} configs\n' +
                     f'All failed to load!')
@@ -484,8 +560,6 @@ class _CLI:
             'Dry run' if mode.IsDryRun else '',
             sep='\n'
         )
-
-        # todo: check permissions and directory/ies existence
 
         config_load_result = ConfigLoader.load_configs(directory)
         print(_CLI._create_config_load_summary(config_load_result))
