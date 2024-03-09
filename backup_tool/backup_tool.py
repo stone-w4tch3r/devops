@@ -7,7 +7,7 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 
 
@@ -22,9 +22,9 @@ class ImportedItem:
 
 
 class ActionStatus(Enum):
-    OK = 1
-    Error = 2
-    DryRun = 3
+    OK = auto()
+    Error = auto()
+    DryRun = auto()
 
 
 @dataclass
@@ -36,8 +36,8 @@ class ActionResult:
 
 
 class ActionType(Enum):
-    Backup = 1
-    Restore = 2
+    Backup = auto()
+    Restore = auto()
 
 
 @dataclass
@@ -91,8 +91,8 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
 
 
 class _FileManipulationStatus(Enum):
-    OK = 1
-    Exception = 2
+    OK = auto()
+    Exception = auto()
 
 
 @dataclass
@@ -109,12 +109,13 @@ def _rm(path: Path) -> None:
 
 
 def _is_write_allowed(path: Path) -> bool:
-    return path.exists() and os.access(path, os.W_OK)
+    assert path.exists(), f"Path must exist [{path}]"
+    return os.access(path, os.W_OK)
 
 
 def _is_read_allowed(path: Path) -> bool:
-    return (path.exists()
-            and os.access(path, os.R_OK)
+    assert path.exists(), f"Path must exist [{path}]"
+    return (os.access(path, os.R_OK)
             and all([_is_read_allowed(p) for p in path.iterdir() if p.is_dir()]))
 
 
@@ -173,26 +174,28 @@ class _Backuper:
         BackupPath: Path
 
     class _BackupVerificationResult(Enum):
-        OK = 1
-        BackupNotFound = 2
-        BackupDifferentThanTarget = 3
+        OK = auto()
+        BackupNotFound = auto()
+        BackupDifferentThanTarget = auto()
 
     class _BackupPreCheckResult(Enum):
-        OK = 1
-        TargetNotFound = 2
-        PermissionsError_TargetReadable_BackupNotWritable = 3
-        PermissionsError_TargetNotReadable_BackupWritable = 4
-        PermissionsError_TargetNotReadable_BackupNotWritable = 5
+        OK = auto()
+        TargetNotFound = auto()
+        BackupParentNotFound = auto()
+        PermissionsError_TargetReadable_BackupNotWritable = auto()
+        PermissionsError_TargetNotReadable_BackupWritable = auto()
+        PermissionsError_TargetNotReadable_BackupNotWritable = auto()
 
     _verification_result_to_str_map = {
         _BackupVerificationResult.OK: "OK",
         _BackupVerificationResult.BackupNotFound: "Backup not found",
-        _BackupVerificationResult.BackupDifferentThanTarget: "Backup different than target"
+        _BackupVerificationResult.BackupDifferentThanTarget: "Saved backup is different than it's source target"
     }
 
     _pre_check_result_to_str_map = {
         _BackupPreCheckResult.OK: "OK",
-        _BackupPreCheckResult.TargetNotFound: "Target not found",
+        _BackupPreCheckResult.TargetNotFound: "Target to be backed up not found",
+        _BackupPreCheckResult.BackupParentNotFound: "Folder to save backup not found",
         _BackupPreCheckResult.PermissionsError_TargetReadable_BackupNotWritable: "Permissions error: backup path not writable",
         _BackupPreCheckResult.PermissionsError_TargetNotReadable_BackupWritable: "Permissions error: target path or it's subdirectories not readable",
         _BackupPreCheckResult.PermissionsError_TargetNotReadable_BackupNotWritable:
@@ -203,9 +206,11 @@ class _Backuper:
     def _backup_pre_check(item: BackupItem) -> _BackupPreCheckResult:
         if not item.TargetPath.exists():
             return _Backuper._BackupPreCheckResult.TargetNotFound
+        if not item.BackupPath.parent.exists():
+            return _Backuper._BackupPreCheckResult.BackupParentNotFound
 
         is_target_read_allowed = _is_read_allowed(item.TargetPath)
-        is_backup_write_allowed = _is_write_allowed(item.BackupPath)
+        is_backup_write_allowed = _is_write_allowed(item.BackupPath.parent)
         if is_target_read_allowed and not is_backup_write_allowed:
             return _Backuper._BackupPreCheckResult.PermissionsError_TargetReadable_BackupNotWritable
         if not is_target_read_allowed and is_backup_write_allowed:
@@ -279,18 +284,18 @@ class _Restorer:
         BackupPath: Path
 
     class _RestorePreCheckResult(Enum):
-        OK = 1
-        BackupNotFound = 2
-        TargetParentNotFound = 3
-        PermissionsError_TargetWritable_BackupNotReadable = 4
-        PermissionsError_TargetNotWritable_BackupReadable = 5
-        PermissionsError_TargetNotWritable_BackupNotReadable = 6
+        OK = auto()
+        BackupNotFound = auto()
+        TargetParentNotFound = auto()
+        PermissionsError_TargetWritable_BackupNotReadable = auto()
+        PermissionsError_TargetNotWritable_BackupReadable = auto()
+        PermissionsError_TargetNotWritable_BackupNotReadable = auto()
 
     class _RestoreVerificationResult(Enum):
-        OK = 1
-        OKButOldTargetBackupNotFound = 2
-        TargetNotFound = 3
-        BackupDifferentThanTarget = 4
+        OK = auto()
+        OKButOldTargetBackupNotFound = auto()
+        TargetNotFound = auto()
+        BackupDifferentThanTarget = auto()
 
     _pre_check_result_to_str_map = {
         _RestorePreCheckResult.OK: "OK",
@@ -429,11 +434,11 @@ class ConfigLoader:
     @dataclass
     class ConfigLoadResult:
         class ConfigLoadStatus(Enum):
-            AllOK = 1
-            SomeFailed = 2
-            AllFailed = 3
-            ConfigDirNotExists = 4
-            ConfigDirNotReadable = 5
+            AllOK = auto()
+            SomeFailed = auto()
+            AllFailed = auto()
+            ConfigDirNotExists = auto()
+            ConfigDirNotReadable = auto()
 
         @dataclass
         class ConfigLoadError:
