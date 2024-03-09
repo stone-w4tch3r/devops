@@ -64,10 +64,10 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
         restored = [_Restorer.restore(item, mode.IsDryRun) for item in items]
 
         restored_and_config = [(r, c) for r in restored for c in configs if r.TargetPath == c.TargetPath]
-        not_to_execute: list[ActionResult] = filter(
+        not_to_execute: list[ActionResult] = list(filter(
             lambda x: x[0].Status not in [ActionStatus.OK, ActionStatus.DryRun] or x[1].PostRestorePyFile is None,
             restored_and_config
-        )
+        ))
         to_execute: list[ImportedItem] = filter(
             lambda x: x[0].Status in [ActionStatus.OK, ActionStatus.DryRun] and x[1].PostRestorePyFile is not None,
             restored_and_config
