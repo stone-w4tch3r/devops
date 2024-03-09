@@ -431,9 +431,46 @@ class _CLI:
         return Path(args.dir), Mode(ActionType[args.mode.capitalize()], args.dry_run)
 
     @staticmethod
-    def _create_summary(results: list[ActionResult]) -> str:
-        # todo
-        return ""
+    def _create_config_load_summary(result: ConfigLoader.ConfigLoadResult) -> str:
+        # noinspection PyPep8Naming
+        configLoadStatusType = ConfigLoader.ConfigLoadResult.ConfigLoadStatus
+        if result.Status is configLoadStatusType.ConfigDirNotExists:
+            return 'Config directory not exists!'
+        if result.Status is configLoadStatusType.ConfigDirNotReadable:
+            return 'Config directory not readable!'
+        if result.Status is configLoadStatusType.AllFailed:
+            return (f'Found {len(result.Failed)} configs\n' +
+                    f'All failed to load!')
+        if result.Status is configLoadStatusType.AllOK:
+            return (f'Found {len(result.Success)} configs\n' +
+                    f'All loaded successfully')
+        if result.Status is configLoadStatusType.SomeFailed:
+            errors = [f'\t{i + 1}. {error.ConfigPath} [{error.Error}]' for error, i in zip(result.Failed, range(len(result.Failed)))]
+            return (f'Found {len(result.Success)} configs\n' +
+                    f'Failed to load: {len(result.Failed)}' +
+                    '\n'.join(errors) + '\n' +
+                    f'Loaded successfully: {len(result.Success)}')
+        raise ValueError(f"Unknown status: {result.Status}")
+
+    @staticmethod
+    def _create_run_summary(result: list[ActionResult]) -> str:
+        success_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.OK, result))
+        failed_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.Error, result))
+        dry_run_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.DryRun, result))
+        if len(failed_results) == len(result):
+            return ('Processing finished.\n' +
+                    f'All {len(result)} failed!')
+        if len(success_results) == len(result):
+            return ('Processing finished.\n' +
+                    f'All {len(result)} successful!')
+        if len(dry_run_results) == len(result):
+            return ('Processing finished.\n' +
+                    f'All {len(result)} dry run, no errors.')
+        errors = [f'\t{i + 1}. [{error.TargetPath}] {error.ErrorText}' for error, i in zip(failed_results, range(len(failed_results)))]
+        return ('Processing finished.\n' +
+                (f'Success: {len(success_results)}\n' if any(success_results) else '') +
+                (f'Dry run: {len(dry_run_results)}\n' if any(dry_run_results) else '') +
+                (f'Failed: {len(failed_results)}\n' + '\n'.join(errors) if any(failed_results) else ''))
 
     @staticmethod
     def cli_entry_point() -> None:
@@ -450,38 +487,21 @@ class _CLI:
 
         # todo: check permissions and directory/ies existence
 
-        config_load_results = ConfigLoader.load_configs(directory)
-        failed_configs: list[ConfigLoader.ConfigLoadError] = list(filter(lambda x: isinstance(x, ConfigLoader.ConfigLoadError), config_load_results))
-        success_configs: list[ImportedItem] = list(filter(lambda x: isinstance(x, ImportedItem), config_load_results))
-        if not config_load_results:
-            print('\n' + 'No configs found, exiting...')
-            return
-        print(f'Configs found: {len(config_load_results)}')
-        if any(failed_configs):
-            print(f'Configs failed to load: {len(failed_configs)}')
-            for error, i in zip(failed_configs, range(len(failed_configs))):
-                print(f'\t{i + 1}. {error.ConfigPath} [{error.Error}]')
-            print(f'Configs loaded: {len(success_configs)}')
-        else:
-            print('All configs loaded successfully')
+        config_load_result = ConfigLoader.load_configs(directory)
+        print(_CLI._create_config_load_summary(config_load_result))
+
+        # noinspection PyPep8Naming
+        configLoadStatusType = ConfigLoader.ConfigLoadResult.ConfigLoadStatus
+        if config_load_result.Status not in [configLoadStatusType.AllOK, configLoadStatusType.SomeFailed]:
+            print("Cannot continue, exiting...")
+            exit(1)
 
         print('\nStarting processing...')
-        results = run(mode, success_configs)
+        results = run(mode, config_load_result.Success)
 
-        success_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.OK, results))
-        failed_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.Error, results))
-        dry_run_results: list[ActionResult] = list(filter(lambda x: x.Status == ActionStatus.DryRun, results))
-        print(
-            '\nProcessing finished:' +
-            f'\nSuccess: {len(success_results)}' +
-            f', Failed: {len(failed_results)}' +
-            (f'\nDry run: {len(dry_run_results)}' if mode.IsDryRun else '')
-        )
-        if any(failed_results):
-            for error, i in zip(failed_results, range(len(failed_results))):
-                print(f'\t{i + 1}. [{error.TargetPath}] {error.ErrorText}')
-        # summary = create_summary(results)
-        # print(summary)
+        print(_CLI._create_run_summary(results))
+        print('Finished')
+        exit(0)
 
 
 if __name__ == "__main__":
