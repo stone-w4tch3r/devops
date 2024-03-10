@@ -74,9 +74,10 @@ def run(mode: Mode, configs: list[ImportedItem]) -> list[ActionResult]:
         ]
         execution_results = [
             ActionResult(r.TargetPath, backup_path, r.Status, r.ErrorText)
-            for x in to_execute
-            for r, backup_path in
-            (_PyExecutor.execute_py(x.TargetPath, x.PostRestorePyFile, mode.IsDryRun), x.BackupPath)
+            for r, backup_path in [
+                (_PyExecutor.execute_py(x.TargetPath, x.PostRestorePyFile, mode.IsDryRun), x.BackupPath)
+                for x in to_execute
+            ]
         ]
 
         return [*not_to_execute, *execution_results]
@@ -416,12 +417,12 @@ class _PyExecutor:
             subprocess.run(["python", py_file, target_path], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             return _PyExecutor.ExecutePyResult(target_path, ActionStatus.OK, None)
         except subprocess.CalledProcessError as e:
-            stdout = ''.join('>>>>' + line for line in e.stdout.decode('utf-8').splitlines(True))
-            stderr = ''.join('>>>>' + line for line in e.stderr.decode('utf-8').splitlines(True))
+            stdout = ''.join('>>>>' + line for line in e.stdout.decode('utf-8').splitlines())
+            stderr = ''.join('>>>>' + line for line in e.stderr.decode('utf-8').splitlines())
             error_message = (
-                    f"Command [{' '.join(e.cmd)}'] returned non-zero exit code [{e.returncode}]\n" +
-                    (f"Standard Output:\n{stdout}\n" if stdout else "") +
-                    (f"Standard Error:\n{stderr}\n" if stderr else "")
+                    f"Provided py script [{py_file}'] returned non-zero exit code [{e.returncode}]\n" +
+                    (f"Standard Output:\n{stdout}\n" if stdout else "No stdout\n") +
+                    (f"Standard Error:\n{stderr}\n" if stderr else "No stderr\n")
             )
             return _PyExecutor.ExecutePyResult(target_path, ActionStatus.Error, error_message)
 
