@@ -211,11 +211,16 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,windows,linux,terraform,rider
 # custom
+.idea/copilot/*
 /config
+
 /pyinfra_manager/keys/*
 !/pyinfra_manager/keys/.placeholder
 /pyinfra_manager/inventory_prod.py
 /pyinfra_manager/*.log
 /pyinfra_manager/inventory_work.py
+
 /backup_tool/testing_dir*
 /backup_tool/__pycache__
+
+/os_setuper/__pycache__
