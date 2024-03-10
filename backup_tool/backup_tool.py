@@ -296,7 +296,6 @@ class _Restorer:
 
     class _RestoreVerificationResult(Enum):
         OK = auto()
-        OKButOldTargetBackupNotFound = auto()
         TargetNotFound = auto()
         BackupDifferentThanTarget = auto()
 
@@ -313,13 +312,9 @@ class _Restorer:
 
     _verification_result_to_str_map = {
         _RestoreVerificationResult.OK: "OK",
-        _RestoreVerificationResult.OKButOldTargetBackupNotFound:
-            "OK, but old target backup not found (failed to backup old target or backup already was same as target, so no backup was made)",
         _RestoreVerificationResult.TargetNotFound: "Target not found",
         _RestoreVerificationResult.BackupDifferentThanTarget: "After restore, backup is different than target"
     }
-
-    _old_target_backup_suffix = ".before_restore"
 
     @staticmethod
     def _restore_pre_check(item: RestoreItem) -> _RestorePreCheckResult:
@@ -329,7 +324,9 @@ class _Restorer:
         if not item.TargetPath.parent.exists():
             return _Restorer._RestorePreCheckResult.TargetParentNotFound
 
-        is_target_write_allowed = _is_write_allowed(item.TargetPath)
+        is_target_write_allowed = _is_write_allowed(item.TargetPath) \
+            if item.TargetPath.exists() \
+            else _is_write_allowed(item.TargetPath.parent)
         is_backup_read_allowed = _is_read_allowed(item.BackupPath)
         if is_target_write_allowed and not is_backup_read_allowed:
             return _Restorer._RestorePreCheckResult.PermissionsError_TargetWritable_BackupNotReadable
@@ -344,7 +341,7 @@ class _Restorer:
     def _restore_process_files(item: RestoreItem) -> _FileManipulationResult:
         try:
             if item.TargetPath.exists():
-                old_name = item.TargetPath.stem + _Restorer._old_target_backup_suffix + item.TargetPath.suffix
+                old_name = item.TargetPath.stem + ".before_restore" + item.TargetPath.suffix
                 if (item.TargetPath.parent / old_name).exists():
                     _rm(item.TargetPath.parent / old_name)
                 os.rename(item.TargetPath, item.TargetPath.parent / old_name)
@@ -365,10 +362,6 @@ class _Restorer:
         if not _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
             return _Restorer._RestoreVerificationResult.BackupDifferentThanTarget
 
-        old_target_copy = Path(item.TargetPath.parent / (item.TargetPath.stem + _Restorer._old_target_backup_suffix + item.TargetPath.suffix))
-        if not old_target_copy.exists():
-            return _Restorer._RestoreVerificationResult.OKButOldTargetBackupNotFound
-
         return _Restorer._RestoreVerificationResult.OK
 
     @staticmethod
@@ -376,7 +369,12 @@ class _Restorer:
         pre_check_result = _Restorer._restore_pre_check(item)
         # noinspection DuplicatedCode
         if pre_check_result != _Restorer._RestorePreCheckResult.OK:
-            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.Error, f"Pre-check failed [{pre_check_result.name}]")
+            return ActionResult(
+                item.TargetPath,
+                item.BackupPath,
+                ActionStatus.Error,
+                f"Pre-check failed [{_Restorer._pre_check_result_to_str_map[pre_check_result]}]"
+            )
 
         if _SimilarityVerifier.verify_same(item.TargetPath, item.BackupPath):
             return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.OK, None)
@@ -390,7 +388,12 @@ class _Restorer:
 
         verify_result = _Restorer._restore_verify(item)
         if verify_result != _Restorer._RestoreVerificationResult.OK:
-            return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.Error, f"Verify failed [{verify_result.name}]")
+            return ActionResult(
+                item.TargetPath,
+                item.BackupPath,
+                ActionStatus.Error,
+                f"Verify failed [{_Restorer._verification_result_to_str_map[verify_result]}]"
+            )
 
         return ActionResult(item.TargetPath, item.BackupPath, ActionStatus.OK, None)
 
@@ -554,7 +557,7 @@ class _CLI:
             return (f'Found {len(result.Success)} configs\n' +
                     f'All loaded successfully')
         if result.Status is configLoadStatusType.SomeFailed:
-            errors = [f'\t{i + 1}. {error.ConfigPath} [{error.Error}]' for error, i in zip(result.Failed, range(len(result.Failed)))]
+            errors = [f'\t{i + 1}. {error.ConfigPath} [{error.Error}]' for i, error in enumerate(result.Failed)]
             return (f'Found {len(result.Success)} configs\n' +
                     f'Failed to load: {len(result.Failed)}' +
                     '\n'.join(errors) + '\n' +
@@ -580,7 +583,7 @@ class _CLI:
              f'>>>>Target path [{error.TargetPath}]\n' +
              f'>>>>Backup path [{error.BackupPath}]\n' +
              f'>>>>Error: {error.ErrorText}')
-            for error, i in zip(failed_results, range(len(failed_results)))
+            for i, error in enumerate(failed_results)
         ]
         return ('Processing finished.\n' +
                 (f'Success: {len(success_results)}\n' if any(success_results) else '') +
