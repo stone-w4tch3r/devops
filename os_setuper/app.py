@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 
-from pyinfra.operations import apt
+from pyinfra import host
+from pyinfra.facts import server as server_facts
+from pyinfra.operations import apt, dnf, snap, server
 
 from common import URL, OS
 from units import _IUnit
@@ -9,7 +11,7 @@ from units import _IUnit
 
 # region INTERNAL
 
-class _IInstallConfig:
+class _IInstallMethod:
 
     @property
     @abstractmethod
@@ -36,7 +38,7 @@ class AptPpa:
 
 
 @dataclass(frozen=True)
-class Apt(_IInstallConfig):
+class Apt(_IInstallMethod):
     Name: str
     Version: str | None = None
     RepoOrPpa: AptRepo | AptPpa | None = None
@@ -46,18 +48,27 @@ class Apt(_IInstallConfig):
 
 
 @dataclass(frozen=True)
-class Brew(_IInstallConfig):
+class Dnf(_IInstallMethod):
     Name: str
     Version: str | None = None
 
     @property
-    def os(self) -> list[OS]: return [OS.osx]
+    def os(self) -> list[OS]: return [OS.fedora]
+
+
+@dataclass(frozen=True)
+class Snap(_IInstallMethod):
+    Name: str
+    Version: str | None = None
+
+    @property
+    def os(self) -> list[OS]: return [OS.ubuntu, OS.debian, OS.fedora]
 
 
 @dataclass(frozen=True)
 class App(_IUnit):
-    Name: str
-    Source: _IInstallConfig | str
+    Installation: _IInstallMethod | str
+    Name: str | None = None
 
     @property
     def name(self) -> str: return self.Name
@@ -67,20 +78,54 @@ class App(_IUnit):
 
 
 def handle(apps: list[App]):
-    apt_packages = [app.Source for app in apps if isinstance(app.Source, Apt)]
-    brew_packages = [app.Source for app in apps if isinstance(app.Source, Brew)]
-    str_sources = [app.Source for app in apps if isinstance(app.Source, str)]
+    apt_packages = [app.Installation for app in apps if isinstance(app.Installation, Apt)]
+    dnf_packages = [app.Installation for app in apps if isinstance(app.Installation, Dnf)]
+    snap_packages = [app.Installation for app in apps if isinstance(app.Installation, Snap)]
+    str_packages = [app.Installation for app in apps if isinstance(app.Installation, str)]
+
+    distro: OS
+    match host.get_fact(server_facts.LinuxDistribution)['name']:
+        case 'Ubuntu':
+            distro = OS.ubuntu
+        case 'Debian':
+            distro = OS.debian
+        case 'Fedora':
+            distro = OS.fedora
+        case _:
+            raise Exception('Unsupported OS')
+
+    # todo: improve this check
+    assert all([distro in package.os for package in apt_packages + dnf_packages + snap_packages]), 'OS mismatch'
 
     for ppa in [package.RepoOrPpa for package in apt_packages if isinstance(package.RepoOrPpa, AptPpa)]:
         # todo: apt.ppa is not idempotent, check if ppa is already added
         apt.ppa(src=ppa, _sudo=True)
-    for key in [package.RepoOrPpa.Key for package in apt_packages if isinstance(package.RepoOrPpa, AptRepo)]:
+        apt.update()
+    for key, repo in [(package.RepoOrPpa.Key, package.RepoOrPpa.RepoSourceStr) for package in apt_packages if isinstance(package.RepoOrPpa, AptRepo)]:
         apt.key(key=key, _sudo=True)
-    for repo in [package.RepoOrPpa.RepoSourceStr for package in apt_packages if isinstance(package.RepoOrPpa, AptRepo)]:
         apt.repo(repo=repo, _sudo=True)
+        apt.update()
     apt.packages(
         packages=[apt_package.Name for apt_package in apt_packages],
         cache_time=86400,
+        update=True,
+        _sudo=True
+    )
+
+    dnf.packages(
+        packages=[dnf_package.Name for dnf_package in dnf_packages],
+        _sudo=True
+        # update=True,
+    )
+
+    for package in snap_packages:
+        snap.package(
+            name=package.Name,
+            _sudo=True
+        )
+
+    server.packages(
+        packages=str_packages,
         update=True,
         _sudo=True
     )
