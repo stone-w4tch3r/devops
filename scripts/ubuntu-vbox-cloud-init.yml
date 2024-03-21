@@ -1,0 +1,22 @@
+#cloud-config
+
+hostname: my-ubuntu-server
+
+packages:
+  - openssh-server
+  - virtualbox-guest-utils
+
+# not working (
+#ssh_pwauth: true
+#disable_root: false
+
+chpasswd:
+  list: |
+    root:root
+  expire: False
+  
+runcmd:
+  - rm /etc/ssh/sshd_config.d/*
+  - echo "PermitRootLogin yes" >> /etc/ssh/sshd_config.d/00-permit-root-login.conf
+  - echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config.d/00-password-authentication.conf
+  - systemctl restart sshd
