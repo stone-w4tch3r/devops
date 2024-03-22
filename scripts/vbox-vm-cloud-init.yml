@@ -1,6 +1,6 @@
 #cloud-config
 
-hostname: my-ubuntu-server
+hostname: vbox-primary
 
 packages:
   - openssh-server
