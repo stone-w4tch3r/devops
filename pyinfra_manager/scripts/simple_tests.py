@@ -2,6 +2,8 @@
 import os
 import subprocess
 
+from recreate_vm_full import main as recreate_vm_full
+
 
 def run(cmd: str, ignore_errs: bool = False):
     return subprocess.run(cmd, shell=True, check=not ignore_errs)
@@ -46,26 +48,26 @@ print("##########################################")
 
 if 1 in tests_to_run:
     print("deploy: basic, ubuntu\n")
-    run(f"scripts/recreate_target.py {ubuntu_distro}")
+    recreate_vm_full(ubuntu_distro)
     run(run_basic_complexity_normal)
     run(run_basic_complexity_extended)
 
 if 2 in tests_to_run:
     print("deploy: basic, debian\n")
-    run(f"scripts/recreate_target.py {debian_distro}")
+    recreate_vm_full(debian_distro)
     run(run_basic_complexity_normal)
     run(run_basic_complexity_extended)
 
 if 3 in tests_to_run:
     print("deploy: rooted, ubuntu\n")
-    run(f"scripts/recreate_target.py {ubuntu_distro}")
+    recreate_vm_full(ubuntu_distro)
     run(enable_root_command)
     run(run_rooted_complexity_normal)
     run(test_command)
 
 if 4 in tests_to_run:
     print("deploy: rooted, debian\n")
-    run(f"scripts/recreate_target.py {debian_distro}")
+    recreate_vm_full(debian_distro)
     run(enable_root_command)
     run(run_rooted_complexity_normal)
     run(test_command)
