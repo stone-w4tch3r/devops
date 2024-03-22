@@ -21,13 +21,10 @@ def main(image: str = "jammy"):
     cloud_init_yml = Path(__file__).parent.resolve() / "multipass-vm-cloud-init.yml"
     print(cloud_init_yml)
     run(f"multipass launch -d 15G -n primary1 {image}")
-    run(f"ssh-keygen -f {os.getenv('HOME')}/.ssh/known_hosts -R primary.multipass")  # -f: known_hosts file, -R: remove
     print(">>>multipass instance launched")
 
     primary_ip = subprocess.check_output("multipass list", shell=True, universal_newlines=True).split("\n")[1].split()[2]
-    if not any("primary.multipass" in line for line in open("/etc/hosts").readlines()):
-        run(f'sudo sed -i "3i {primary_ip} primary.multipass" /etc/hosts')  # sed -i: in-place, 3i: insert at line 3
-    run(f'sudo sed -i "s|.*primary.*|{primary_ip} primary.multipass|g" /etc/hosts')  # s|regex|replacement|g
+    print(f"Primary IP: {primary_ip}")
     print(">>>done")
 
 
