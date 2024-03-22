@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="LanguageInjectionConfiguration">
+    <injection language="Shell Script" injector-id="python">
+      <display-name>shell</display-name>
+      <single-file value="true" />
+      <place><![CDATA[pyLiteralExpression().and(pyArgument("run", 0))]]></place>
+    </injection>
+  </component>
+</project>
