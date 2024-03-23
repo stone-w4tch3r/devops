@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$/backup_tool" />
+    <content url="file://$MODULE_DIR$/backup_tool">
+      <excludeFolder url="file://$MODULE_DIR$/backup_tool/.venv" />
+    </content>
     <content url="file://$MODULE_DIR$/notes" />
-    <content url="file://$MODULE_DIR$/os_setuper" />
-    <content url="file://$MODULE_DIR$/pyinfra_manager" />
+    <content url="file://$MODULE_DIR$/os_setuper">
+      <excludeFolder url="file://$MODULE_DIR$/os_setuper/.venv" />
+    </content>
+    <content url="file://$MODULE_DIR$/pyinfra_manager">
+      <excludeFolder url="file://$MODULE_DIR$/pyinfra_manager/.venv" />
+    </content>
     <content url="file://$MODULE_DIR$/scripts" />
     <content url="file://$MODULE_DIR$/xui" />
-    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.11" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
