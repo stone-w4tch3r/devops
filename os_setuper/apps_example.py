@@ -14,12 +14,11 @@ def main():
             })[current_os]
         ),
         App(Name="VLC", Installation=Apt(Name="vlc")),
-        App(Snap("multipass"), "multipass"),
+        App(Snap("multipass"), "multipass"),  # todo not installs
         App("neofetch"),
     ]
 
     app.handle(apps)
 
 
-if __name__ == "__main__":
-    main()
+main()  # todo properly handle if __name__ == "__main__"

@@ -13,21 +13,21 @@ class OS(Enum):
 
 
 class URL:
-    parsed_url: ParseResult
-    url_str: str
+    _parsed_url: ParseResult
+    _url_str: str
 
     def __init__(self, url):
         result = urlparse(url)
         if all([result.scheme, result.netloc, result.path]) and result.scheme in ['http', 'https']:
-            self.parsed_url = result
-            self.url_str = url
+            self._parsed_url = result
+            self._url_str = url
         else:
             raise ValueError(f"Invalid URL [{url}]")
 
     @property
     def parsed(self) -> ParseResult:
-        return self.parsed_url
+        return self._parsed_url
 
     @property
-    def str(self) -> str:
-        return self.url_str
+    def url_str(self) -> str:
+        return self._url_str

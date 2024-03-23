@@ -33,7 +33,7 @@ class AptRepo:
 
 @dataclass(frozen=True)
 class AptPpa:
-    Ppa: str
+    PpaStr: str
     """ppa formatted string, e.g. `ppa:mozillateam/ppa`"""
 
 
@@ -97,11 +97,11 @@ def handle(apps: list[App]):
     # todo: improve this check
     assert all([distro in package.os for package in apt_packages + dnf_packages + snap_packages]), 'OS mismatch'
 
-    for ppa in [package.RepoOrPpa for package in apt_packages if isinstance(package.RepoOrPpa, AptPpa)]:
+    for ppa in [package.RepoOrPpa.PpaStr for package in apt_packages if isinstance(package.RepoOrPpa, AptPpa)]:
         # todo: apt.ppa is not idempotent, check if ppa is already added
         apt.ppa(src=ppa, _sudo=True)
         apt.update()
-    for key, repo in [(package.RepoOrPpa.Key, package.RepoOrPpa.RepoSourceStr) for package in apt_packages if isinstance(package.RepoOrPpa, AptRepo)]:
+    for key, repo in [(package.RepoOrPpa.Key.url_str, package.RepoOrPpa.RepoSourceStr) for package in apt_packages if isinstance(package.RepoOrPpa, AptRepo)]:
         apt.key(key=key, _sudo=True)
         apt.repo(repo=repo, _sudo=True)
         apt.update()
@@ -126,6 +126,5 @@ def handle(apps: list[App]):
 
     server.packages(
         packages=str_packages,
-        update=True,
         _sudo=True
     )
