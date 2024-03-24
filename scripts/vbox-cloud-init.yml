@@ -14,21 +14,9 @@ chpasswd:
   list: |
     root:root
   expire: False
-
-#write_files:
-#  - path: /etc/netplan/50-cloud-init.yaml
-#    content: |
-#      network:
-#        version: 2
-#        ethernets:
-#          eth1:
-#            dhcp4: no
-#            addresses:
-#              - 192.168.56.101/24 # todo use jinja2
-
+  
 runcmd:
   - rm /etc/ssh/sshd_config.d/*
   - echo "PermitRootLogin yes" >> /etc/ssh/sshd_config.d/00-permit-root-login.conf
   - echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config.d/00-password-authentication.conf
   - systemctl restart sshd
-#  - netplan apply

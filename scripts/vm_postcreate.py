@@ -16,6 +16,8 @@ KEYS_DIR_PATH = Path(__file__).resolve().parent / "../pyinfra_manager/keys"
 def main(vm_name: str, vm_ip: str, keys_dir: Path = KEYS_DIR_PATH):
     known_hosts = Path("~/.ssh/known_hosts").expanduser()
 
+    print("Performing post-creation tasks...")
+
     # update /etc/hosts
     run(f"sudo sed -i '/{vm_name}/d' /etc/hosts")  # /PATTERN/d - delete line with PATTERN
     run(f"echo '{vm_ip} {vm_name}' | sudo tee -a /etc/hosts")
@@ -32,6 +34,8 @@ def main(vm_name: str, vm_ip: str, keys_dir: Path = KEYS_DIR_PATH):
     for key in os.listdir(keys_dir):
         if os.path.isfile(key) and vm_name in key:
             os.remove(key)
+
+    print("Post-creation tasks completed.")
 
 
 if __name__ == "__main__":
