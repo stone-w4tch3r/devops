@@ -2,7 +2,7 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from vbox_vm_recreate import recreate as recreate_vm
+from vbox_recreate import recreate as recreate_vm
 
 
 def _run(command: str) -> str:
@@ -20,4 +20,4 @@ class TestAppsExample(unittest.TestCase):
         recreate_vm()
 
     def test_main(self):
-        _run("pyinfra apps_example.py")
+        _run(f"pyinfra {_test_inventory} {_test_task}")

@@ -9,12 +9,12 @@ def main():
     apps = [
         App(
             ({
-                OS.ubuntu: Apt(Name="firefox", RepoOrPpa=AptPpa("ppa:mozillateam/ppa")),
-                OS.fedora: Dnf(Name="firefox")
+                OS.ubuntu: Apt(PackageName="firefox", RepoOrPpa=AptPpa("ppa:mozillateam/ppa")),
+                OS.fedora: Dnf(PackageName="firefox")
             })[current_os]
         ),
-        App(Name="VLC", Installation=Apt(Name="vlc")),
-        App(Snap("multipass"), "multipass"),  # todo not installs
+        App(Installation=Apt(PackageName="vlc")),
+        App(Snap("multipass")),
         App("neofetch"),
     ]
 

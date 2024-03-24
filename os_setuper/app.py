@@ -18,6 +18,11 @@ class _IInstallMethod:
     def os(self) -> list[OS]:
         pass
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
 
 # endregion
 
@@ -39,39 +44,47 @@ class AptPpa:
 
 @dataclass(frozen=True)
 class Apt(_IInstallMethod):
-    Name: str
+    PackageName: str
     Version: str | None = None
     RepoOrPpa: AptRepo | AptPpa | None = None
 
     @property
     def os(self) -> list[OS]: return [OS.ubuntu, OS.debian]
 
+    @property
+    def name(self) -> str: return self.PackageName
+
 
 @dataclass(frozen=True)
 class Dnf(_IInstallMethod):
-    Name: str
+    PackageName: str
     Version: str | None = None
 
     @property
     def os(self) -> list[OS]: return [OS.fedora]
 
+    @property
+    def name(self) -> str: return self.PackageName
+
 
 @dataclass(frozen=True)
 class Snap(_IInstallMethod):
-    Name: str
+    PackageName: str
     Version: str | None = None
 
     @property
     def os(self) -> list[OS]: return [OS.ubuntu, OS.debian, OS.fedora]
 
+    @property
+    def name(self) -> str: return self.PackageName
+
 
 @dataclass(frozen=True)
 class App(_IUnit):
     Installation: _IInstallMethod | str
-    Name: str | None = None
 
     @property
-    def name(self) -> str: return self.Name
+    def name(self) -> str: return self.Installation.name
 
 
 # endregion
@@ -101,28 +114,28 @@ def handle(apps: list[App]):
         # todo: apt.ppa is not idempotent, check if ppa is already added
         apt.ppa(src=ppa, _sudo=True)
         apt.update()
-    for key, repo in [(package.RepoOrPpa.Key.url_str, package.RepoOrPpa.RepoSourceStr) for package in apt_packages if isinstance(package.RepoOrPpa, AptRepo)]:
+    for key, repo in [(package.RepoOrPpa.Key.url_str, package.RepoOrPpa.RepoSourceStr) for package in apt_packages if
+                      isinstance(package.RepoOrPpa, AptRepo)]:
         apt.key(key=key, _sudo=True)
         apt.repo(repo=repo, _sudo=True)
         apt.update()
     apt.packages(
-        packages=[apt_package.Name for apt_package in apt_packages],
+        packages=[apt_package.PackageName for apt_package in apt_packages],
         cache_time=86400,
         update=True,
         _sudo=True
     )
 
     dnf.packages(
-        packages=[dnf_package.Name for dnf_package in dnf_packages],
+        packages=[dnf_package.PackageName for dnf_package in dnf_packages],
         _sudo=True
         # update=True,
     )
 
-    for package in snap_packages:
-        snap.package(
-            name=package.Name,
-            _sudo=True
-        )
+    snap.package(
+        packages=[snap_package.PackageName for snap_package in snap_packages],
+        _sudo=True
+    )
 
     server.packages(
         packages=str_packages,
