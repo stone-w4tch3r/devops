@@ -65,7 +65,7 @@ def recreate(
     _run(f"VBoxManage import {ova_file} --vsys 0 --vmname {vm_name}")
     _run(f"VBoxManage storageattach {vm_name} --storagectl IDE --port 1 --device 0 --type dvddrive --medium {SEED_ISO}")
     _run(f"VBoxManage modifyvm {vm_name} --cpus {cpu_count} --memory {ram_in_mb}")
-    _run(f"VBoxManage modifyvm {vm_name} --nic1 --graphicscontroller vmsvga")
+    _run(f"VBoxManage modifyvm {vm_name} --graphicscontroller vmsvga")
     _run(f"VBoxManage startvm {vm_name} --type headless")
 
     time.sleep(45)
