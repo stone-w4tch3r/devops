@@ -80,8 +80,14 @@ class Snap(_IInstallMethod):
 
 
 @dataclass(frozen=True)
+class AppSettings:
+    pass
+
+
+@dataclass(frozen=True)
 class App(_IUnit):
     Installation: _IInstallMethod | str
+    Settings: AppSettings | None = None
 
     @property
     def name(self) -> str: return self.Installation.name
