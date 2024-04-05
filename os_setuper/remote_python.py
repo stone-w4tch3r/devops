@@ -2,9 +2,11 @@ import inspect
 from typing import Callable
 
 from pyinfra import host
-from pyinfra.api import operation, OperationValueError, FunctionCommand
+from pyinfra.api import operation, OperationValueError, FunctionCommand, OperationError
 from pyinfra.facts import files as files_facts
 from pyinfra.operations import files, python
+
+import remote_python_fact
 
 
 @operation(is_idempotent=False)
@@ -15,32 +17,35 @@ def execute_from_function(func: Callable, func_args: list[str] = None, func_kwar
     This function serializes the provided function and its arguments into a Python script as a string,
     writes to a temporary file on the remote host, and then executes using Python 3.
 
-    @warning: Function should be defined with simple "def".
-    @warning: Do not use variables from the outer scope.
-    @warning: All imports should be inside the function.
+    @note: Function should be defined with simple "def".
+    @note: Do not use variables from the outer scope.
+    @note: All imports should be inside the function.
 
     @param func: Function to be executed on the remote host.
+    @type func: Callable
     @param func_args: Positional arguments to pass to the function, only strings are supported.
+    @type func_args: list[str]
     @param func_kwargs: Keyword arguments to pass to the function, only strings are supported.
+    @type func_kwargs: dict[str, str]
 
     @raise OperationValueError: If the provided object is not a function, is a built-in function, is a method, is a lambda function, or if source code is not available.
 
     Example:
-    ```python
+    @code
     def print_hello_world(x, y):
         print(x, y)
 
     remote_python.execute_on_remote(func=print_hello_world, func_kwargs={"x": "Hello", "y": "World"})
-    ```
+    @endcode
 
-    ```python
+    @code
     def create_file_if_not_exists(file_path):
         import os
         if not os.path.exists(file_path):
             open(file_path, "w").close()
 
     remote_python.execute_on_remote(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
-    ```
+    @endcode
     """
 
     if func_args is None:
@@ -75,12 +80,11 @@ def execute_from_function(func: Callable, func_args: list[str] = None, func_kwar
 
     executable_code = source_without_indentation + f"\n\n{func.__name__}({func_params_str})"
 
-    # todo create built-in fact
-    # try:
-    #     _ = host.get_fact(windows_facts.Os)
-    #     tmpdir_command = "echo %TEMP%"
-    # except:  # noqa
-    #     tmpdir_command = "echo ${TMPDIR:-/tmp}"
+    interpreter = [i for i in host.get_fact(remote_python_fact.PythonInterpreters) if i.major_version == 3][0]
+    if not interpreter:
+        raise OperationError("No Python 3 interpreter found on the remote host.")
+
+    # todo create fact for env vars
     tmpdir_command = "echo ${TMPDIR:-/tmp}"
 
     def get_tmp_and_finish():
@@ -109,6 +113,6 @@ def execute_from_function(func: Callable, func_args: list[str] = None, func_kwar
         )
 
         # todo create a fact for python and check
-        yield f"python3 {script_path}"
+        yield f"{interpreter.Path} {script_path}"
 
     yield FunctionCommand(get_tmp_and_finish, (), {})

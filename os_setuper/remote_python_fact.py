@@ -8,10 +8,10 @@ from pyinfra.api import FactBase
 class InterpreterInfo:
     Version: str
     MajorVersion: int
-    InterpreterPath: str
+    Path: str
 
 
-class RemotePython(FactBase[list[InterpreterInfo]]):
+class PythonInterpreters(FactBase[list[InterpreterInfo]]):
     """
     Returns information about Python interpreters available on the remote host.
     osX, linux and *BSD are supported.

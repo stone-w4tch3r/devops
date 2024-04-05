@@ -40,7 +40,7 @@ def main():
     # 
     # remote_python.execute_from_function(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
 
-    p = host.get_fact(remote_python_fact.RemotePython)
+    p = host.get_fact(remote_python_fact.PythonInterpreters)
     print("Python version:", p, "!")
     # 
     # host.get_fact(remote_python_fact._RemotePython2Result)
