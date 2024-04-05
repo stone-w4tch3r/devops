@@ -1,6 +1,4 @@
-from pyinfra import host
-
-import remote_python_fact
+import remote_python
 from common import OS
 
 current_os = OS.ubuntu
@@ -28,24 +26,17 @@ def main():
     #     path="/var/lib/cloud/data/status.json",
     # )
 
-    # def print_hello_world(x, y):
-    #     print(x, y)
-    # 
-    # remote_python.execute_from_function(func=print_hello_world, func_kwargs={"x": "Hello", "y": "World"})
-    # 
-    # def create_file_if_not_exists(file_path):
-    #     import os
-    #     if not os.path.exists(file_path):
-    #         open(file_path, "w").close()
-    # 
-    # remote_python.execute_from_function(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
+    def print_hello_world(x, y):
+        print(x, y)
 
-    p = host.get_fact(remote_python_fact.PythonInterpreters)
-    print("Python version:", p, "!")
-    # 
-    # host.get_fact(remote_python_fact._RemotePython2Result)
-    # host.get_fact(remote_python_fact._RemotePython3Result)
-    # host.get_fact(remote_python_fact._RemoteBasePythonResult)
+    remote_python.execute_function(func=print_hello_world, func_kwargs={"x": "Hello", "y": "World"})
+
+    def create_file_if_not_exists(file_path):
+        import os
+        if not os.path.exists(file_path):
+            open(file_path, "w").close()
+
+    remote_python.execute_function(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
 
 
 main()  # todo properly handle if __name__ == "__main__"
