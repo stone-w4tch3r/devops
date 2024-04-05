@@ -20,12 +20,15 @@ def get_vm_ip(vm_name: str) -> str:
     is_ip_valid: Callable = lambda ip_to_match: bool(re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip_to_match))
     get_ip: Callable = lambda: _run(f"VBoxManage guestproperty get {vm_name} '/VirtualBox/GuestInfo/Net/0/V4/IP'").split()[-1]
 
-    ip = get_ip()
-    if not is_ip_valid(ip):
-        time.sleep(10)
+    timeout = 80
+    step = 20
+    for seconds_passed in range(0, timeout, step):
         ip = get_ip()
-
-    if not is_ip_valid(ip):
+        if is_ip_valid(ip):
+            break
+        time.sleep(step)
+        print(f"VM IP is not yet available. Waiting more... ({seconds_passed + step}/{timeout} s)")
+    else:
         print("VM IP not found. Try it yourself")
         exit(1)
 
@@ -67,8 +70,6 @@ def recreate(
     _run(f"VBoxManage modifyvm {vm_name} --cpus {cpu_count} --memory {ram_in_mb}")
     _run(f"VBoxManage modifyvm {vm_name} --graphicscontroller vmsvga")
     _run(f"VBoxManage startvm {vm_name} --type headless")
-
-    time.sleep(45)
 
     info = _run(f"VBoxManage showvminfo {vm_name}")
     vm_state = info.split(':')[-1].strip()
