@@ -1,62 +1,71 @@
 from dataclasses import dataclass
 
-from pyinfra import host
+from pyinfra import logger
 from pyinfra.api import FactBase
 
 
-@dataclass
+@dataclass(frozen=True)
 class InterpreterInfo:
     Version: str
-    InterpreterCommand: str
+    MajorVersion: int
+    InterpreterPath: str
 
 
-@dataclass(frozen=True)
-class RemotePythonInfo:
-    Python2Interpreters: list[InterpreterInfo]
-    Python3Interpreters: list[InterpreterInfo]
-
-
-class _RemotePython2Result(FactBase):
-    command = "python2 --version"
-
-    def process(self, output) -> InterpreterInfo | None:
-        if not output:
-            return None
-        return InterpreterInfo(Version=output[0].strip(), InterpreterCommand="python2")
-
-
-class _RemotePython3Result(FactBase):
-    command = "python3 --version"
-
-    def process(self, output) -> InterpreterInfo | None:
-        if not output:
-            return None
-        return InterpreterInfo(Version=output[0].strip(), InterpreterCommand="python3")
-
-
-class _RemoteBasePythonResult(FactBase):
-    command = "python --version"
-
-    def process(self, output) -> InterpreterInfo | None:
-        if not output:
-            return None
-        return InterpreterInfo(Version=output[0].strip(), InterpreterCommand="python")
-
-
-class RemotePython(FactBase):
+class RemotePython(FactBase[list[InterpreterInfo]]):
     """
     Returns information about Python interpreters available on the remote host.
+    osX, linux and *BSD are supported.
 
-    @return: RemotePythonInfo
+    + additional_directories: Additional directories to search for Python interpreters
     """
-    command = "echo nothing"
 
-    def process(self, output) -> RemotePythonInfo:
-        python: InterpreterInfo = host.get_fact(_RemoteBasePythonResult)
-        python2: InterpreterInfo = host.get_fact(_RemotePython2Result)
-        python3: InterpreterInfo = host.get_fact(_RemotePython3Result)
+    _directories_to_search = [
+        # linux:
+        "/usr/bin",
+        "/usr/local/bin",
+        "/opt/local/bin"
+        # macos:
+        # todo: check
+        "/Library/Frameworks/Python.framework/Versions/*/bin",  # python.org
+        "/System/Library/Frameworks/Python.framework/Versions/*/bin",  # apple
+        "/xxx"  # brew?
+    ]
 
-        pythons2 = [p for p in [python, python2, python3] if p and p.Version.startswith("Python 2")]
-        pythons3 = [p for p in [python, python2, python3] if p and p.Version.startswith("Python 3")]
+    shell_executable = "sh"
 
-        return RemotePythonInfo(Python2Interpreters=pythons2, Python3Interpreters=pythons3)
+    def command(self, additional_directories: list[str] = None):
+        if additional_directories is None:
+            additional_directories = []
+        directories = " ".join(self._directories_to_search + additional_directories)
+        return f"""
+        directories="{directories}"
+
+        for dir in $directories; do
+            if [ -d "$dir" ]; then
+                for python_interpreter in "$dir"/python*; do
+                    version=$("$python_interpreter" --version 2>&1)
+                    if echo "$version" | grep "^Python" >/dev/null; then
+                        echo "$python_interpreter $version"
+                    fi
+                done
+            fi
+        done
+        """
+
+    @staticmethod
+    def default() -> list[InterpreterInfo]:
+        return []
+
+    def process(self, output) -> list[InterpreterInfo]:
+        pythons = []
+        for line in output:
+            path = line.split(" ")[0]
+            version = line.split(" ")[-1]
+            major_version = int(version[0])
+            if major_version not in [2, 3]:
+                logger.warning(f"Suspicious Python version [{version}] for [{path}]. Skipping.")
+                continue
+
+            pythons.append(InterpreterInfo(version, major_version, path))
+
+        return pythons
