@@ -1,5 +1,5 @@
-import remote_python
 from common import OS
+from lib import remote_python
 
 current_os = OS.ubuntu
 
