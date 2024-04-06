@@ -8,10 +8,27 @@ from pyinfra.facts import server as server_facts
 from pyinfra.operations import files
 
 import remote_python_fact
+from remote_python_util import PythonVersion
 
 
 @operation(is_idempotent=False)
-def execute_function(func: Callable, interpreter: str = None, func_args: list[str] = None, func_kwargs: dict[str, str] = None):
+def execute_string():
+    pass
+
+
+@operation(is_idempotent=False)
+def execute_file():
+    pass
+
+
+@operation(is_idempotent=False)
+def execute_function(
+    func: Callable,
+    interpreter: str = None,
+    minimum_python_version: str = "3.6",
+    func_args: list[str] = None,
+    func_kwargs: dict[str, str] = None
+):
     """
     Execute a given Python function on a remote host.
 
@@ -23,6 +40,9 @@ def execute_function(func: Callable, interpreter: str = None, func_args: list[st
     @warning: All imports should be inside the function.
 
     @param interpreter: Python interpreter to use for execution.
+    @param minimum_python_version: Minimum Python version required for execution. \
+        Note that 2.x is considered incompatible with 3.x. \
+        Ignored if `interpreter` is provided.
     @param func: Function to be executed on the remote host.
     @param func_args: Positional arguments to pass to the function, only strings are supported.
     @param func_kwargs: Keyword arguments to pass to the function, only strings are supported.
@@ -46,6 +66,7 @@ def execute_function(func: Callable, interpreter: str = None, func_args: list[st
     remote_python.execute_on_remote(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
     ```
     """
+    # todo: single quotes within code?
 
     if func_args is None:
         func_args = []
@@ -68,10 +89,7 @@ def execute_function(func: Callable, interpreter: str = None, func_args: list[st
 
     # interpreter setup
     if not interpreter:
-        interpreters = [i for i in host.get_fact(remote_python_fact.PythonInterpreters) if i.MajorVersion == 3]
-        if not interpreters:
-            raise OperationError("No Python 3 interpreter found on the remote host and no custom interpreter provided")
-        interpreter = interpreters[0].Path
+        interpreter = get_interpreter(minimum_python_version)
 
     # source code creation
     source_lines = inspect.getsourcelines(func)[0]
@@ -104,3 +122,20 @@ def execute_function(func: Callable, interpreter: str = None, func_args: list[st
         path=script_path,
         present=False,
     )
+
+
+def get_interpreter(min_version: str) -> str:
+    try:
+        required_version = PythonVersion(min_version)
+    except ValueError:
+        raise OperationValueError(f"Invalid Python version provided: [{min_version}]")
+
+    interpreters = host.get_fact(remote_python_fact.PythonInterpreters)
+    if not interpreters:
+        raise OperationError("No Python interpreters found on the remote host.")
+
+    interpreters = [i for i in interpreters if i.version.major == required_version.major and i.version.loose >= required_version.loose]
+    if not interpreters:
+        raise OperationError(f"No suitable Python interpreter found for version [{required_version}].")
+
+    return interpreters[0].path

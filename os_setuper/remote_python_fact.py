@@ -1,14 +1,7 @@
-from dataclasses import dataclass
-
 from pyinfra import logger
 from pyinfra.api import FactBase
 
-
-@dataclass(frozen=True)
-class InterpreterInfo:
-    Version: str
-    MajorVersion: int
-    Path: str
+from remote_python_util import InterpreterInfo, PythonVersion
 
 
 class PythonInterpreters(FactBase[list[InterpreterInfo]]):
@@ -60,12 +53,13 @@ class PythonInterpreters(FactBase[list[InterpreterInfo]]):
         pythons = []
         for line in output:
             path = line.split(" ")[0]
-            version = line.split(" ")[-1]
-            major_version = int(version[0])
-            if major_version not in [2, 3]:
-                logger.warning(f"Suspicious Python version [{version}] for [{path}]. Skipping.")
+            version_str = line.split(" ")[-1]
+            try:
+                version = PythonVersion(version_str)
+            except ValueError:
+                logger.warning(f"Suspicious Python version [{version_str}] for [{path}]. Skipping.")
                 continue
 
-            pythons.append(InterpreterInfo(version, major_version, path))
+            pythons.append(InterpreterInfo(version, path))
 
         return pythons

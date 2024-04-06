@@ -34,7 +34,7 @@ def main():
     def create_file_if_not_exists(file_path):
         import os
         if not os.path.exists(file_path):
-            open(file_path, "w").close()
+            open(file_path, 'w').close()
 
     remote_python.execute_function(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
 
