@@ -1,9 +1,13 @@
-from dataclasses import dataclass
+import copy
+import json
 from enum import Enum, auto
+from io import StringIO
+from typing import Callable
 
 from pyinfra import host, logger
-from pyinfra.api import operation, StringCommand
+from pyinfra.api import operation, OperationError
 from pyinfra.facts import files as files_fact
+from pyinfra.operations import files
 
 
 class ConfigType(Enum):
@@ -11,29 +15,14 @@ class ConfigType(Enum):
     yaml = auto()
 
 
-@dataclass
-class ArrayItem:
-    Value: str
-
-
-@dataclass(frozen=True)
-class EntryState:
-    Property: str
-    Value: str | ArrayItem
-    Present: bool = True
-    Overwrite: bool = True
-
-
-@operation
+@operation()
 def modify_config(
-    entries: list[EntryState] | EntryState,
+    modify_action: Callable[[dict], dict],
     config_type: ConfigType,
     path: str,
     backup: bool = True,
 ):
-    if not isinstance(entries, list):
-        entries = [entries]
-
+    # validation
     match host.get_fact(files_fact.File, path=path):
         case None:
             logger.error(f"Config file {path} not found")
@@ -45,7 +34,45 @@ def modify_config(
             logger.error(f"Config file {path} is too large to process: {size}")
             return
 
-    if backup:
-        yield StringCommand(f"cp {path} {path}.bak")
+    # load file
+    config_str: str = host.get_fact(files_fact.FileContent, path=path)
+    if config_str is None:
+        raise OperationError(f"Failed to read config file {path}")
 
-    # todo: implement
+    # deserialize
+    config: dict = {}
+    if not config_str.strip():  # is empty or whitespace
+        config = {}
+    elif config_type == ConfigType.json:
+        try:
+            config = json.loads(config_str)
+        except Exception as e:
+            raise OperationError(f"Error decoding JSON file {path}: {e}")
+    elif config_type == ConfigType.yaml:
+        raise NotImplementedError()
+
+    # modify
+    modified_config_str = modify_action(copy.deepcopy(config))
+    if modified_config_str == config:
+        host.noop(f"Config file {path} is already up-to-date")
+        return
+
+    # serialize
+    if config_type == ConfigType.json:
+        modified_config_str = json.dumps(modified_config_str, indent=2)
+    elif config_type == ConfigType.yaml:
+        raise NotImplementedError()
+
+    # upload
+    if modified_config_str == config_str:
+        host.noop(f"Config file {path} is already up-to-date")
+        return
+    if backup:
+        yield from files.put._inner(
+            src=StringIO(config_str),
+            dest=f"{path}.bak",
+        )
+    yield from files.put._inner(
+        src=StringIO(modified_config_str),
+        dest=path,
+    )
