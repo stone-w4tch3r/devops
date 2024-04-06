@@ -38,5 +38,21 @@ def main():
 
     remote_python.execute_function(func=create_file_if_not_exists, func_args=["/tmp/test.txt"])
 
+    code_to_execute = """
+import os
+print(os.listdir())
+
+print("Hello World")
+"""
+
+    remote_python.execute_string(code=code_to_execute)
+
+    file_path = "test.py"
+
+    with open(file_path, "w") as file:
+        file.write(code_to_execute)
+
+    remote_python.execute_file(local_file_path=file_path)
+
 
 main()  # todo properly handle if __name__ == "__main__"

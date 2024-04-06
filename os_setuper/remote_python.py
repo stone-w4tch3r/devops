@@ -12,13 +12,78 @@ from remote_python_util import PythonVersion
 
 
 @operation(is_idempotent=False)
-def execute_string():
-    pass
+def execute_string(
+    code: str,
+    interpreter: str = None,
+    minimum_python_version: str = "3.6",
+):
+    """
+    Execute a given Python code string on a remote host.
+
+    @param code: Python code to execute on the remote host.
+    @param interpreter: Python interpreter to use for execution.
+    @param minimum_python_version: Minimum Python version required for execution. \
+        Note that 2.x is considered incompatible with 3.x. \
+        Ignored if `interpreter` is provided.
+
+    @raise OperationError: If no Python interpreter is found on the remote host.
+
+    Example:
+    ```python
+    remote_python.execute_string(code="print('Hello, World!')")
+    ```
+    """
+    script_path = f"{host.get_fact(server_facts.TmpDir) or '/tmp'}/pyinfra_remote_python_script.py"
+
+    # interpreter setup
+    if not interpreter:
+        interpreter = get_interpreter(minimum_python_version)
+
+    yield from upload_and_execute(code, interpreter, script_path)
 
 
 @operation(is_idempotent=False)
-def execute_file():
-    pass
+def execute_file(
+    local_file_path: str,
+    interpreter: str = None,
+    minimum_python_version: str = "3.6",
+):
+    """
+    Execute a given Python file on a remote host.
+
+    @param local_file_path: Path to the file to upload and execute on the remote host.
+    @param interpreter: Python interpreter to use for execution.
+    @param minimum_python_version: Minimum Python version required for execution. \
+        Note that 2.x is considered incompatible with 3.x. \
+        Ignored if `interpreter` is provided.
+
+    @raise OperationError: If no Python interpreter is found on the remote host.
+
+    Example:
+    ```python
+    remote_python.execute_file(local_file_path="path/to/file.py", interpreter="/usr/bin/python3")
+    ```
+    """
+    script_path = f"{host.get_fact(server_facts.TmpDir) or '/tmp'}/pyinfra_remote_python_script.py"
+
+    # interpreter setup
+    if not interpreter:
+        interpreter = get_interpreter(minimum_python_version)
+
+    # script creation
+    yield from files.put._inner(
+        src=local_file_path,
+        dest=script_path,
+    )
+
+    # execution
+    yield f"{interpreter} {script_path}"
+
+    # cleanup
+    yield from files.file._inner(
+        path=script_path,
+        present=False,
+    )
 
 
 @operation(is_idempotent=False)
@@ -47,7 +112,9 @@ def execute_function(
     @param func_args: Positional arguments to pass to the function, only strings are supported.
     @param func_kwargs: Keyword arguments to pass to the function, only strings are supported.
 
-    @raise OperationValueError: If the provided object is not a function, is a built-in function, is a method, is a lambda function, or if source code is not available.
+    @raise OperationValueError: If the provided object is not a function,\
+        is a built-in function, is a method, is a lambda function, or if source code is not available.
+    @raise OperationError: If no Python interpreter is found on the remote host.
 
     Example:
     ```python
@@ -103,25 +170,7 @@ def execute_function(
     )
     executable_code = source_without_indentation + f"\n\n{func.__name__}({func_params_str})"
 
-    # script creation
-    yield from files.block._inner(
-        path=script_path,
-        content=executable_code,
-        try_prevent_shell_expansion=True,
-        present=True,
-    )
-    uploaded_code = '\n'.join(host.get_fact(files_facts.Block, script_path))
-    if uploaded_code != executable_code:
-        raise OperationError(f"Failed to upload code")
-
-    # execution
-    yield f"{interpreter} {script_path}"
-
-    # cleanup
-    yield from files.file._inner(
-        path=script_path,
-        present=False,
-    )
+    yield from upload_and_execute(executable_code, interpreter, script_path)
 
 
 def get_interpreter(min_version: str) -> str:
@@ -139,3 +188,25 @@ def get_interpreter(min_version: str) -> str:
         raise OperationError(f"No suitable Python interpreter found for version [{required_version}].")
 
     return interpreters[0].path
+
+
+def upload_and_execute(code, interpreter, script_path):
+    yield from files.block._inner(
+        path=script_path,
+        content=code,
+        try_prevent_shell_expansion=True,
+        present=True,
+    )
+
+    uploaded_code = '\n'.join(host.get_fact(files_facts.Block, script_path))
+    if uploaded_code != code:
+        raise OperationError(f"Failed to upload code")
+
+    # execution
+    yield f"{interpreter} {script_path}"
+
+    # cleanup
+    yield from files.file._inner(
+        path=script_path,
+        present=False,
+    )
