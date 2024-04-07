@@ -20,13 +20,26 @@ def main():
 
     # app.handle(apps)
 
-    def set_dict(d: dict) -> dict:
-        d["friends"].append({"name": "Alice", "age": 30})
-        return d
+    structured_config.modify_config(
+        path="/file1.json",
+        modify_action=lambda cfg: cfg["cars"]["car9"].set("Mercedes"),
+    )
 
     structured_config.modify_config(
-        path="/file.json",
-        modify_action=lambda config: set_dict(config),
+        path="/file2.json",
+        modify_action=lambda lst: lst.append("Mercedes"),
+    )
+
+    structured_config.modify_config(
+        path="/file3.json",
+        modify_action=lambda dct: dct.modify_chained(
+            [
+                lambda x: x.set({"friends": ["Alice", "Bob"]}),
+                lambda x: x["age"].set(25),
+                lambda x: x["names"].set(["Alice", "Bob"]),
+                lambda x: x["names"].append("Charlie"),
+            ]
+        )
     )
 
 
