@@ -21,7 +21,19 @@ def modify_config(
     config_type: ConfigType,
     path: str,
     backup: bool = True,
-):
+) -> None:
+    """
+    Modify a structured config file on the remote host.
+    Config file would be loaded from the remote host, modified, and then uploaded back to the remote host.
+
+    @note If the config file is too large, this operation will be slow.
+
+    @param modify_action: A function that modifies the config passed in as a dict, and returns the modified config.
+    @param config_type: The type of the config file.
+    @param path: The path to the config file.
+    @param backup: Whether to create a backup of the config file before modifying it.
+    """
+    # todo: exceptions or log errors?
     # validation
     match host.get_fact(files_fact.File, path=path):
         case None:
