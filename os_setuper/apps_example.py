@@ -1,4 +1,3 @@
-import app
 from app import App, Apt, Dnf, Snap, AptPpa
 from common import OS
 from lib import structured_config
@@ -21,11 +20,13 @@ def main():
 
     # app.handle(apps)
 
+    def set_dict(d: dict) -> dict:
+        d["friends"].append({"name": "Alice", "age": 30})
+        return d
+
     structured_config.modify_config(
-        modify_action=lambda config: config,
-        config_type=structured_config.ConfigType.JSON,
-        path="/run/cloud-init/instance-data.json",
-        backup=False,
+        path="/file.json",
+        modify_action=lambda config: set_dict(config),
     )
 
 

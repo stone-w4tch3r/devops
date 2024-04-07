@@ -39,14 +39,14 @@ class ConfigType(Enum):
 
 @operation()
 def modify_config(
-    modify_action: Callable[[dict], dict],
-    config_type: ConfigType,
     path: str,
-    backup: bool = True,
+    modify_action: Callable[[dict], dict],
+    config_type: ConfigType = ConfigType.JSON,
+    backup: bool = False,
     custom_deserializer: Callable[[str], dict] = None,
     custom_serializer: Callable[[dict], str] = None,
     max_file_size_mb: int = 2,
-) -> None:
+):
     """
     Modify a structured config file on the remote host.
     Config file would be loaded from the remote host, modified, and then uploaded back to the remote host.
@@ -116,14 +116,11 @@ def modify_config(
 
     # modify
     modified_config = modify_action(copy.deepcopy(config))
-    if modified_config == config:
-        host.noop(f"Config file {path} is already up-to-date")
-        return
 
     # serialize
     modified_config_str: str | None = None
     if config_type == ConfigType.JSON:
-        modified_config_str = _serialize(modified_config, json.dumps)
+        modified_config_str = _serialize(modified_config, lambda cfg: json.dumps(cfg, indent=4))
     elif config_type == ConfigType.INI:
         def _serialize_ini(cfg: dict) -> str:
             config_parser = configparser.ConfigParser()
