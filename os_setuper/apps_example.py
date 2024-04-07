@@ -1,6 +1,6 @@
 from app import App, Apt, Dnf, Snap, AptPpa
 from common import OS
-from lib import structured_config
+from lib import modify_file
 
 current_os = OS.ubuntu
 
@@ -20,17 +20,17 @@ def main():
 
     # app.handle(apps)
 
-    structured_config.modify_config(
+    modify_file.modify_structured_config(
         path="/file1.json",
         modify_action=lambda cfg: cfg["cars"]["car9"].set("Mercedes"),
     )
 
-    structured_config.modify_config(
+    modify_file.modify_structured_config(
         path="/file2.json",
         modify_action=lambda lst: lst.append("Mercedes"),
     )
 
-    structured_config.modify_config(
+    modify_file.modify_structured_config(
         path="/file3.json",
         modify_action=lambda dct: dct.modify_chained(
             [
@@ -43,4 +43,4 @@ def main():
     )
 
 
-main()  # todo properly handle if __name__ == "__main__"
+main()

@@ -240,11 +240,17 @@ class ConfigType(Enum):
     # TOML = auto() # todo: what is minimal python version?
 
 
+TDeserialized = TypeVar("TDeserialized")
+TSerialize = TypeVar("TSerialize")
+
+
 @operation()
 def modify_config_fluent(
     path: str,
-    modify_action: Callable[[DictWrapper | ListWrapper], dict | list],
-    config_type: ConfigType = ConfigType.JSON,
+    modify_action: Callable[[DictWrapper | ListWrapper | TDeserialized], dict | list],
+    config_type: ConfigType | None = ConfigType.JSON,
+    custom_deserializer: Callable[[str], TDeserialized] = None,
+    custom_serializer: Callable[[TDeserialized], str] = None,
     backup: bool = False,
     max_file_size_mb: int = 2,
 ):
@@ -254,8 +260,15 @@ def modify_config_fluent(
     Config file would be loaded from the remote host, modified, and then uploaded back to the remote host.
 
     @note If the config file is too large, this operation will be slow.
+    @note If config_type is provided, custom_deserializer and custom_serializer are ignored.
 
-    @see modify_config
+    @param path: The path to the config file.
+    @param modify_action: A function that modifies config and returns modified value.
+    @param config_type: The type of the config file.
+    @param custom_deserializer: A function that deserializes the config file content.
+    @param custom_serializer: A function that serializes the config to a string.
+    @param backup: Whether to create a backup of the config file before modifying it.
+    @param max_file_size_mb: Max allowed size of the config file in MB.
 
     Usage:
     ```
@@ -264,18 +277,55 @@ def modify_config_fluent(
         modify_action=lambda cfg: cfg["cars"]["car0"].set("Mercedes"),
     )
     ```
-    """
-    yield from modify_config._inner(
-        path=path,
-        modify_action=lambda cfg: modify_action(DictWrapper(cfg) if isinstance(cfg, dict) else ListWrapper(cfg)),
-        config_type=config_type,
-        backup=backup,
-        max_file_size_mb=max_file_size_mb,
+
+    Usage with chained operations:
+    ```
+    structured_config.modify_config_fluent(
+        path="/file.json",
+        modify_action=lambda cfg: cfg.modify_chained([
+            lambda x: x["cars"]["car0"].set("Mercedes"),
+            lambda x: x["cars"]["car1"].set("Audi"),
+        ])
     )
+    ```
+
+    Usage with custom deserializer and serializer:
+    ```
+    import yaml
+    structured_config.modify_config_fluent(
+        path="/file.yaml",
+        modify_action=lambda cfg: cfg["cars"]["car0"].set("Mercedes"),
+        custom_deserializer=lambda content: yaml.safe_load(content),
+        custom_serializer=lambda cfg: yaml.dump(cfg),
+    )
+    ```
+    """
+    if config_type is None and (custom_deserializer is None or custom_serializer is None):
+        raise OperationValueError("Either provide both custom deserializer and serializer or use config_type")
+    if config_type is not None and (custom_deserializer is not None or custom_serializer is not None):
+        logger.warning("When using config_type, custom deserializer and serializer are ignored")
+
+    if config_type is not None:
+        yield from modify_structured_config._inner(
+            path=path,
+            modify_action=lambda cfg: modify_action(DictWrapper(cfg) if isinstance(cfg, dict) else ListWrapper(cfg)),
+            config_type=config_type,
+            backup=backup,
+            max_file_size_mb=max_file_size_mb,
+        )
+    else:
+        yield from modify_custom_config._inner(
+            path=path,
+            modify_action=lambda cfg: modify_action(custom_deserializer(cfg) if isinstance(cfg, str) else cfg),
+            deserializer=custom_deserializer,
+            serializer=custom_serializer,
+            backup=backup,
+            max_file_size_mb=max_file_size_mb,
+        )
 
 
 @operation()
-def modify_config(
+def modify_structured_config(
     path: str,
     modify_action: Callable[[dict | list], dict | list],
     config_type: ConfigType = ConfigType.JSON,
@@ -305,74 +355,101 @@ def modify_config(
     )
     ```
     """
-    # todo: exceptions or log errors?
-    # validation
-    _validate_file_state(path, max_file_size_mb)
 
-    # load file
-    config_str: str = host.get_fact(files_fact.FileContent, path=path)
+    def deserialize(config_str: str) -> dict | list:
+        config = None
+        match config_type:
+            case _ if not config_str.strip():  # is empty or whitespace
+                config = {}
+            case ConfigType.JSON:
+                config = _deserialize(config_str, json.loads)
+            case ConfigType.INI:
+                config = _deserialize(config_str, _deserialize_ini)
+            case ConfigType.XML:
+                config = _deserialize(config_str, xmltodict.parse)
+            case ConfigType.PLIST:
+                config = _deserialize(config_str, lambda content: plistlib.loads(content.encode("utf-8")))
+        if not isinstance(config, (dict, list)):
+            raise OperationError(
+                # todo: good example of real exceptions (the one that should never happen) in contrast to "expected" exceptions
+                f"Failure during deserialization. Config must be a dict or a list. This is not supposed to happen. Report a bug."
+            )
+        return config
 
-    # deserialize
-    config = None
-    match config_type:
-        case _ if not config_str.strip():  # is empty or whitespace
-            config = {}
-        case ConfigType.JSON:
-            config = _deserialize(config_str, json.loads)
-        case ConfigType.INI:
-            config = _deserialize(config_str, _deserialize_ini)
-        case ConfigType.XML:
-            config = _deserialize(config_str, xmltodict.parse)
-        case ConfigType.PLIST:
-            config = _deserialize(config_str, lambda content: plistlib.loads(content.encode("utf-8")))
-    if not isinstance(config, (dict, list)):
-        raise OperationError(
-            # todo: good example of real exceptions (the one that should never happen) in contrast to "expected" exceptions
-            f"Failure during deserialization. Config must be a dict or a list. This is not supposed to happen. Report a bug."
-        )
-
-    # modify
-    try:
+    def modify(config: dict | list) -> dict | list:
         result = modify_action(copy.deepcopy(config))
-    except Exception as e:
-        raise OperationError(f"modify_action failed: {repr(e)}\n{traceback.format_exc()}")
-    modified_config = result
+        if not isinstance(result, (dict, list)):
+            raise OperationError(f"modify_action must return a dict or a list, got {type(result)}")
+        return result
 
-    # serialize
-    modified_config_str: str | None = None
-    match config_type:
-        case ConfigType.JSON:
-            modified_config_str = _serialize(modified_config, lambda cfg: json.dumps(cfg, indent=4))
-        case ConfigType.INI:
-            modified_config_str = _serialize(modified_config, _serialize_ini)
-        case ConfigType.XML:
-            modified_config_str = _serialize(modified_config, lambda cfg: xmltodict.unparse(cfg, pretty=True))
-        case ConfigType.PLIST:
-            modified_config_str = _serialize(modified_config, lambda cfg: plistlib.dumps(cfg).decode("utf-8"))
-    if modified_config_str is None:
-        # todo: remove after testing
-        raise OperationError(f"Failure while serializing config file. This is not supposed to happen. Report a bug.")
+    def serialize(modified_config: dict | list) -> str:
+        modified_config_str: str | None = None
+        match config_type:
+            case ConfigType.JSON:
+                modified_config_str = _serialize(modified_config, lambda cfg: json.dumps(cfg, indent=4))
+            case ConfigType.INI:
+                modified_config_str = _serialize(modified_config, _serialize_ini)
+            case ConfigType.XML:
+                modified_config_str = _serialize(modified_config, lambda cfg: xmltodict.unparse(cfg, pretty=True))
+            case ConfigType.PLIST:
+                modified_config_str = _serialize(modified_config, lambda cfg: plistlib.dumps(cfg).decode("utf-8"))
+        if modified_config_str is None:
+            # todo: remove after testing
+            raise OperationError(f"Failure while serializing config file. This is not supposed to happen. Report a bug.")
+        return modified_config_str
 
-    # upload
-    if modified_config_str == config_str:  # noqa - duplicate code
-        host.noop(f"Config file {path} is already up-to-date")
-        return
-    if backup:
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        yield from files.put._inner(src=StringIO(config_str), dest=f"{path}.bak_{timestamp}")
-    yield from files.put._inner(src=StringIO(modified_config_str), dest=path)
+    yield from modify_custom_config._inner(
+        path=path,
+        modify_action=modify,
+        deserializer=deserialize,
+        serializer=serialize,
+        backup=backup,
+        max_file_size_mb=max_file_size_mb,
+    )
 
 
-TDeserialized = TypeVar("TDeserialized")
-TSerialize = TypeVar("TSerialize")
+@operation()
+def modify_plaintext_file(
+    path: str,
+    modify_action: Callable[[str], str],
+    backup: bool = False,
+    max_file_size_mb: int = 2,
+):
+    """
+    Modify a plaintext config file on the remote host.
+    Config file would be loaded from the remote host, modified, and then uploaded back to the remote host.
+
+    @note If the config file is too large, this operation will be slow.
+
+    @param modify_action: A function that modifies config and returns it.
+    @param path: The path to the config file.
+    @param backup: Whether to create a backup of the config file before modifying it.
+    @param max_file_size_mb: The maximum allowed size of the config file in MB.
+
+    Usage:
+    ```
+    structured_config.modify_plaintext_file(
+        path="/file.txt",
+        modify_action=lambda content: content.replace("old", "new"),
+    )
+    ```
+    """
+    yield from modify_custom_config(
+        path=path,
+        modify_action=modify_action,
+        deserializer=lambda content: content,
+        serializer=lambda cfg: cfg,
+        backup=backup,
+        max_file_size_mb=max_file_size_mb,
+    )
 
 
 @operation()
 def modify_custom_config(
     path: str,
     modify_action: Callable[[TDeserialized], TSerialize],
-    custom_deserializer: Callable[[str], TDeserialized],
-    custom_serializer: Callable[[TSerialize], str],
+    deserializer: Callable[[str], TDeserialized],
+    serializer: Callable[[TSerialize], str],
     backup: bool = False,
     max_file_size_mb: int = 2,
 ):
@@ -384,12 +461,28 @@ def modify_custom_config(
 
     @param modify_action: A function that modifies config and returns it.
     @param path: The path to the config file.
-    @param custom_deserializer: A function that deserializes the config file content to a dict.
-    @param custom_serializer: A function that serializes the config dict to a string.
+    @param deserializer: A function that deserializes the config file content to a dict.
+    @param serializer: A function that serializes the config dict to a string.
     @param backup: Whether to create a backup of the config file before modifying it.
     @param max_file_size_mb: The maximum allowed size of the config file in MB.
+
+    Usage:
+    ```
+    import yaml
+    def modify_yaml(cfg: dict) -> dict:
+        cfg["cars"]["car0"] = "Mercedes"
+        return cfg
+
+    structured_config.modify_custom_config(
+        path="/file.yaml",
+        modify_action=modify_yaml,
+        deserializer=lambda content: yaml.safe_load(content),
+        serializer=lambda cfg: yaml.dump(cfg),
+    )
+    ```
     """
     # validation
+    # todo: exceptions or log errors?
     _validate_file_state(path, max_file_size_mb)
 
     # load file
@@ -399,7 +492,7 @@ def modify_custom_config(
 
     # deserialize
     try:
-        config = custom_deserializer(config_str)
+        config = deserializer(config_str)
     except Exception as e:
         raise OperationError(f"Error while deserializing: {repr(e)}")
 
@@ -407,16 +500,16 @@ def modify_custom_config(
     try:
         modified_config = modify_action(config)
     except Exception as e:
-        raise OperationError(f"modify_action failed: {repr(e)}")
+        raise OperationError(f"modify_action failed: {repr(e)}\n{traceback.format_exc()}")
 
     # serialize
     try:
-        modified_config_str = custom_serializer(modified_config)
+        modified_config_str = serializer(modified_config)
     except Exception as e:
         raise OperationError(f"Error while serializing: {repr(e)}")
 
     # upload
-    if modified_config_str == config_str:  # noqa - duplicate code
+    if modified_config_str == config_str:
         host.noop(f"Config file {path} is already up-to-date")
         return
     if backup:

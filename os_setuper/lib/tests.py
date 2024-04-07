@@ -1,4 +1,4 @@
-from lib.structured_config import DictWrapper, ListWrapper
+from lib.modify_file import DictWrapper, ListWrapper
 
 
 def test_dict_wrapper():
