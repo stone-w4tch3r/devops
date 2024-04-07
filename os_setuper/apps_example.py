@@ -19,11 +19,11 @@ def main():
         App("neofetch"),
     ]
 
-    app.handle(apps)
+    # app.handle(apps)
 
     structured_config.modify_config(
         modify_action=lambda config: config,
-        config_type=structured_config.ConfigType.json,
+        config_type=structured_config.ConfigType.JSON,
         path="/run/cloud-init/instance-data.json",
         backup=False,
     )
