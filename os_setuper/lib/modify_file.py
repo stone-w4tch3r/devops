@@ -5,13 +5,13 @@ import inspect
 import json
 import plistlib
 import traceback
-from enum import Enum, auto
+from enum import Enum
 from io import StringIO
 from typing import Callable, Any, TypeVar
 
 import xmltodict
 from pyinfra import host, logger
-from pyinfra.api import operation, OperationError, OperationValueError
+from pyinfra.api import operation, OperationError, OperationValueError, FunctionCommand
 from pyinfra.facts import files as files_fact, server
 from pyinfra.operations import files
 
@@ -233,11 +233,11 @@ def _validate_file_state(path: str, max_file_size_mb: int) -> None:
 
 
 class ConfigType(Enum):
-    JSON = auto()
-    XML = auto()
-    INI = auto()
-    PLIST = auto()
-    # TOML = auto() # todo: what is minimal python version?
+    JSON = "JSON"
+    XML = "XML"
+    INI = "INI"
+    PLIST = "PLIST"
+    # TOML = "TOML # todo: what is minimal python version?
 
 
 TDeserialized = TypeVar("TDeserialized")
@@ -483,7 +483,7 @@ def modify_custom_config(
     """
     # validation
     # todo: exceptions or log errors?
-    _validate_file_state(path, max_file_size_mb)
+    yield FunctionCommand(lambda: _validate_file_state(path, max_file_size_mb), (), {})  # delay, in case file is not present yet
 
     # load file
     config_str: str = host.get_fact(files_fact.FileContent, path=path)
