@@ -35,9 +35,13 @@ class _IInstallMethod:
 
 @dataclass(frozen=True)
 class AptRepo:
-    Key: URL
+    KeyUrl: str
     RepoSourceStr: str
     """apt source string, e.g. `deb https://download.virtualbox.org/virtualbox/debian bionic contrib`"""
+
+    def __post_init__(self):
+        if not URL.is_valid(self.KeyUrl):
+            raise ValueError(f"Invalid URL [{self.KeyUrl}]")
 
 
 @dataclass(frozen=True)
@@ -91,7 +95,7 @@ class StructuredConfigType(Enum):
 
 @dataclass(frozen=True)
 class ConfigModification:
-    Path: Path
+    Path: str
     ModifyAction: Callable[[dict | list], dict | list]
     ConfigType: StructuredConfigType = StructuredConfigType.JSON
 

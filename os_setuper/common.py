@@ -18,7 +18,7 @@ class URL:
 
     def __init__(self, url):
         result = urlparse(url)
-        if all([result.scheme, result.netloc, result.path]) and result.scheme in ['http', 'https']:
+        if URL.is_valid(url):
             self._parsed_url = result
             self._url_str = url
         else:
@@ -31,3 +31,8 @@ class URL:
     @property
     def url_str(self) -> str:
         return self._url_str
+
+    @staticmethod
+    def is_valid(url_str: str) -> bool:
+        parsed = urlparse(url_str)
+        return all([parsed.scheme, parsed.netloc, parsed.path]) and parsed.scheme in ['http', 'https']
