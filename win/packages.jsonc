@@ -1,0 +1,41 @@
+[
+    "neofetch",
+    "gdu",
+    "zyedidia.micro",
+    "Microsoft.PowerShell",
+    "Telegram.Unigram",
+    "JetBrains.Rider",
+    "webstorm",
+    "datagrip",
+    "JetBrains.PyCharm.Professional",
+    "VSCodium.VSCodium",
+    "Zoom.Zoom",
+    //"ONLYOFFICE.DesktopEditors",
+    "7zip.7zip",
+    "VideoLAN.VLC",
+    "qBittorrent.qBittorrent",
+    "Python.Python.3.12",
+    "Microsoft.DotNet.SDK.8",
+    "Microsoft.DotNet.SDK.6", //!!! --force
+    "OpenJS.NodeJS",
+    "Mattermost.MattermostDesktop",
+    "Microsoft.Office",
+    "Microsoft.PowerToys",
+    "OpenVPNTechnologies.OpenVPNConnect",
+    // "WinFsp.WinFsp", //sshfs, not needed?
+    "SSHFS-Win.SSHFS-Win", //sshfs
+    "JanDeDobbeleer.OhMyPosh",
+    "Git.Git",
+    "GitHub.cli",
+    "GitHub.GitHubDesktop",
+    "Valve.Steam",
+    "Valve.SteamCMD",
+    "cURL.cURL",
+    "EpicGames.EpicGamesLauncher",
+    "Guru3D.Afterburner", //msi afterburner
+    "Rem0o.FanControl",
+    "Mozilla.Firefox",
+    "Mozilla.Firefox.DeveloperEdition",
+    "eloston.ungoogled-chromium", // -v 109.0.5414.120
+]
+// restart terminal
