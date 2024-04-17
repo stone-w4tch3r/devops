@@ -1,8 +1,10 @@
 ## powershell
 
+0. Manual activate: `irm https://massgrave.dev/get | iex`
 1. Install all packages and restart terminal
-2. Create `$PROFILE`: `New-Item -Path $PROFILE -Type File -Force`
-3. Fonts:
+2. `set-executionpolicy remotesigned`
+3. Create `$PROFILE`: `New-Item -Path $PROFILE -Type File -Force`
+4. Fonts:
 `oh-my-posh font install Meslo`
 In MS Terminal `settings.json` ensure:
 ```json
@@ -19,12 +21,11 @@ In MS Terminal `settings.json` ensure:
     }
 }
 ```
-4. Plugins:
+5. Plugins:
 `install-Module PSReadLine -SkipPublisherCheck -Force`
-`Install-Module posh-git -Force`
-5. Misc
+6. Misc
 - `Set-Alias -Name gdu -Value gdu_windows_amd64.exe`
-6. Final `$PROFILE`:
+7. Final `$PROFILE`:
 ```ps1
 oh-my-posh init pwsh | Invoke-Expression
 oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/powerlevel10k_classic.omp.json" | Invoke-Expression
@@ -50,4 +51,17 @@ Set-Alias -Name gdu -Value gdu_windows_amd64.exe
 ```
 
 ## Other
-- `setx NODE_OPTIONS "--openssl-legacy-provider"` - fix npm ssl error
+- fix npm ssl error: `setx NODE_OPTIONS "--openssl-legacy-provider"`
+- fix VBox Hyper-V conflict:
+    ```ps1
+    Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor
+
+    $registryPath1 = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeviceGuard"
+    if (!(Test-Path $registryPath1)) {
+        New-Item -Path $registryPath1 -Force | Out-Null
+    }
+
+    Set-ItemProperty -Path $registryPath1 -Name "LsaCfgFlags" -Value 0
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LsaCfgFlags" -Value 0
+    ```
+    And disable Core Isolation: Defender > Device Security > Core Isolation
