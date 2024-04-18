@@ -38,5 +38,6 @@
     "Mozilla.Firefox.DeveloperEdition",
     "eloston.ungoogled-chromium", // -v 109.0.5414.120
     "Oracle.VirtualBox",
+    "filips.FirefoxPWA"
 ]
 // restart terminal
