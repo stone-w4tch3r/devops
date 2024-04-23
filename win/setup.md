@@ -47,7 +47,7 @@ Set-PSReadLineKeyHandler -Key Ctrl+Shift+z -Function Redo
 #Import-Module PSReadLine #?
 
 # Aliases
-Set-Alias -Name gdu -Value gdu_windows_amd64.exe
+# Set-Alias -Name gdu -Value gdu_windows_amd64.exe # may be needed
 ```
 
 ## Other
