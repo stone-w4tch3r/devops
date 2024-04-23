@@ -21,11 +21,13 @@ In MS Terminal `settings.json` ensure:
     }
 }
 ```
-1. Plugins:
+5. Plugins:
 `install-Module PSReadLine -SkipPublisherCheck -Force`
-1. Misc
-- `Set-Alias -Name gdu -Value gdu_windows_amd64.exe`
-1. Final `$PROFILE`:
+6. `python3` symlinc:
+`$venv=((get-command python).source | Get-ItemProperty).DirectoryName;New-Item -Path $venv -Name "python3.exe" -Value "$venv\python.exe" -ItemType SymbolicLink`
+
+
+## Final `$PROFILE`:
 ```ps1
 oh-my-posh init pwsh | Invoke-Expression
 oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/powerlevel10k_classic.omp.json" | Invoke-Expression
