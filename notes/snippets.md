@@ -9,7 +9,7 @@ docker compose up -d #maybe docker-compose
 
 ## Install docker (full)
 
-### Ubuntu
+#### Ubuntu
 
 ```bash
 for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
@@ -34,7 +34,7 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-### Debian
+#### Debian
 
 ```bash
 for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
@@ -56,15 +56,7 @@ sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-## Install speedtest
-
-```bash
-sudo apt-get install -y curl
-curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
-sudo apt-get install speedtest
-```
-
-### Install docker (quick)
+#### Install docker (quick)
 
 > !!! Unstable !!!
 
@@ -86,3 +78,17 @@ ssh-keygen -t rsa -f /home/user1/.ssh/myhost.ssh-key -q -N ''
 ssh-copy-id -i /home/user1/.ssh/myhost.ssh-key.pub knopka@myhost.knopka.int
 ssh-add /home/user1/.ssh/myhost.ssh-key
 ```
+
+## Check commands
+
+Checking the server IP for blocking by foreign services:
+`bash <(curl -Ls IP.Check.Place) -l en`
+
+Server parameters and speed check for Russian providers:
+`wget -qO- speedtest.artydev.ru | bash`
+
+Server parameters and speed check for foreign providers:
+`wget -qO- bench.sh | bash`
+
+Checking audio blocking on Instagram:
+`bash <(curl -L -s https://bench.openode.xyz/checker_inst.sh)`
