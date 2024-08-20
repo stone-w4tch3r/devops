@@ -14,7 +14,7 @@
     <content url="file://$MODULE_DIR$/scripts" />
     <content url="file://$MODULE_DIR$/win" />
     <content url="file://$MODULE_DIR$/xui" />
-    <orderEntry type="jdk" jdkName="Python 3.12" jdkType="Python SDK" />
+    <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
