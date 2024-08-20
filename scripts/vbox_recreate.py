@@ -16,7 +16,28 @@ def _run(command: str) -> str:
     return subprocess.check_output(command, shell=True).decode().strip()
 
 
-def get_vm_ip(vm_name: str) -> str:
+def _validate_positive_int(value: str) -> str:
+    if isinstance(value, int) and value > 0:
+        return value
+    raise argparse.ArgumentTypeError(f"{value} is not a positive integer")
+
+
+def _validate_ova_file(value: str) -> str:
+    path = Path(value).expanduser()
+    if not path.exists() or not path.is_file():
+        raise argparse.ArgumentTypeError(f"{value} is not a valid file")
+    if path.suffix.lower() != '.ova':
+        raise argparse.ArgumentTypeError(f"{value} is not an OVA file")
+    return str(path)
+
+
+def _validate_vm_name(value: str) -> str:
+    if not re.match(r'^[a-zA-Z0-9_-]+$', value):
+        raise argparse.ArgumentTypeError(f"{value} is not a valid VM name. Use only alphanumeric characters, underscores, and hyphens.")
+    return value
+
+
+def _get_vm_ip(vm_name: str) -> str:
     is_ip_valid: Callable = lambda ip_to_match: bool(re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', ip_to_match))
     get_ip: Callable = lambda: _run(f"VBoxManage guestproperty get {vm_name} '/VirtualBox/GuestInfo/Net/0/V4/IP'").split()[-1]
 
@@ -74,7 +95,7 @@ def recreate(
     info = _run(f"VBoxManage showvminfo {vm_name}")
     vm_state = info.split(':')[-1].strip()
     vm_os = info.split(':')[-2].strip()
-    vm_ip = get_vm_ip(vm_name)
+    vm_ip = _get_vm_ip(vm_name)
 
     post_create(vm_name, vm_ip)
 
@@ -91,10 +112,47 @@ def recreate(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ova-file", type=str, default=DEFAULT_OVA_FILE)
-    parser.add_argument("--vm-name", type=str, default=DEFAULT_VM_NAME)
-    parser.add_argument("--cpu-count", type=int, default=DEFAULT_CPU_COUNT)
-    parser.add_argument("--ram-in-mb", type=int, default=DEFAULT_RAM_IN_MB)
+    parser = argparse.ArgumentParser(
+        description="""
+        Recreate a VirtualBox VM from an OVA file.
+
+        This script automates the process of creating or recreating a VirtualBox VM:
+        1. If a VM with the specified name already exists, it is deleted.
+        2. A cloud-init ISO is created with the 'vbox-cloud-init.yml' file.
+        3. The new VM is imported from the specified OVA file.
+        4. The cloud-init ISO is attached to the VM.
+        5. VM settings (CPU, RAM, graphics controller) are configured.
+        6. The VM is started in headless mode.
+        7. The script waits for the VM to obtain an IP address.
+        8. Post-creation tasks are performed using the vm_postcreate.py script.
+
+        The script uses VBoxManage CLI.
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--ova-file",
+        type=_validate_ova_file,
+        default=DEFAULT_OVA_FILE,
+        help=f"Path to the OVA file (default: {DEFAULT_OVA_FILE})"
+    )
+    parser.add_argument(
+        "--vm-name",
+        type=_validate_vm_name,
+        default=DEFAULT_VM_NAME,
+        help=f"Name of the VM (default: {DEFAULT_VM_NAME})"
+    )
+    parser.add_argument(
+        "--cpu-count",
+        type=_validate_positive_int,
+        default=DEFAULT_CPU_COUNT,
+        help=f"Number of CPUs for the VM (default: {DEFAULT_CPU_COUNT})"
+    )
+    parser.add_argument(
+        "--ram-in-mb",
+        type=_validate_positive_int,
+        default=DEFAULT_RAM_IN_MB,
+        help=f"Amount of RAM in MB for the VM (default: {DEFAULT_RAM_IN_MB})"
+    )
     args = parser.parse_args()
     recreate(args.ova_file, args.vm_name, args.cpu_count, args.ram_in_mb)
