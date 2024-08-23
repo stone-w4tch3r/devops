@@ -25,7 +25,7 @@ rm Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
 ## powershell
 
 0. Manual activate: `irm https://massgrave.dev/get | iex`
-1. Install packages and restart terminal `cat packages.json | ConvertFrom-Json | foreach { winget install $_ }`
+1. Install packages and restart terminal `cat packages.json | ConvertFrom-Json | foreach { winget install --source winget $_ }`
 2. `set-executionpolicy remotesigned`
 3. Create `$PROFILE`: `New-Item -Path $PROFILE -Type File -Force`
 4. Fonts:
