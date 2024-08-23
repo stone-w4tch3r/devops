@@ -1,3 +1,27 @@
+## install winget 
+
+```ps1
+cd ~/Downloads/
+
+$progressPreference = 'silentlyContinue'
+
+# dependencies
+Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
+Invoke-WebRequest -Uri https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx -OutFile Microsoft.UI.Xaml.2.8.x64.appx
+
+# check latest version manually
+Invoke-WebRequest -Uri https://github.com/microsoft/winget-cli/releases/latest/download/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+
+
+Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
+Add-AppxPackage Microsoft.UI.Xaml.2.8.x64.appx
+Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+
+rm Microsoft.VCLibs.x64.14.00.Desktop.appx
+rm Microsoft.UI.Xaml.2.8.x64.appx
+rm Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+```
+
 ## powershell
 
 0. Manual activate: `irm https://massgrave.dev/get | iex`
