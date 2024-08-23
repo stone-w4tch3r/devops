@@ -91,3 +91,30 @@ Set-PSReadLineKeyHandler -Key Ctrl+Shift+z -Function Redo
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LsaCfgFlags" -Value 0
     ```
     And disable Core Isolation: Defender > Device Security > Core Isolation
+
+## Take $PATH from another user
+```ps1
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+
+$username = "USERNAME_HERE"
+$sid = (New-Object System.Security.Principal.NTAccount($username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+$UserHive = Get-ChildItem Registry::HKEY_USERS\ | Where-Object { $_.Name -eq "HKEY_USERS\$sid" }
+if ($UserHive) {
+    $userPath = (Get-ItemProperty -Path "$($UserHive.PSPath)\Environment" -Name PATH -ErrorAction SilentlyContinue).Path
+
+    if ($userPath) {
+        Write-Output '$PATH was copied from another user, see $PROFILE'
+    } else {
+        Write-Output "No custom PATH found for user $username"
+    }
+} else {
+    Write-Output "User profile for $username not found or not loaded"
+}
+
+# Combine the paths, removing duplicates # TODO fix
+# $newPath = ($currentPath.Split(';') + $userPath.Split(';') | Select-Object -Unique) -join ';'
+$newPath = $userPath
+
+# Set the new PATH for the current session
+$env:PATH = $newPath
+```
