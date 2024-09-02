@@ -46,7 +46,8 @@ In MS Terminal `settings.json` ensure:
 }
 ```
 5. Plugins:
-`install-Module PSReadLine -SkipPublisherCheck -Force`
+`Install-Module PSReadLine -SkipPublisherCheck -Force`
+`Install-Module Microsoft.WinGet.Client -SkipPublisherCheck -Force` (powershell wrapper)
 6. `python3` symlinc:
 `$venv=((get-command python).source | Get-ItemProperty).DirectoryName;New-Item -Path $venv -Name "python3.exe" -Value "$venv\python.exe" -ItemType SymbolicLink`
 
