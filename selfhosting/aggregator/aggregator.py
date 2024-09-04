@@ -1,3 +1,4 @@
+from fastapi.responses import PlainTextResponse
 from fastapi import FastAPI, HTTPException
 import requests
 import os
@@ -43,8 +44,7 @@ async def get_subscriptions(user: str):
         subscriptions2 = response2.text.splitlines()
 
         # Combine both responses as plaintext, separated by newline
-        combined_subscriptions = "\n".join(subscriptions1 + subscriptions2)
-        return combined_subscriptions
+        return PlainTextResponse(content=("\n".join(subscriptions1 + subscriptions2)))
 
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=str(e))
