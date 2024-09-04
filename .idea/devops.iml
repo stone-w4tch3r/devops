@@ -11,6 +11,7 @@
     <content url="file://$MODULE_DIR$/pyinfra_manager">
       <excludeFolder url="file://$MODULE_DIR$/pyinfra_manager/.venv" />
     </content>
+    <content url="file://$MODULE_DIR$/selfhosting" />
     <content url="file://$MODULE_DIR$/vm_manage" />
     <content url="file://$MODULE_DIR$/win" />
     <content url="file://$MODULE_DIR$/xui" />
