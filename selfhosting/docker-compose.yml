@@ -1,12 +1,12 @@
 services:
 
   facade:
-    image: ${FACADE_IMAGE}
+    image: crccheck/hello-world:latest
     container_name: facade-container
     hostname: facade-host
     restart: unless-stopped
     expose:
-      - ${FACADE_INNER_PORT}
+      - "8000"
 
   3x-ui:
     image: ghcr.io/mhsanaei/3x-ui:latest
