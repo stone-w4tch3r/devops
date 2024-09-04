@@ -3,6 +3,7 @@ services:
   facade:
     image: ${FACADE_IMAGE}
     container_name: facade-container
+    hostname: facade-host
     restart: unless-stopped
     expose:
       - ${FACADE_INNER_PORT}
@@ -10,7 +11,7 @@ services:
   3x-ui:
     image: ghcr.io/mhsanaei/3x-ui:latest
     container_name: 3x-ui-container
-    hostname: facade-host
+    hostname: 3x-ui-host
     volumes:
       - ./db/:/etc/x-ui/
     environment:
@@ -50,8 +51,12 @@ services:
       - DOMAIN=${DOMAIN}
       - FACADE_INNER_PORT=${FACADE_INNER_PORT}
       - LEGACY_DOMAIN=${LEGACY_DOMAIN}
-      - XPANEL_PATH_POSTFIX=${XPANEL_PATH_POSTFIX}
       - XPANEL_FALLBACK_PORT=${XPANEL_FALLBACK_PORT}
+      - PATH_XPANEL=${PATH_XPANEL}
+      - PATH_XPANEL_SUB=${PATH_XPANEL_SUB}
+      - PATH_XPANEL_JSON=${PATH_XPANEL_JSON}
+      - PATH_MAP=${PATH_MAP}
+      - PATH_REQUEST_INFO=${PATH_REQUEST_INFO}
     depends_on:
       - facade
 

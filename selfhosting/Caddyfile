@@ -1,15 +1,16 @@
 # main
 {$DOMAIN} {
 
-    reverse_proxy / facade-container:{$FACADE_INNER_PORT}
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
-    reverse_proxy /{$PATH_XPANEL_SUB}/* 3x-ui-container:2096
-    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-container:2096
+    reverse_proxy / facade-host:{$FACADE_INNER_PORT}
+
+    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-host:2053
+    reverse_proxy /{$PATH_XPANEL_SUB}/* 3x-ui-host:2096
+    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-host:2096
 }
 
 # fallback for panel
 {$DOMAIN}:{$XPANEL_FALLBACK_PORT} {
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
+    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-host:2053
 }
 
 # legacy subscription path
@@ -17,6 +18,6 @@
 
     handle /sub_sdsd/* {
         uri replace /sub_sdsd/ /{$PATH_XPANEL_SUB}/
-        reverse_proxy 3x-ui-container:2096
+        reverse_proxy 3x-ui-host:2096
     }
 }
