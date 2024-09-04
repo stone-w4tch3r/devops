@@ -19,9 +19,14 @@ if not HOST1 or not PORT1 or not PATH1 or not METHOD1 or not HOST2 or not PORT2 
     raise Exception("Environment variables not set")
 if METHOD1 not in ["http", "https"] or METHOD2 not in ["http", "https"]:
     raise Exception("Invalid method")
-if not PORT1.isdigit() or not PORT2.isdigit() or int(PORT1) < 1 or int(PORT2) < 1 or int(PORT1) > 65535 or int(PORT2) > 65535:
-    raise Exception("Invalid port")
 
+if isinstance(PORT2, str):
+    try:
+        PORT2 = int(PORT2)
+    except ValueError:
+        raise Exception("PORT2 is not a valid integer")
+if not isinstance(PORT1, int) or not isinstance(PORT2, int) or PORT1 < 1 or PORT2 < 1 or PORT1 > 65535 or PORT2 > 65535:
+    raise Exception("Invalid port")
 
 
 @app.get(f"/{PATH1}/{{user}}")
