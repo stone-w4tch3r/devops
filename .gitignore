@@ -226,3 +226,4 @@ $RECYCLE.BIN/
 /backup_tool/__pycache__
 
 /os_setuper/__pycache__
+.aider*
