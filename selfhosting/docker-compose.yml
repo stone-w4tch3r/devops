@@ -30,6 +30,23 @@ services:
       - "2096"
     depends_on:
       - caddy
+  
+  sub-aggregator:
+    image: ghcr.io/stone-w4tch3r/sub-aggregator:latest
+    container_name: sub-aggregator-container
+    hostname: sub-aggregator-host
+    restart: unless-stopped
+    expose:
+      - "5000"
+    environment:
+      - PATH_XPANEL_SUB=${PATH_XPANEL_SUB}
+      - HOST2=${HOST2}
+      - PORT2=${PORT2}
+      - PATH2=${PATH2}
+      - METHOD2=${METHOD2}
+    depends_on:
+      - 3x-ui
+      - caddy
 
   caddy:
     image: caddy:latest
@@ -49,7 +66,6 @@ services:
       - ./caddy_config:/config
     environment:
       - DOMAIN=${DOMAIN}
-      - FACADE_INNER_PORT=${FACADE_INNER_PORT}
       - LEGACY_DOMAIN=${LEGACY_DOMAIN}
       - XPANEL_FALLBACK_PORT=${XPANEL_FALLBACK_PORT}
       - PATH_XPANEL=${PATH_XPANEL}
