@@ -79,6 +79,7 @@ Set-PSReadLineKeyHandler -Key Ctrl+Shift+z -Function Redo
 
 ## Other
 - fix npm ssl error: `setx NODE_OPTIONS "--openssl-legacy-provider"`
+- add .caps-layout.ahk and symlink it to startup folder
 - fix VBox Hyper-V conflict:
     ```ps1
     Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor
