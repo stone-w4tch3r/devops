@@ -1,21 +1,29 @@
-# main
+################### main ###################
 {$DOMAIN} {
     reverse_proxy / facade-host:8000
 
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-host:2053
-    reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-host:5000
-    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-host:2096
+    # 3x-ui
+    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
+    reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
+    # TODO: support json in aggregator 
+    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-container:2096
+
+    # lobe-chat
+    reverse_proxy /{$PATH_LOBE_CHAT}/* lobe-chat-container:3000
 }
+
+################### 3x-ui ###################
+# TODO: can I add same DOMAIN block? 
 
 # fallback for panel
 {$DOMAIN}:{$XPANEL_FALLBACK_PORT} {
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-host:2053
+    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
 }
 
 # legacy subscription path
 {$LEGACY_DOMAIN}:2021 {
     handle /sub_sdsd/* {
         uri replace /sub_sdsd/ /{$PATH_XPANEL_SUB}/
-        reverse_proxy sub-aggregator-host:5000
+        reverse_proxy sub-aggregator-container:5000
     }
 }

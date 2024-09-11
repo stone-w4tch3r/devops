@@ -1,83 +1,39 @@
+version: '3.8'
+
 services:
-
-  facade:
-    image: crccheck/hello-world:latest
-    container_name: facade-container
-    hostname: facade-host
-    restart: unless-stopped
-    expose:
-      - "8000"
-
-  3x-ui:
-    image: ghcr.io/mhsanaei/3x-ui:latest
-    container_name: 3x-ui-container
-    hostname: 3x-ui-host
-    volumes:
-      - ./db/:/etc/x-ui/
-    environment:
-      XRAY_VMESS_AEAD_FORCED: "false"
-    tty: true
-    restart: unless-stopped
-    ports:
-      - "443:443"
-      - "443:443/udp"
-      - "3740:3740" # additional port for inbounds
-      - "3741:3741" # additional port for inbounds
-      - "3742:3742" # additional port for inbounds
-      - "3743:3743" # additional port for inbounds
-    expose:
-      - "2053"
-      - "2096"
-    depends_on:
-      - caddy
-  
-  sub-aggregator:
-    image: ghcr.io/stone-w4tch3r/sub-aggregator:latest
-    container_name: sub-aggregator-container
-    hostname: sub-aggregator-host
-    restart: unless-stopped
-    expose:
-      - "5000"
-    environment:
-      - PATH_XPANEL_SUB=${PATH_XPANEL_SUB}
-      - HOST2=${HOST2}
-      - PORT2=${PORT2}
-      - PATH2=${PATH2}
-      - METHOD2=${METHOD2}
-    depends_on:
-      - 3x-ui
-      - caddy
-
   caddy:
     image: caddy:latest
     container_name: caddy-container
-    hostname: caddy-host
     restart: unless-stopped
     ports:
       - "80:80"
-      - "2021:2021" # legacy subscriptions
-      - ${XPANEL_FALLBACK_PORT}:${XPANEL_FALLBACK_PORT}
-    expose:
-      - "443"
-      - "443/udp"
+      - "443:443"
+      - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./caddy_data:/data
       - ./caddy_config:/config
     environment:
-      - DOMAIN=${DOMAIN}
-      - LEGACY_DOMAIN=${LEGACY_DOMAIN}
-      - XPANEL_FALLBACK_PORT=${XPANEL_FALLBACK_PORT}
-      - PATH_XPANEL=${PATH_XPANEL}
-      - PATH_XPANEL_SUB=${PATH_XPANEL_SUB}
-      - PATH_XPANEL_JSON=${PATH_XPANEL_JSON}
-      - PATH_MAP=${PATH_MAP}
-      - PATH_REQUEST_INFO=${PATH_REQUEST_INFO}
+      - xxx  # TODO: pass .env file
+    networks:
+      - caddy_net
     depends_on:
       - facade
+
+  facade:
+    image: crccheck/hello-world:latest
+    container_name: facade-container
+    restart: unless-stopped
+    expose:
+      - "8000"
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    driver: bridge
 
 volumes:
   caddy_data: # This volume contains certs. Copy it when redeploying to prevent reissuing and rate limiting.
   caddy_config: # Contains dynamic configuration, if it was created in run-time. Usually not needed.
-  db: # Contains the database for 3x-ui.
 

@@ -1,0 +1,64 @@
+services:
+  postgresql:
+    image: pgvector/pgvector:pg16
+    container_name: lobe-postgres
+    expose:
+      - '5432'
+    volumes:
+      - './data:/var/lib/postgresql/data'
+    environment:
+      - 'POSTGRES_DB=lobe'
+      - 'POSTGRES_PASSWORD=uWNZugjBqixf8dxC'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - ai_chat_net
+
+  minio:
+    image: minio/minio
+    container_name: lobe-minio
+    expose:
+      - '9000'
+      - '9001'
+    volumes:
+      - './s3_data:/etc/minio/data'
+    environment:
+      - 'MINIO_ROOT_USER=YOUR_MINIO_USER'
+      - 'MINIO_ROOT_PASSWORD=YOUR_MINIO_PASSWORD'
+      - 'MINIO_DOMAIN=lobe-s3-api.example.com'
+      - 'MINIO_API_CORS_ALLOW_ORIGIN=https://example.com' # Base domain
+    restart: always
+    command: >
+      server /etc/minio/data --address ":9000" --console-address ":9001"
+    networks:
+      - ai_chat_net
+
+  lobe:
+    image: lobehub/lobe-chat-database
+    container_name: lobe-database
+    expose:
+      - '3210'
+    depends_on:
+      - postgresql
+      - minio
+    env_file:
+      - .env
+    restart: always
+    networks:
+      - ai_chat_net
+      - main_net
+
+networks:
+  ai_chat_net:
+  main_net:
+    external: true
+
+volumes:
+  data:
+    driver: local
+  s3_data:
+    driver: local
