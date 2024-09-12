@@ -1,7 +1,7 @@
 services:
   postgresql:
     image: pgvector/pgvector:pg16
-    container_name: lobe-postgres
+    container_name: lobe-postgres-container
     expose:
       - '5432'
     volumes:
@@ -20,7 +20,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: lobe-minio
+    container_name: lobe-minio-container
     expose:
       - '9000'
       - '9001'
@@ -39,7 +39,7 @@ services:
 
   lobe:
     image: lobehub/lobe-chat-database
-    container_name: lobe-database
+    container_name: lobe-chat-persistent-container
     expose:
       - '3210'
     depends_on:

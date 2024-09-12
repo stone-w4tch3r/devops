@@ -5,15 +5,17 @@
     # 3x-ui
     reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
     reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
-    # TODO: support json in aggregator 
     reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-container:2096
 
+    # 3x-ui vless routing
+    # TODO
+
     # lobe-chat
-    reverse_proxy /{$PATH_LOBE_CHAT}/* lobe-chat-container:3000
+    reverse_proxy /{$PATH_LOBE_CHAT_PERSISTENT}/* lobe-chat-persistent-container:3210
+    reverse_proxy /{$PATH_LOBE_CHAT_TRANSIENT}/* lobe-chat-transient-container:3210
 }
 
 ################### 3x-ui ###################
-# TODO: can I add same DOMAIN block? 
 
 # fallback for panel
 {$DOMAIN}:{$XPANEL_FALLBACK_PORT} {
@@ -21,7 +23,7 @@
 }
 
 # legacy subscription path
-{$LEGACY_DOMAIN}:2021 {
+{$LEGACY_XPANEL_DOMAIN}:2021 {
     handle /sub_sdsd/* {
         uri replace /sub_sdsd/ /{$PATH_XPANEL_SUB}/
         reverse_proxy sub-aggregator-container:5000
