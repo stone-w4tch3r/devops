@@ -957,6 +957,7 @@ FodyWeavers.xsd
 .env
 
 .idea/copilot/*
+.idea/misc.xml
 /config
 
 /pyinfra_manager/keys/*
