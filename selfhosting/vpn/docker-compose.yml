@@ -29,8 +29,8 @@ services:
     restart: unless-stopped
     expose:
       - "5000"
-    environment:
-      - XXX  # TODO: pass .env file
+    env_file:
+      - .env
     depends_on:
       - 3x-ui
 
