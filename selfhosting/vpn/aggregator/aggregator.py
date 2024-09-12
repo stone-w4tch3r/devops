@@ -1,10 +1,11 @@
-from fastapi.responses import PlainTextResponse
-from fastapi import FastAPI, HTTPException
-import requests
-import os
 import json
 import logging
-from pydantic import BaseModel, HttpUrl, ValidationError, validator, Field
+import os
+
+import requests
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel, HttpUrl, ValidationError, field_validator, Field
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,10 +14,32 @@ logger = logging.getLogger(__name__)
 class ConfigModel(BaseModel):
     """
     Json example:
-    {"sources": ["https://source1.com", "https://source2.com"], "endpoint": "/aggregate-subscriptions"}
+    {
+        "sources_plain": [
+            "http://source1:8000/sub",
+            "http://source2:8000/sub"
+        ],
+        "sources_json": [
+            "http://source1:8000/json",
+            "http://source2:8000/json"
+        ],
+        "endpoint_plain": "/subs",
+        "endpoint_json": "/subs-json"
+    }
     """
-    sources: list[HttpUrl]
-    endpoint: str = Field(..., pattern=r"^/.*[^/]$")
+    sources_plain: list[HttpUrl]
+    sources_json: list[HttpUrl]
+    endpoint_plain: str = Field(..., pattern=r"^/.*[^/]$")
+    endpoint_json: str = Field(..., pattern=r"^/.*[^/]$")
+
+    # noinspection PyNestedDecorators
+    @field_validator("sources_plain", "sources_json")
+    @classmethod
+    def validate_no_trailing_slash(cls, urls: list[HttpUrl]) -> list[HttpUrl]:
+        for url in urls:
+            if str(url).endswith("/"):
+                raise ValueError(f"Trailing slash not allowed in source URL: {url}")
+        return urls
 
 
 app = FastAPI()
@@ -25,7 +48,7 @@ config_str = os.getenv("AGGREGATOR_CONFIG_JSON")
 if not config_str:
     raise Exception("AGGREGATOR_CONFIG_JSON environment variable not set")
 
-logger.info("Loaded config:")
+logger.info("Config value:")
 logger.info(config_str)
 
 try:
@@ -38,24 +61,46 @@ try:
 except ValidationError as e:
     raise Exception(f"Configuration validation error: {e}")
 
-logger.info(f"Endpoint: {config_data.endpoint}")
-logger.info(f"Sources: {" ".join([str(source) for source in config_data.sources])}")
+logger.info(f"Config loaded successfully")
+logger.info(f"Endpoints: {config_data.endpoint_plain} {config_data.endpoint_json}")
+logger.info(f"Sources: {" ".join([str(source) for source in [*config_data.sources_plain, *config_data.sources_json]])}")
 
 
-@app.get(config_data.endpoint + "/{user}")
+@app.get(config_data.endpoint_plain + "/{user}")
 async def get_subscriptions(user: str):
     subscriptions = []
     error_count = 0
-    for source_url in config_data.sources:
+    for url in config_data.sources_plain:
         try:
-            response = requests.get(f"{source_url}/{user}")
+            response = requests.get(f"{url}/{user}")
             response.raise_for_status()
             subscriptions.extend(response.text.splitlines())
         except requests.RequestException as err:
             error_count += 1
-            logger.error(f"Failed fetching from {source_url}: {err}")
+            logger.error(f"Failed fetching plain subscriptions from {url}: {err}")
 
-    if error_count == len(config_data.sources):
+    if error_count == len(config_data.sources_plain):
         raise HTTPException(status_code=500, detail="All sources returned an error")
 
     return PlainTextResponse(content=("\n".join(subscriptions)))
+
+
+@app.get(config_data.endpoint_json + "/{user}")
+async def get_subscriptions(user: str):
+    subscriptions: list[dict] = []
+    error_count = 0
+    for url in config_data.sources_json:
+        try:
+            response = requests.get(f"{url}/{user}")
+            response.raise_for_status()
+            received_json = json.loads(response.text)
+            subscriptions.extend(received_json if isinstance(received_json, list) else [received_json])
+        except requests.RequestException as err:
+            error_count += 1
+            logger.error(f"Failed fetching json subscriptions from {url}: {err}")
+
+    if error_count == len(config_data.sources_json):
+        raise HTTPException(status_code=500, detail="All sources returned an error")
+
+    # return formatted json
+    return PlainTextResponse(content=json.dumps(subscriptions, indent=4))
