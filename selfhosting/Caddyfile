@@ -1,31 +1,4 @@
 ################### main ###################
-{$DOMAIN} {
-    reverse_proxy / facade-host:8000
 
-    # 3x-ui
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
-    reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
-    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-container:2096
-
-    # 3x-ui vless routing
-    # TODO
-
-    # lobe-chat
-    reverse_proxy /{$PATH_LOBE_CHAT_PERSISTENT}/* lobe-chat-persistent-container:3210
-    reverse_proxy /{$PATH_LOBE_CHAT_TRANSIENT}/* lobe-chat-transient-container:3210
-}
-
-################### 3x-ui ###################
-
-# fallback for panel
-{$DOMAIN}:{$XPANEL_FALLBACK_PORT} {
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
-}
-
-# legacy subscription path
-{$LEGACY_XPANEL_DOMAIN}:2021 {
-    handle /sub_sdsd/* {
-        uri replace /sub_sdsd/ /{$PATH_XPANEL_SUB}/
-        reverse_proxy sub-aggregator-container:5000
-    }
-}
+# allows for different configs on different servers
+import ./caddyfiles/*.caddyfile

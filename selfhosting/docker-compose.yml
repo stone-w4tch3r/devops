@@ -11,10 +11,11 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddyfiles:/etc/caddy/caddyfiles
       - ./caddy_data:/data
       - ./caddy_config:/config
-    environment:
-      - xxx  # TODO: pass .env file
+    env_file:
+      - .env
     networks:
       - caddy_net
     depends_on:

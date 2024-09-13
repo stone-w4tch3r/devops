@@ -1,0 +1,9 @@
+################### 3x-ui ###################
+
+# legacy subscription path
+{$LEGACY_XPANEL_DOMAIN}:2021 {
+    handle /sub_sdsd/* {
+        uri replace /sub_sdsd/ /{$PATH_XPANEL_SUB}/
+        reverse_proxy sub-aggregator-container:5000
+    }
+}
