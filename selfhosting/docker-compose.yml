@@ -32,6 +32,7 @@ services:
 
 networks:
   caddy_net:
+    name: caddy_net
     driver: bridge
 
 volumes:

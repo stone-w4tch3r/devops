@@ -30,6 +30,8 @@ services:
       - .env
     depends_on:
       - 3x-ui
+    networks:
+      - caddy_net
 
 networks:
   caddy_net:
