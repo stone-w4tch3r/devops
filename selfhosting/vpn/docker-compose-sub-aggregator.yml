@@ -3,7 +3,14 @@ services:
     image: ghcr.io/stone-w4tch3r/sub-aggregator:latest
     container_name: sub-aggregator-container
     restart: unless-stopped
-    ports:
-      - ${SUB_AGGREGATOR_PORT}:${SUB_AGGREGATOR_PORT}
+    expose:
+      - 5000
     env_file:
       - .env
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external:
+      true

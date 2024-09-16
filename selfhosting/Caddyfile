@@ -1,4 +1,4 @@
 ################### main ###################
 
 # allows for different configs on different servers
-import ./caddyfiles/*.caddyfile
+import {$CADDYFILES_PATH}

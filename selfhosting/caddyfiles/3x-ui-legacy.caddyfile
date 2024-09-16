@@ -1,7 +1,7 @@
 # legacy subscription path
-{$LEGACY_XPANEL_DOMAIN}:2021 {
-    handle /sub_sdsd/* {
-        uri replace /sub_sdsd/ /{$PATH_XPANEL_SUB}/
+{$LEGACY_XPANEL_AUTHORITY} {
+    handle /{$LEGACY_XPANEL_SUB_PATH}/* {
+        uri replace /{$LEGACY_XPANEL_SUB_PATH}/ /{$PATH_XPANEL_SUB}/
         reverse_proxy sub-aggregator-container:5000
     }
 }

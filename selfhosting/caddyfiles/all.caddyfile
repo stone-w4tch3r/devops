@@ -4,13 +4,8 @@
     # 3x-ui
     reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
     reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
-    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-container:2096
+    reverse_proxy /{$PATH_XPANEL_JSON}/* sub-aggregator-container:5000
 
     # lobe-chat
  
-}
-
-# 3x-ui vless routing
-microsoft.com, www.microsoft.com {
-    reverse_proxy 3x-ui-container:4000
 }

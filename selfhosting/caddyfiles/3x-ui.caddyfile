@@ -4,10 +4,5 @@
     # 3x-ui
     reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
     reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
-    reverse_proxy /{$PATH_XPANEL_JSON}/* 3x-ui-container:2096
-}
-
-# 3x-ui vless routing
-* {
-    reverse_proxy /vless4000 3x-ui-container:4000
+    reverse_proxy /{$PATH_XPANEL_JSON}/* sub-aggregator-container:5000
 }

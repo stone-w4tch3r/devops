@@ -16,6 +16,8 @@ services:
       - "4002" # vless inbound port
       - "4003" # vless inbound port
     ports:
+      - "443:443" # stays in front of caddy
+      - "443:443/udp"
       - ${XPANEL_INBOUNDS_PORTS}
     networks:
       - caddy_net
