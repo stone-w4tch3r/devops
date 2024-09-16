@@ -1,27 +1,37 @@
-version: '3.8'
+x-base-caddy: &base-caddy # template, using extension fields
+  image: caddy:latest
+  container_name: caddy-container
+  restart: unless-stopped
+  ports:
+    - "80:80"
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  volumes:
+    - ./Caddyfile:/etc/caddy/Caddyfile
+    - ./caddyfiles:/etc/caddy/caddyfiles
+    - ./caddy_data:/data
+    - ./caddy_config:/config
+  env_file:
+    - .env
+  networks:
+    - caddy_net
 
 services:
-  caddy:
-    image: caddy:latest
-    container_name: caddy-container
-    restart: unless-stopped
+  caddy-public:
+    <<: *base-caddy
+    profiles:
+      - caddy-public
     ports:
-      - "80:80"
       - "443:443"
       - "443:443/udp"
-    extra_hosts:
-        - "host.docker.internal:host-gateway"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./caddyfiles:/etc/caddy/caddyfiles
-      - ./caddy_data:/data
-      - ./caddy_config:/config
-    env_file:
-      - .env
-    networks:
-      - caddy_net
-    depends_on:
-      - facade
+
+  caddy-inner:
+    <<: *base-caddy
+    profiles:
+      - caddy-private
+    expose:
+      - "443"
+      - "443/udp"
 
   facade:
     image: crccheck/hello-world:latest
@@ -40,4 +50,3 @@ networks:
 volumes:
   caddy_data: # This volume contains certs. Copy it when redeploying to prevent reissuing and rate limiting.
   caddy_config: # Contains dynamic configuration, if it was created in run-time. Usually not needed.
-
