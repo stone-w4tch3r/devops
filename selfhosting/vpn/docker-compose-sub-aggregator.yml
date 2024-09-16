@@ -1,0 +1,9 @@
+services:
+  sub-aggregator:
+    image: ghcr.io/stone-w4tch3r/sub-aggregator:latest
+    container_name: sub-aggregator-container
+    restart: unless-stopped
+    ports:
+      - ${SUB_AGGREGATOR_PORT}:${SUB_AGGREGATOR_PORT}
+    env_file:
+      - .env
