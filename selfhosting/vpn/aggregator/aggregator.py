@@ -1,4 +1,4 @@
-import json
+import json5
 import logging
 import os
 
@@ -52,8 +52,8 @@ logger.info("Config value:")
 logger.info(config_str)
 
 try:
-    config = json.loads(config_str)
-except json.JSONDecodeError as e:
+    config = json5.loads(config_str)
+except json5.JSONDecodeError as e:
     raise Exception(f"Invalid JSON format: {e}")
 
 try:
