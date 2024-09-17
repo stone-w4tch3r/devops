@@ -1,0 +1,45 @@
+services:
+  caddy:
+    image: caddy:latest
+    container_name: caddy-container
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./caddyfiles:/etc/caddy/caddyfiles
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    env_file:
+      - .env
+    networks:
+      - caddy_net
+    ports:
+      - "80:80"
+      { %- for port in os.environ['CADDY_PORTS'].split(',') % }
+      - "{{ port }}:{{ port }}"
+      { %- endfor % }
+    {% if 'CADDY_EXPOSE' in os.environ %}
+    expose:
+      {% for port in os.environ['CADDY_EXPOSE'].split(',') %}
+      - "{{ port }}"
+      {% endfor %}
+    {% endif %}
+
+  facade:
+    image: crccheck/hello-world:latest
+    container_name: facade-container
+    restart: unless-stopped
+    expose:
+      - "8000"
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    name: caddy_net
+    driver: bridge
+
+volumes:
+  caddy_data: # This volume contains certs. Copy it when redeploying to prevent reissuing and rate limiting.
+  caddy_config: # Contains dynamic configuration, if it was created in run-time. Usually not needed.
