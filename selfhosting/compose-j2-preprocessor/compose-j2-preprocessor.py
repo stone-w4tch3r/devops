@@ -6,6 +6,15 @@ import os
 
 import yaml
 from jinja2 import Environment, FileSystemLoader
+from dotenv import load_dotenv
+
+
+def load_env_vars(env_file='.env'):
+    if os.path.exists(env_file):
+        load_dotenv(env_file)
+        logging.info(f"Loaded environment variables from {env_file}")
+    else:
+        logging.warning(f"No {env_file} file found. Using system environment variables.")
 
 
 def process_template(template_path: str, output_path: str, overwrite: bool = False, preview: bool = False) -> None:
@@ -16,7 +25,10 @@ def process_template(template_path: str, output_path: str, overwrite: bool = Fal
     except Exception as e:
         raise ValueError(f"Failed to load template {template_path}: {e}")
 
-    rendered = template.render(os=os, enumerate=enumerate)
+    # Load environment variables
+    load_env_vars()
+
+    rendered = template.render(os=os, enumerate=enumerate, env=os.environ)
 
     try:
         yaml.safe_load(rendered)
@@ -47,6 +59,7 @@ def main() -> None:
     parser.add_argument("-o", "--output", default="docker-compose-j2.yml", help="Output file name")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite output file if it exists")
     parser.add_argument("--preview", action="store_true", help="Preview the output before writing")
+    parser.add_argument("--env-file", default=".env", help="Path to the .env file (default: .env)")
 
     args = parser.parse_args()
 
@@ -56,6 +69,7 @@ def main() -> None:
         if not os.path.isfile(args.template):
             raise FileNotFoundError(f"The file {args.template} does not exist.")
         output_path = args.output if args.output.endswith(('.yml', '.yaml')) else args.output + '.yml'
+        load_env_vars(args.env_file)
         process_template(args.template, output_path, args.overwrite, args.preview)
     except Exception as e:
         logging.error(f"{type(e).__name__}: {e}")

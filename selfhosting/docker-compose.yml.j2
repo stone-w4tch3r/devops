@@ -16,10 +16,10 @@ services:
       - caddy_net
     ports:
       - "80:80"
-      { %- for port in os.environ['CADDY_PORTS'].split(',') % }
+      {%- for port in os.environ['CADDY_PORTS'].split(',') %}
       - "{{ port }}:{{ port }}"
-      { %- endfor % }
-    {% if 'CADDY_EXPOSE' in os.environ %}
+      {%- endfor %}
+    {% if os.environ.get('CADDY_EXPOSE') %}
     expose:
       {% for port in os.environ['CADDY_EXPOSE'].split(',') %}
       - "{{ port }}"
