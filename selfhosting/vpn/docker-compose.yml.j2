@@ -18,7 +18,9 @@ services:
     ports:
       - "443:443" # stays in front of caddy
       - "443:443/udp"
-      - ${XPANEL_INBOUNDS_PORTS}
+      {%- if os.environ.get('XPANEL_INBOUNDS_PORTS') %}
+      - ${XPANEL_INBOUNDS_PORTS}:${XPANEL_INBOUNDS_PORTS}
+      {%- endif %}
     networks:
       - caddy_net
   
