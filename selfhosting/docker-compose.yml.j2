@@ -16,17 +16,17 @@ services:
       - caddy_net
     ports:
       - "80:80"
-      {% if os.environ.get('CADDY_PORTS') %}
+      {%- if os.environ.get('CADDY_PORTS') %}
       {%- for port in os.environ['CADDY_PORTS'].split(',') %}
       - "{{ port }}:{{ port }}"
       {%- endfor %}
-      {% endif %}
-    {% if os.environ.get('CADDY_EXPOSE') %}
+      {%- endif %}
+    {%- if os.environ.get('CADDY_EXPOSE') %}
     expose:
       {%- for port in os.environ['CADDY_EXPOSE'].split(',') %}
       - "{{ port }}"
       {%- endfor %}
-    {% endif %}
+    {%- endif %}
 
   facade:
     image: crccheck/hello-world:latest
