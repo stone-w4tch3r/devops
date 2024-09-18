@@ -7,9 +7,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, HttpUrl, ValidationError, field_validator, Field
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 class ConfigModel(BaseModel):
     """
@@ -48,14 +45,10 @@ config_str = os.getenv("AGGREGATOR_CONFIG_JSON")
 if not config_str:
     raise Exception("AGGREGATOR_CONFIG_JSON environment variable not set")
 
-level = logging.INFO
-if os.getenv("AGGREGATOR_DEBUG"):
-    level = logging.DEBUG
+logging.basicConfig(level=logging.DEBUG if os.getenv("DEBUG") else logging.INFO)
+logger = logging.getLogger(__name__)
+logger.debug("Debug logging enabled")
 
-logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
-
-if level == logging.DEBUG:
-    logger.info("Debug mode enabled")
 
 logger.info("Config value:")
 logger.info(config_str)
