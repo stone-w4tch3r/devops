@@ -17,7 +17,7 @@ def load_env_vars(env_file='.env'):
         logging.warning(f"No {env_file} file found. Using system environment variables.")
 
 
-def process_template(template_path: str, output_path: str, overwrite: bool = False, preview: bool = False) -> None:
+def process_template(template_path: str, output_path: str, overwrite: bool = False) -> None:
     env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
 
     try:
@@ -35,8 +35,7 @@ def process_template(template_path: str, output_path: str, overwrite: bool = Fal
     except yaml.YAMLError as e:
         raise ValueError(f"The rendered template is not valid YAML: {e}")
 
-    if preview:
-        logging.info(f"Preview:\n{rendered}")
+    logging.info(f"Preview:\n{rendered}")
 
     if os.path.exists(output_path):
         if not overwrite:
@@ -56,9 +55,8 @@ def process_template(template_path: str, output_path: str, overwrite: bool = Fal
 def main() -> None:
     parser = argparse.ArgumentParser(description="Process Docker Compose Jinja2 template.")
     parser.add_argument("template", help="Path to the Jinja2 template file (.j2)")
-    parser.add_argument("-o", "--output", default="docker-compose-j2.yml", help="Output file name")
+    parser.add_argument("-o", "--output", default="docker-compose.yml", help="Output file name")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite output file if it exists")
-    parser.add_argument("--preview", action="store_true", help="Preview the output before writing")
     parser.add_argument("--env-file", default=".env", help="Path to the .env file (default: .env)")
 
     args = parser.parse_args()
@@ -70,7 +68,7 @@ def main() -> None:
             raise FileNotFoundError(f"The file {args.template} does not exist.")
         output_path = args.output if args.output.endswith(('.yml', '.yaml')) else args.output + '.yml'
         load_env_vars(args.env_file)
-        process_template(args.template, output_path, args.overwrite, args.preview)
+        process_template(args.template, output_path, args.overwrite)
     except Exception as e:
         logging.error(f"{type(e).__name__}: {e}")
         exit(1)
