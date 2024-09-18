@@ -48,8 +48,14 @@ config_str = os.getenv("AGGREGATOR_CONFIG_JSON")
 if not config_str:
     raise Exception("AGGREGATOR_CONFIG_JSON environment variable not set")
 
-logging.basicConfig(level=logging.DEBUG if os.getenv("DEBUG") else logging.INFO, format='%(levelname)s: %(message)s')
-logger.debug("Debug mode enabled")
+level = logging.INFO
+if os.getenv("AGGREGATOR_DEBUG"):
+    level = logging.DEBUG
+
+logging.basicConfig(level=level, format='%(levelname)s: %(message)s')
+
+if level == logging.DEBUG:
+    logger.info("Debug mode enabled")
 
 logger.info("Config value:")
 logger.info(config_str)
