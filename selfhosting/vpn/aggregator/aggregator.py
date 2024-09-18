@@ -48,6 +48,9 @@ config_str = os.getenv("AGGREGATOR_CONFIG_JSON")
 if not config_str:
     raise Exception("AGGREGATOR_CONFIG_JSON environment variable not set")
 
+logging.basicConfig(level=logging.DEBUG if os.getenv("DEBUG") else logging.INFO, format='%(levelname)s: %(message)s')
+logger.debug("Debug mode enabled")
+
 logger.info("Config value:")
 logger.info(config_str)
 
@@ -70,14 +73,17 @@ logger.info(f"Sources: {" ".join([str(source) for source in [*config_data.source
 async def get_subscriptions(user: str):
     subscriptions = []
     error_count = 0
+    logger.debug(f"Fetching subscriptions for user {user}")
     for url in config_data.sources_plain:
         try:
+            logger.debug(f"Fetching plain subscriptions from {url} for user {user}")
             response = requests.get(f"{url}/{user}")
             response.raise_for_status()
+            logger.debug(f"Received: {response.text}")
             subscriptions.extend(response.text.splitlines())
-        except requests.RequestException as err:
+        except Exception as err:
             error_count += 1
-            logger.error(f"Failed fetching plain subscriptions from {url}: {err}")
+            logger.error(f"Failed fetching plain subscriptions from {url} for {user}: {err}")
 
     if error_count == len(config_data.sources_plain):
         raise HTTPException(status_code=500, detail="All sources returned an error")
@@ -91,16 +97,18 @@ async def get_subscriptions(user: str):
     error_count = 0
     for url in config_data.sources_json:
         try:
+            logger.debug(f"Fetching json subscriptions from {url} for user {user}")
             response = requests.get(f"{url}/{user}")
             response.raise_for_status()
-            received_json = json.loads(response.text)
+            logger.debug(f"Received: {response.text}")
+            received_json = json5.loads(response.text)
             subscriptions.extend(received_json if isinstance(received_json, list) else [received_json])
-        except requests.RequestException as err:
+        except Exception as err:
             error_count += 1
-            logger.error(f"Failed fetching json subscriptions from {url}: {err}")
+            logger.error(f"Failed fetching json subscriptions from {url} for {user}: {err}")
 
     if error_count == len(config_data.sources_json):
         raise HTTPException(status_code=500, detail="All sources returned an error")
 
     # return formatted json
-    return PlainTextResponse(content=json.dumps(subscriptions, indent=4))
+    return PlainTextResponse(content=json5.dumps(subscriptions, indent=4))
