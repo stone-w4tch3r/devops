@@ -1,60 +1,87 @@
 services:
   postgresql:
     image: pgvector/pgvector:pg16
-    container_name: lobe-postgres-container
+    container_name: lobe-postgres
     expose:
-      - '5432'
+      - '${POSTGRES_PORT}'
     volumes:
-      - './data:/var/lib/postgresql/data'
+      - ./data:/var/lib/postgresql/data
     environment:
-      - 'POSTGRES_DB=lobe'
-      - 'POSTGRES_PASSWORD=uWNZugjBqixf8dxC'
+      - 'POSTGRES_DB=${LOBE_DB_NAME}'
+      - 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD}'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: [ 'CMD-SHELL', 'pg_isready -U postgres' ]
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: always
+    restart: unless-stopped
     networks:
-      - ai_chat_net
+      - lobe_net
 
   minio:
     image: minio/minio
-    container_name: lobe-minio-container
+    container_name: lobe-minio
     expose:
-      - '9000'
-      - '9001'
+      - '${MINIO_API_PORT}'
+      - '${MINIO_CONSOLE_PORT}'
     volumes:
       - './s3_data:/etc/minio/data'
     environment:
-      - 'MINIO_ROOT_USER=YOUR_MINIO_USER'
-      - 'MINIO_ROOT_PASSWORD=YOUR_MINIO_PASSWORD'
-      - 'MINIO_DOMAIN=lobe-s3-api.example.com'
-      - 'MINIO_API_CORS_ALLOW_ORIGIN=https://example.com' # Base domain
-    restart: always
+      - 'MINIO_ROOT_USER=${MINIO_ROOT_USER}'
+      - 'MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}'
+      - 'MINIO_API_CORS_ALLOW_ORIGIN=${LOBECHAT_DOMAIN}' # TODO
+    restart: unless-stopped
     command: >
-      server /etc/minio/data --address ":9000" --console-address ":9001"
-    networks:
-      - ai_chat_net
+      server /etc/minio/data --address ":${MINIO_PORT}" --console-address ":9001"
+
+  logto:
+    image: svhd/logto
+    container_name: lobe-logto
+    expose:
+      - '${LOGTO_PORT}'
+      - '${LOGTO_ADMIN_PORT}'
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - 'TRUST_PROXY_HEADER=1'
+      - 'DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgresql:${POSTGRES_PORT}/logto'
+      - 'ENDPOINT=http://localhost:${LOGTO_PORT}'
+      - 'ADMIN_ENDPOINT=http://localhost:3002'
+    entrypoint: [ 'sh', '-c', 'npm run cli db seed -- --swe && npm start' ]
+
 
   lobe:
     image: lobehub/lobe-chat-database
-    container_name: lobe-chat-persistent-container
+    container_name: lobe-database
     expose:
-      - '3210'
+      - '${LOBE_PORT}'
     depends_on:
       - postgresql
       - minio
+      - logto
+    environment:
+      - 'APP_URL=http://localhost:3210'
+      - 'NEXT_AUTH_SSO_PROVIDERS=logto'
+      - 'KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}'
+      - 'NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}'
+      - 'NEXTAUTH_URL=http://localhost:${LOBE_PORT}/api/auth'
+      - 'LOGTO_ISSUER=http://localhost:${LOGTO_PORT}/oidc'
+      - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgresql:5432/${LOBE_DB_NAME}'
+      - 'S3_ENDPOINT=http://localhost:${MINIO_PORT}'
+      - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
+      - 'S3_PUBLIC_DOMAIN=http://localhost:${MINIO_PORT}'
+      - 'S3_ENABLE_PATH_STYLE=1'
     env_file:
       - .env
-    restart: always
-    networks:
-      - ai_chat_net
-      - main_net
-
+    restart: unless-stopped
+  
+  
 networks:
-  ai_chat_net:
-  main_net:
+  lobe_net:
+    driver: bridge
+    internal: true
+  caddy_net:
     external: true
 
 volumes:
