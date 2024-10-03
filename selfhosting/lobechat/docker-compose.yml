@@ -1,7 +1,7 @@
 services:
   postgresql:
     image: pgvector/pgvector:pg16
-    container_name: lobe-postgres
+    container_name: lobe-postgres-container
     expose:
       - '${POSTGRES_PORT}'
     volumes:
@@ -20,7 +20,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: lobe-minio
+    container_name: lobe-minio-container
     expose:
       - '${MINIO_API_PORT}'
       - '${MINIO_CONSOLE_PORT}'
@@ -37,7 +37,7 @@ services:
 
   logto:
     image: svhd/logto
-    container_name: lobe-logto
+    container_name: lobe-logto-container
     expose:
       - '${LOGTO_PORT}'
       - '${LOGTO_ADMIN_PORT}'
@@ -54,7 +54,7 @@ services:
 
   lobe:
     image: lobehub/lobe-chat-database
-    container_name: lobe-database
+    container_name: lobe-database-container
     expose:
       - '${LOBE_PORT}'
     depends_on:
