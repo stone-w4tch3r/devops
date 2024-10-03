@@ -15,8 +15,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    networks:
-      - lobe_net
 
   minio:
     image: minio/minio
@@ -46,7 +44,7 @@ services:
         condition: service_healthy
     environment:
       - 'TRUST_PROXY_HEADER=1'
-      - 'DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgresql:${POSTGRES_PORT}/logto'
+      - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/logto'
       - 'ENDPOINT=${APP_URL}'
       - 'ADMIN_ENDPOINT=http://localhost:${LOGTO_ADMIN_PORT}'
     entrypoint: [ 'sh', '-c', 'npm run cli db seed -- --swe && npm start' ]
@@ -65,7 +63,7 @@ services:
       - 'NEXT_AUTH_SSO_PROVIDERS=logto'
       - 'KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}'
       - 'NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}'
-      - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgresql:${POSTGRES_PORT}/${LOBE_DB_NAME}'
+      - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/${LOBE_DB_NAME}'
       - 'LOGTO_ISSUER=http://lobe-logto-container:${LOGTO_PORT}/oidc'
       - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
       - 'S3_ENABLE_PATH_STYLE=1'
@@ -76,9 +74,6 @@ services:
   
   
 networks:
-  lobe_net:
-    driver: bridge
-    internal: true
   caddy_net:
     external: true
 
