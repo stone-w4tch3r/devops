@@ -31,11 +31,9 @@ services:
       - 'MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}'
 #      - 'MINIO_DOMAIN=lobe-s3-api.example.com' # TODO
       - 'MINIO_API_CORS_ALLOW_ORIGIN=${LOBECHAT_DOMAIN}' # TODO
-      - 'MINIO_PORT=${MINIO_PORT}'
-      - 'MINIO_CONSOLE_PORT=${MINIO_CONSOLE_PORT}'
     restart: unless-stopped
     command: >
-      server /etc/minio/data --address ":$MINIO_PORT" --console-address ":$MINIO_CONSOLE_PORT"
+      server /etc/minio/data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
 
   logto:
     image: svhd/logto
