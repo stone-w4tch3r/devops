@@ -29,6 +29,7 @@ services:
     environment:
       - 'MINIO_ROOT_USER=${MINIO_ROOT_USER}'
       - 'MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}'
+      - 'MINIO_DOMAIN=lobe-s3-api.example.com' # TODO
       - 'MINIO_API_CORS_ALLOW_ORIGIN=${LOBECHAT_DOMAIN}' # TODO
     restart: unless-stopped
     command: >
@@ -65,12 +66,8 @@ services:
       - 'NEXT_AUTH_SSO_PROVIDERS=logto'
       - 'KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}'
       - 'NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}'
-      - 'NEXTAUTH_URL=http://localhost:${LOBE_PORT}/api/auth'
-      - 'LOGTO_ISSUER=http://localhost:${LOGTO_PORT}/oidc'
-      - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgresql:5432/${LOBE_DB_NAME}'
-      - 'S3_ENDPOINT=http://localhost:${MINIO_PORT}'
+      - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgresql:${POSTGRES_PORT}/${LOBE_DB_NAME}'
       - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
-      - 'S3_PUBLIC_DOMAIN=http://localhost:${MINIO_PORT}'
       - 'S3_ENABLE_PATH_STYLE=1'
     env_file:
       - .env
