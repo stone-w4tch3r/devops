@@ -1,0 +1,17 @@
+services:
+  mc:
+    image: itzg/minecraft-server
+    environment:
+      EULA: "true"
+      ONLINE_MODE: "false"
+      MEMORY: "4G"
+      ANNOUNCE_PLAYER_ACHIEVEMENTS: "true"
+    ports:
+      - "25565:25565"
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+volumes:
+  data:
