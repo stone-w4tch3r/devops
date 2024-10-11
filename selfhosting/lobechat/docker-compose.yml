@@ -15,6 +15,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      internal_net:
 
   minio:
     image: minio/minio
@@ -34,6 +36,7 @@ services:
       server /etc/minio/data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
     networks:
       caddy_net:
+      internal_net:
 
   logto:
     image: svhd/logto
@@ -52,6 +55,7 @@ services:
     entrypoint: [ 'sh', '-c', 'npm run cli db seed -- --swe && npm start' ]
     networks:
       caddy_net:
+      internal_net:
 
   lobe:
     image: ghcr.io/stone-w4tch3r/lobe-chat-database:main
@@ -76,11 +80,13 @@ services:
     restart: unless-stopped
     networks:
       caddy_net:
+      internal_net:
   
   
 networks:
   caddy_net:
     external: true
+  internal_net:
 
 volumes:
   data:
