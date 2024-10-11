@@ -1,6 +1,6 @@
 ################### main ###################
 
 # allows for different configs on different servers
-{% for caddyfile in os.environ['CADDYFILES'].split(' ') %}
+{%- for caddyfile in os.environ['CADDYFILES'].split(' ') %}
 import {{ caddyfile.strip() }}
-{% endfor %}
+{%- endfor %}
