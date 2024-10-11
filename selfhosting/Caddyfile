@@ -1,4 +1,0 @@
-################### main ###################
-
-# allows for different configs on different servers
-import {$CADDYFILES_PATH}

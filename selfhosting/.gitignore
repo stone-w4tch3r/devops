@@ -1,3 +1,4 @@
 caddy_config
 caddy_data
 docker-compose.yml
+Caddyfile

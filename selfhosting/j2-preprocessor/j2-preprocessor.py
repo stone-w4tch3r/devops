@@ -30,10 +30,11 @@ def process_template(template_path: str, output_path: str, overwrite: bool = Fal
 
     rendered = template.render(os=os, enumerate=enumerate, env=os.environ)
 
-    try:
-        yaml.safe_load(rendered)
-    except yaml.YAMLError as e:
-        raise ValueError(f"The rendered template is not valid YAML: {e}")
+    if ".yaml" in template_path or ".yml" in template_path:
+        try:
+            yaml.safe_load(rendered)
+        except yaml.YAMLError as e:
+            raise ValueError(f"The rendered template is not valid YAML: {e}")
 
     logging.info(f"Preview:\n{rendered}")
 
@@ -53,9 +54,9 @@ def process_template(template_path: str, output_path: str, overwrite: bool = Fal
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Process Docker Compose Jinja2 template.")
+    parser = argparse.ArgumentParser(description="Process Jinja2 template.")
     parser.add_argument("template", help="Path to the Jinja2 template file (.j2)")
-    parser.add_argument("-o", "--output", default="docker-compose.yml", help="Output file name")
+    parser.add_argument("-o", "--output", default=None, help="Output file name")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite output file if it exists")
     parser.add_argument("--env-file", default=".env", help="Path to the .env file (default: .env)")
 
@@ -66,9 +67,13 @@ def main() -> None:
     try:
         if not os.path.isfile(args.template):
             raise FileNotFoundError(f"The file {args.template} does not exist.")
-        output_path = args.output if args.output.endswith(('.yml', '.yaml')) else args.output + '.yml'
+        if args.output is None:
+            if args.template.endswith(".j2"):
+                args.output = args.template.removesuffix(".j2")
+            else:
+                raise ValueError("Output file name not specified and cannot be inferred from template file name.")
         load_env_vars(args.env_file)
-        process_template(args.template, output_path, args.overwrite)
+        process_template(args.template, args.output, args.overwrite)
     except Exception as e:
         logging.error(f"{type(e).__name__}: {e}")
         exit(1)
