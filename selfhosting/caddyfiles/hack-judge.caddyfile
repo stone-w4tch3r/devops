@@ -1,0 +1,4 @@
+{$DOMAIN} {
+    reverse_proxy /hack-judge/* http://host.docker.internal:3000
+    reverse_proxy / facade-container:8000
+}
