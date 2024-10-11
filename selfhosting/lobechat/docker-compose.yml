@@ -51,7 +51,7 @@ services:
 
 
   lobe:
-    image: ghcr.io/stone-w4tch3r/lobe-chat-database
+    image: ghcr.io/stone-w4tch3r/lobe-chat-database:main
     container_name: lobe-app-container
     expose:
       - '${LOBE_PORT}'
