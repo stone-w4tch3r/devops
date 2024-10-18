@@ -1,0 +1,2 @@
+# {$DOMAIN}:{$LOGTO_ADMIN_PORT}
+reverse_proxy /* logto-container:{$LOGTO_ADMIN_PORT}

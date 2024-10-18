@@ -1,8 +1,7 @@
-{$DOMAIN} {
-    reverse_proxy / facade-container:8000
+# {$DOMAIN}
+reverse_proxy / facade-container:8000
 
-    # 3x-ui
-    reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
-    reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
-    reverse_proxy /{$PATH_XPANEL_JSON}/* sub-aggregator-container:5000
-}
+# 3x-ui
+reverse_proxy /{$PATH_XPANEL}/* 3x-ui-container:2053
+reverse_proxy /{$PATH_XPANEL_SUB}/* sub-aggregator-container:5000
+reverse_proxy /{$PATH_XPANEL_JSON}/* sub-aggregator-container:5000

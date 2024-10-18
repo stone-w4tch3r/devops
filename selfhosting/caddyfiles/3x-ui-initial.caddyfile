@@ -1,3 +1,2 @@
-{$DOMAIN} {
-    reverse_proxy /* 3x-ui-container:2053
-}
+# {$DOMAIN}
+reverse_proxy /* 3x-ui-container:2053

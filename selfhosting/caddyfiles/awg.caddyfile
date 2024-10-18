@@ -1,3 +1,1 @@
-{$AWG_DOMAIN} {
-    reverse_proxy /* amnezia-wg-easy-container:45441
-}
+reverse_proxy /* amnezia-wg-easy-container:45441
