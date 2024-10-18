@@ -1,4 +1,4 @@
-./caddy_config
-./caddy_data
-./docker-compose.yml
-./Caddyfile
+/caddy_config
+/caddy_data
+/docker-compose.yml
+/Caddyfile
