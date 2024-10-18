@@ -1,3 +1,4 @@
 jinja2
+json5
 pyyaml
 python-dotenv
