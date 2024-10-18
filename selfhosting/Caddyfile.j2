@@ -1,6 +1,11 @@
 ################### main ###################
 
-# allows for different configs on different servers
-{%- for caddyfile in os.environ['CADDYFILES'].split(' ') %}
-import {{ caddyfile.strip() }}
+{% set domains_configs = os.environ['CADDYFILES'] | from_json %}
+
+{%- for domain, config_files in domains_configs.items() %}
+    {{ domain }} {
+    {%- for config_file in config_files %}
+        import {{ config_file.strip() }}
+    {%- endfor %}
+    }
 {%- endfor %}

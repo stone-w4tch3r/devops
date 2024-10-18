@@ -3,10 +3,11 @@
 import argparse
 import logging
 import os
+import json
 
 import yaml
-from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
+from jinja2 import Environment, FileSystemLoader
 
 
 def load_env_vars(env_file='.env'):
@@ -19,6 +20,7 @@ def load_env_vars(env_file='.env'):
 
 def process_template(template_path: str, output_path: str, overwrite: bool = False) -> None:
     env = Environment(loader=FileSystemLoader(os.path.dirname(template_path)))
+    env.filters['from_json'] = lambda s: json.loads(s)
 
     try:
         template = env.get_template(os.path.basename(template_path))
