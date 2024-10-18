@@ -1,6 +1,6 @@
 ################### main ###################
 
-{% set domains_configs = os.environ['CADDYFILES'] | from_json %}
+{% set domains_configs = os.environ['CADDYFILES_DICT'] | from_json %}
 
 {%- for domain, config_files in domains_configs.items() %}
     {{ domain }} {
