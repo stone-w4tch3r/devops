@@ -13,6 +13,7 @@
       <excludeFolder url="file://$MODULE_DIR$/pyinfra_manager/.venv" />
     </content>
     <content url="file://$MODULE_DIR$/selfhosting">
+      <excludeFolder url="file://$MODULE_DIR$/selfhosting/j2-preprocessor/venv" />
       <excludeFolder url="file://$MODULE_DIR$/selfhosting/vpn/aggregator/venv" />
     </content>
     <content url="file://$MODULE_DIR$/vm_manage" />
