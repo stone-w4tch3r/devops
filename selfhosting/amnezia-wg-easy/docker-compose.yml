@@ -8,7 +8,7 @@ services:
     image: ghcr.io/w0rng/amnezia-wg-easy
     container_name: amnezia-wg-easy-container
     volumes:
-      - etc_wireguard:/etc/wireguard
+      - ./etc_wireguard:/etc/wireguard
     ports:
       - "${WG_PORT}:${WG_PORT}/udp"
     expose:
