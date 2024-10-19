@@ -14,9 +14,10 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     devices:
       - /dev/net/tun:/dev/net/tun
-    command: [ "awg-quick", "up", "/wg0.conf" ]  # Auto-start awg-quick on container launch
+    command: [ "awg-quick", "up", "/wg0.conf" ]
     volumes:
-      - ./wg0.conf:/wg0.conf  # Mount config directory for AWG (wg0.conf goes here)
+      - ./wg0.conf:/wg0.conf
+      - /lib/modules:/lib/modules
     networks:
       - awg_network
 
