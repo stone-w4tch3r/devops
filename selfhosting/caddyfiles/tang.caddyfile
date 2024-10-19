@@ -1,2 +1,2 @@
 # {$DOMAIN}:{TANG_PORT}
-reverse_proxy /* {$TANG_URL}
+reverse_proxy {$TANG_URL}
