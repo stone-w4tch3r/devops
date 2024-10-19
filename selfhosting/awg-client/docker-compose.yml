@@ -1,0 +1,20 @@
+services:
+  awg:
+    image: amneziavpn/amneziawg-go
+    container_name: awg
+    cap_add:
+      - NET_ADMIN  # Needed for networking operations
+    sysctls:
+      - net.ipv4.ip_forward=1  # Enable IP forwarding
+    environment:
+      - PUID=1000  # Adjust for permissions if necessary
+      - PGID=1000
+    command: [ "awg-quick", "up", "/wg0.conf" ]  # Auto-start awg-quick on container launch
+    volumes:
+      - ./wg0.conf:/wg0.conf  # Mount config directory for AWG (wg0.conf goes here)
+    networks:
+      - awg_network
+
+networks:
+  awg_network:
+    driver: bridge
