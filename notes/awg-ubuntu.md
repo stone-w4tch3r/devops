@@ -39,3 +39,5 @@ WantedBy=multi-user.target
 ```
 8. Run and autostart: `sudo systemctl enable --now wg-quick-wg0.service`
 9. Ensure wg0 network appeared: `ip a | grep wg0`
+
+**Note: to prevent DNS issues, comment out DNS line in wg0.conf**
