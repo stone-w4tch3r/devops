@@ -1,4 +1,4 @@
-# Auto unlock luks with clevis and tang: https and multiple network devices
+# Clevis and tang with https and multiple network devices
 There are multiple guides about auto unlocking luks encrypted drives with clevis + tang.
 But my specific setup caused me a lot of pain, so I want to share final solution.
 
