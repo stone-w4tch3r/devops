@@ -30,7 +30,7 @@ services:
       - 'MINIO_ROOT_USER=${MINIO_ROOT_USER}'
       - 'MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}'
 #      - 'MINIO_DOMAIN=lobe-s3-api.example.com' # TODO
-      - 'MINIO_API_CORS_ALLOW_ORIGIN=${LOBECHAT_DOMAIN}' # TODO
+      - 'MINIO_API_CORS_ALLOW_ORIGIN=${APP_URL}' # TODO
       - 'MINIO_BROWSER_REDIRECT_URL=https://${LOBECHAT_DOMAIN}/minio'
     restart: unless-stopped
     command: >
