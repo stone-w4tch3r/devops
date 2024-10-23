@@ -76,6 +76,7 @@ services:
       - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
       - 'S3_ENABLE_PATH_STYLE=1'
       - 'S3_ENDPOINT=http://lobe-minio-container${MINIO_API_PORT}'
+      - 'S3_PUBLIC_DOMAIN=https://${LOBECHAT_DOMAIN}:${MINIO_API_PORT}'
     env_file:
       - .env
     restart: unless-stopped
