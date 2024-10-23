@@ -59,7 +59,7 @@ services:
       internal_net:
 
   lobe:
-    image: ghcr.io/stone-w4tch3r/lobe-chat-database:main
+    image: lobehub/lobe-chat-database
     container_name: lobe-app-container
     expose:
       - '${LOBE_PORT}'
@@ -72,7 +72,6 @@ services:
       - 'KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}'
       - 'NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}'
       - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/${LOBE_DB_NAME}'
-      - 'LOGTO_ISSUER=http://lobe-logto-container:${LOGTO_PORT}/oidc'
       - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
       - 'S3_ENABLE_PATH_STYLE=1'
       - 'S3_ENDPOINT=http://lobe-minio-container${MINIO_API_PORT}'
