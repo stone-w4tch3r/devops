@@ -1,6 +1,9 @@
 # {$DOMAIN}
 reverse_proxy /minio* lobe-minio-container:{$MINIO_CONSOLE_PORT}
-reverse_proxy /lobechat* lobe-app-container:{$LOBE_PORT}
+reverse_proxy /lobechat* lobe-app-container:{$LOBE_PORT} {
+    header_up Origin ''
+    header_down Origin ''
+}
 
 #LOBE_PORT=3210
 #LOGTO_PORT=3001
