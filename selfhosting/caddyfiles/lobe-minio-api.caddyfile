@@ -1,0 +1,2 @@
+# {$DOMAIN}:{$MINIO_API_PORT}
+reverse_proxy lobe-minio-container:{$MINIO_API_PORT}
