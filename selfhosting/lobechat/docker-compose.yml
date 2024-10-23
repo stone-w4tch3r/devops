@@ -29,9 +29,9 @@ services:
     environment:
       - 'MINIO_ROOT_USER=${MINIO_ROOT_USER}'
       - 'MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}'
-      - 'MINIO_DOMAIN=https://${LOBECHAT_DOMAIN}:${MINIO_API_PORT}'
+      - 'MINIO_DOMAIN=https://${MAIN_DOMAIN}:${MINIO_API_PORT}'
       - 'MINIO_API_CORS_ALLOW_ORIGIN=${APP_URL}'
-      - 'MINIO_BROWSER_REDIRECT_URL=https://${LOBECHAT_DOMAIN}:${MINIO_API_PORT}'
+      - 'MINIO_BROWSER_REDIRECT_URL=https://${MAIN_DOMAIN}:${MINIO_API_PORT}'
     restart: unless-stopped
     command: >
       server /etc/minio/data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
@@ -51,8 +51,8 @@ services:
     environment:
       - 'TRUST_PROXY_HEADER=1'
       - 'DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/logto'
-      - 'ENDPOINT=https://${LOBECHAT_DOMAIN}:${LOGTO_PORT}'
-      - 'ADMIN_ENDPOINT=https://${LOBECHAT_DOMAIN}:${LOGTO_ADMIN_PORT}'
+      - 'ENDPOINT=https://${MAIN_DOMAIN}:${LOGTO_PORT}'
+      - 'ADMIN_ENDPOINT=https://${MAIN_DOMAIN}:${LOGTO_ADMIN_PORT}'
     entrypoint: [ 'sh', '-c', 'npm run cli db seed -- --swe && npm start' ]
     networks:
       caddy_net:
@@ -71,11 +71,12 @@ services:
       - 'NEXT_AUTH_SSO_PROVIDERS=logto'
       - 'KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}'
       - 'NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}'
+      - 'NEXTAUTH_URL="https://${APP_URL}/api/auth"'
       - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/${LOBE_DB_NAME}'
       - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
       - 'S3_ENABLE_PATH_STYLE=1'
       - 'S3_ENDPOINT=http://lobe-minio-container${MINIO_API_PORT}'
-      - 'S3_PUBLIC_DOMAIN=https://${LOBECHAT_DOMAIN}:${MINIO_API_PORT}'
+      - 'S3_PUBLIC_DOMAIN=https://${MAIN_DOMAIN}:${MINIO_API_PORT}'
     env_file:
       - .env
     restart: unless-stopped
