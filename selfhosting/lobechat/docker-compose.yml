@@ -71,7 +71,7 @@ services:
       - 'NEXT_AUTH_SSO_PROVIDERS=logto'
       - 'KEY_VAULTS_SECRET=${KEY_VAULTS_SECRET}'
       - 'NEXT_AUTH_SECRET=${NEXT_AUTH_SECRET}'
-      - 'NEXTAUTH_URL="{APP_URL}/api/auth"'
+      - 'NEXTAUTH_URL=${APP_URL}/api/auth'
       - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/${LOBE_DB_NAME}'
       - 'S3_BUCKET=${MINIO_LOBE_BUCKET}'
       - 'S3_ENABLE_PATH_STYLE=1'
