@@ -52,7 +52,7 @@ services:
     environment:
       - 'TRUST_PROXY_HEADER=1'
       - 'DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/logto'
-      - 'ENDPOINT=${APP_URL}'
+      - 'ENDPOINT=http://localhost:${LOGTO_PORT}'
       - 'ADMIN_ENDPOINT=https://${LOBECHAT_DOMAIN}:${LOGTO_ADMIN_PORT}'
     entrypoint: [ 'sh', '-c', 'npm run cli db seed -- --swe && npm start' ]
     networks:
