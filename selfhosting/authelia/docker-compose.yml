@@ -35,4 +35,4 @@ services:
     container_name: authelia-redis-container
     command: "redis-server --save 60 1 --loglevel warning --requirepass ${REDDIS_PASSWORD}"
     volumes:
-      - ./redis_data:./redis:/data
+      - ./redis:/data
