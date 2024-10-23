@@ -32,6 +32,7 @@ services:
 #      - 'MINIO_DOMAIN=lobe-s3-api.example.com' # TODO
       - 'MINIO_API_CORS_ALLOW_ORIGIN=${APP_URL}' # TODO
       - 'MINIO_BROWSER_REDIRECT_URL=https://${LOBECHAT_DOMAIN}/minio'
+      - 'MINIO_SERVER_URL=127.0.0.1:${MINIO_API_PORT}'
     restart: unless-stopped
     command: >
       server /etc/minio/data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
