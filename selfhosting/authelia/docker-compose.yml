@@ -5,8 +5,8 @@ services:
     restart: unless-stopped
     container_name: authelia-container
     depends_on:
-      - database
-      - redis
+      - authelia-postgres
+      - authelia-redis
     environment:
       - X_AUTHELIA_CONFIG_FILTERS=template
     volumes:
