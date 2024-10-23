@@ -1,0 +1,2 @@
+# {$DOMAIN}:{$LOGTO_PORT}
+reverse_proxy lobe-logto-container:{$LOGTO_PORT}
