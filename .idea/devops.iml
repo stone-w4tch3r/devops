@@ -15,6 +15,7 @@
     <content url="file://$MODULE_DIR$/selfhosting">
       <excludeFolder url="file://$MODULE_DIR$/selfhosting/j2-preprocessor/venv" />
       <excludeFolder url="file://$MODULE_DIR$/selfhosting/vpn/aggregator/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/selfhosting/tang/db" />
     </content>
     <content url="file://$MODULE_DIR$/vm_manage" />
     <content url="file://$MODULE_DIR$/win" />

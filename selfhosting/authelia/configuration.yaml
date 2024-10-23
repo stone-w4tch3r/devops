@@ -1,0 +1,41 @@
+# Miscellaneous https://www.authelia.com/configuration/miscellaneous/introduction/
+theme: auto
+default_redirection_url: 'https://auth{{ env "DOMAIN" }}/'
+
+# First Factor https://www.authelia.com/configuration/first-factor/file/
+authentication_backend:
+  file:
+    path: /config/users_database.yml
+
+# Second Factor https://www.authelia.com/configuration/second-factor/introduction/
+totp:
+  issuer: '{{ env "DOMAIN" }}'
+
+# Security https://www.authelia.com/configuration/security/access-control/
+access_control:
+  default_policy: two_factor
+
+# Session https://www.authelia.com/configuration/session/introduction/
+session:
+  domain: '{{ env "DOMAIN" }}'
+
+  # https://www.authelia.com/configuration/session/redis/
+  # Set also AUTHELIA_SESSION_REDIS_PASSWORD_FILE if appropriate
+  redis:
+    host: redis
+    port: 6379
+
+# Storage https://www.authelia.com/configuration/storage/postgres/
+storage:
+  postgres:
+    host: database
+    database: authelia
+    username: authelia
+
+# SMTP Notifier https://www.authelia.com/configuration/notifications/smtp/
+# notifier:
+#   smtp:
+#     host: smtp.example.com
+#     port: 465
+#     username: you@example.com
+#     sender: "Authelia <authelia@example.com>"
