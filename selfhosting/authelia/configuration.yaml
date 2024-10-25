@@ -52,9 +52,10 @@ regulation:
   ban_time: '5 minutes'
 
 # SMTP Notifier https://www.authelia.com/configuration/notifications/smtp/
-# notifier:
-#   smtp:
-#     host: smtp.example.com
-#     port: 465
-#     username: you@example.com
-#     sender: "Authelia <authelia@example.com>"
+notifier:
+  smtp:
+    host: '{{ env SMTP_HOST }}'
+    username: '{{ env SMTP_USERNAME }}'
+    password: '{{ env SMTP_PASSWORD }}'
+    sender: '{{ env SMTP_SENDER }}'
+    port: 587
