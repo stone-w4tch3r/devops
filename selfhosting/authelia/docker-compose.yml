@@ -33,6 +33,6 @@ services:
     expose:
       - 6379
     container_name: authelia-redis-container
-    command: "redis-server --save 60 1 --loglevel warning --requirepass ${REDDIS_PASSWORD}"
+    command: "redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD}"
     volumes:
       - ./redis:/data
