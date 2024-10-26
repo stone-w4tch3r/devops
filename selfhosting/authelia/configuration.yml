@@ -37,7 +37,8 @@ session:
   redis:
     host: 'authelia-redis-container'
     port: 6379
-    password: '{{ env "REDIS_PASSWORD" }}'
+#    password: '{{ env "REDIS_PASSWORD" }}'
+    password: '1234'
 
 # Storage https://www.authelia.com/configuration/storage/postgres/
 storage:
