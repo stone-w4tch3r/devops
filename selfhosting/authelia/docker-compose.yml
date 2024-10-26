@@ -10,7 +10,7 @@ services:
     environment:
       - X_AUTHELIA_CONFIG_FILTERS=template
     volumes:
-      - ./configuration.yaml:/config/configuration.yaml
+      - ./configuration.yml:/config/configuration.yml
       - ./users_database.yaml:/config/users_database.yaml
     env_file:
       - .env
