@@ -61,7 +61,8 @@ regulation:
 # SMTP Notifier https://www.authelia.com/configuration/notifications/smtp/
 notifier:
   smtp:
-    address: 'submissions://{{ env "SMTP_HOST" }}:587'
+    host: '{{ env "SMTP_HOST" }}'
     username: '{{ env "SMTP_USERNAME" }}'
     password: '{{ env "SMTP_PASSWORD" }}'
     sender: '{{ env "SMTP_SENDER" }}'
+    port: 587
