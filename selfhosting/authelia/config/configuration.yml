@@ -71,7 +71,7 @@ identity_providers:
   oidc:
     hmac_secret: '{{ env "HMAC_SECRET" }}'
     jwks:
-      - key: '{{ env "JWK_RSA_PRIVATE_KEY" }}'
+      - key: '{{ secret "/config/jwk_rsa_private_key.pem" | mindent 10 "|" | msquote }}'
     clients:
       - client_id: lobe-chat
         description: LobeChat
