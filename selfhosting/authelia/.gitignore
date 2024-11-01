@@ -1,3 +1,4 @@
 /db
 /redis
-/users_database.yml
+/config/users_database.yml
+/config/jwk_rsa_private_key.pem
