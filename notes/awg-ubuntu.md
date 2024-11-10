@@ -2,7 +2,7 @@ To install and enable amnezia wg globally on ubuntu:
 1. Ensure deb-src is enabled in `sources.list`  
    - **Ubuntu 22 or lower:**
      1. Open /etc/apt/sources.list
-     2. Ensure line starting with "deb-src" are present
+     2. Ensure lines starting with "deb-src" are present (idk how many are needed)
      3. If not, duplicate lines starting with "deb" and replace "deb" with "deb-src"
      4. Optionally, move those lines into /etc/apt/sources.list.d/deb-src.list
    - **Ubuntu 24:**
@@ -10,7 +10,7 @@ To install and enable amnezia wg globally on ubuntu:
      2. Ensure a file with `Type: deb-src` start exists
      3. If not, copy /etc/apt/sources.list.d/ubuntu.sources and replace `Type: deb` with `Type: deb-src`
 2. `sudo apt install -y software-properties-common python3-launchpadlib gnupg2 linux-headers-$(uname -r)`
-3. `sudo add-apt-repository ppa:amnezia/ppa`
+3. `sudo add-apt-repository ppa:amnezia/ppa -y`
 4. `sudo apt update`
 5. `sudo apt install -y amneziawg`
 6. Install awg-quick etc
