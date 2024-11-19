@@ -75,11 +75,11 @@ identity_providers:
     clients:
       - client_id: lobe-chat
         description: LobeChat
-        client_secret: '{{ env "LOBECHAT_SECRET" }}'
+        client_secret: '{{ env "LOBE_SECRET" }}'
         public: false
         authorization_policy: two_factor
         redirect_uris:
-          - https://chat.example.com/api/auth/callback/authelia
+          - 'https://lobechat.{{ env "DOMAIN" }}/api/auth/callback/authelia'
         scopes:
           - openid
           - profile
