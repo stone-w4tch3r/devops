@@ -11,6 +11,8 @@ services:
       - X_AUTHELIA_CONFIG_FILTERS=template
     volumes:
       - ./config:/config
+    expose:
+      - 9091
     env_file:
       - .env
 
