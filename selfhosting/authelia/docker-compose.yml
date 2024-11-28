@@ -17,6 +17,7 @@ services:
       - .env
     networks:
       caddy_net:
+      internal_net:
 
   authelia-postgres:
     image: postgres:15
@@ -29,6 +30,8 @@ services:
     environment:
       POSTGRES_USER: "authelia"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    networks:
+      internal_net:
 
   authelia-redis:
     image: redis:7
@@ -39,6 +42,8 @@ services:
     command: "redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD}"
     volumes:
       - ./redis:/data
+    networks:
+      internal_net:
 
 volumes:
   configuration.yml:
@@ -49,3 +54,4 @@ volumes:
 networks:
   caddy_net:
     external: true
+  internal_net:
