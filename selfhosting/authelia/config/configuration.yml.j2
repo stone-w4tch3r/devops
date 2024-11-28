@@ -1,5 +1,5 @@
-{%- set services = os.environ['AUTHELIA_SERVICES'] | from_json %}
-{%- set oidc_clients = os.environ['AUTHELIA_OIDC_CLIENTS'] | from_json %}
+{%- set rules = os.environ['RULES'] | from_json %}
+{%- set oidc_clients = os.environ['OIDC_CLIENTS'] | from_json %}
 ---
 ###############################################################
 #                   Authelia configuration                    #
@@ -31,9 +31,9 @@ totp:
 access_control:
   default_policy: 'deny'
   rules:
-    {%- for service in services %}
-    - domain: '{{ service.domain }}.{{ os.environ["DOMAIN"] }}'
-      policy: '{{ service.policy }}'
+    {%- for rule in rules %}
+    - domain: '{{ rule.domain }}.{{ os.environ["DOMAIN"] }}'
+      policy: '{{ rule.policy }}'
     {%- endfor %}
 
 # Session https://www.authelia.com/configuration/session/introduction/
