@@ -1,0 +1,97 @@
+{%- set services = os.environ['AUTHELIA_SERVICES'] | from_json %}
+{%- set oidc_clients = os.environ['AUTHELIA_OIDC_CLIENTS'] | from_json %}
+---
+###############################################################
+#                   Authelia configuration                    #
+###############################################################
+
+# Miscellaneous https://www.authelia.com/configuration/miscellaneous/introduction/
+theme: auto
+
+server:
+  address: 'tcp://:9091'
+
+log:
+  level: 'debug'
+
+identity_validation:
+  reset_password:
+    jwt_secret: '{{ os.environ["JWT_SECRET"] }}'
+
+# First Factor https://www.authelia.com/configuration/first-factor/file/
+authentication_backend:
+  file:
+    path: /config/users_database.yml
+
+# Second Factor https://www.authelia.com/configuration/second-factor/introduction/
+totp:
+  issuer: 'auth.{{ os.environ["DOMAIN"] }}'
+
+# Security https://www.authelia.com/configuration/security/access-control/
+access_control:
+  default_policy: 'deny'
+  rules:
+    {%- for service in services %}
+    - domain: '{{ service.domain }}.{{ os.environ["DOMAIN"] }}'
+      policy: '{{ service.policy }}'
+    {%- endfor %}
+
+# Session https://www.authelia.com/configuration/session/introduction/
+session:
+  secret: '{{ os.environ["SESSION_SECRET"] }}'
+  cookies:
+    - domain: '{{ os.environ["DOMAIN"] }}'
+      authelia_url: 'https://auth.{{ os.environ["DOMAIN"] }}'
+      default_redirection_url: 'https://{{ os.environ["DOMAIN"] }}'
+  
+  redis:
+    host: 'authelia-redis-container'
+    port: 6379
+    password: '{{ os.environ["REDIS_PASSWORD"] }}'
+
+# Storage https://www.authelia.com/configuration/storage/postgres/
+storage:
+  encryption_key: '{{ os.environ["ENCRYPTION_KEY"] }}'
+  postgres:
+    host: 'authelia-postgres-container'
+    database: 'authelia'
+    username: 'authelia'
+    password: '{{ os.environ["POSTGRES_PASSWORD"] }}'
+
+regulation:
+  max_retries: 3
+  find_time: '2 minutes'
+  ban_time: '5 minutes'
+
+# SMTP Notifier https://www.authelia.com/configuration/notifications/smtp/
+notifier:
+  smtp:
+    host: '{{ os.environ["SMTP_HOST"] }}'
+    username: '{{ os.environ["SMTP_USERNAME"] }}'
+    password: '{{ os.environ["SMTP_PASSWORD"] }}'
+    sender: '{{ os.environ["SMTP_SENDER"] }}'
+    port: 587
+
+identity_providers:
+  oidc:
+    hmac_secret: '{{ os.environ["HMAC_SECRET"] }}'
+    jwks:
+      - key: |
+          {{- os.environ["JWK_RSA_PRIVATE_KEY"] | indent(10) }}
+    clients:
+      {%- for client in oidc_clients %}
+      - client_id: {{ client.id }}
+        description: {{ client.description }}
+        client_secret: '{{ client.secret }}'
+        public: {{ client.public | default(false) }}
+        authorization_policy: {{ client.policy }}
+        redirect_uris:
+          {%- for uri in client.redirect_uris %}
+          - '{{ uri }}'
+          {%- endfor %}
+        scopes:
+          {%- for scope in client.scopes %}
+          - {{ scope }}
+          {%- endfor %}
+        userinfo_signing_algorithm: {{ client.signing_algorithm | default('none') }}
+      {%- endfor %}
