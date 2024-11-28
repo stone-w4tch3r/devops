@@ -4,6 +4,6 @@
 # trusted_proxies 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fc00::/7
 
 # Authelia Portal.
-auth.example.com {
+{$AUTH_DOMAIN} {
     reverse_proxy authelia-container:9091
 }
