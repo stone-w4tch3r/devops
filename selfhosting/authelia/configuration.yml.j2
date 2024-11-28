@@ -53,7 +53,7 @@ session:
 storage:
   encryption_key: '{{ os.environ["ENCRYPTION_KEY"] }}'
   postgres:
-    host: 'authelia-postgres-container'
+    address: 'tcp://authelia-postgres-container:5432'
     database: 'authelia'
     username: 'authelia'
     password: '{{ os.environ["POSTGRES_PASSWORD"] }}'
@@ -66,11 +66,10 @@ regulation:
 # SMTP Notifier https://www.authelia.com/configuration/notifications/smtp/
 notifier:
   smtp:
-    host: '{{ os.environ["SMTP_HOST"] }}'
+    address: 'submission://{{ os.environ["SMTP_HOST"] }}:587'
     username: '{{ os.environ["SMTP_USERNAME"] }}'
     password: '{{ os.environ["SMTP_PASSWORD"] }}'
     sender: '{{ os.environ["SMTP_SENDER"] }}'
-    port: 587
 
 identity_providers:
   oidc:
@@ -81,7 +80,7 @@ identity_providers:
     clients:
       {%- for client in oidc_clients %}
       - client_id: {{ client.id }}
-        description: {{ client.description }}
+        client_name: {{ client.name }}
         client_secret: '{{ client.secret }}'
         public: {{ client.public | default(false) }}
         authorization_policy: {{ client.policy }}
@@ -93,5 +92,5 @@ identity_providers:
           {%- for scope in client.scopes %}
           - {{ scope }}
           {%- endfor %}
-        userinfo_signing_algorithm: {{ client.signing_algorithm | default('none') }}
+        userinfo_signed_response_alg: {{ client.signing_algorithm | default('none') }}
       {%- endfor %}
