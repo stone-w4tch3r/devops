@@ -31,6 +31,8 @@ access_control:
   rules:
   - domain: 'test.{{ env "DOMAIN" }}'
     policy: 'two_factor'
+  - domain: 'awg.server1.{{ env "DOMAIN" }}'
+    policy: 'two_factor'
 
 # Session https://www.authelia.com/configuration/session/introduction/
 session:
