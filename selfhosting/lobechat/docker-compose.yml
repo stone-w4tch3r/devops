@@ -39,25 +39,6 @@ services:
       caddy_net:
       internal_net:
 
-  logto:
-    image: svhd/logto
-    container_name: lobe-logto-container
-    expose:
-      - '${LOGTO_PORT}'
-      - '${LOGTO_ADMIN_PORT}'
-    depends_on:
-      postgresql:
-        condition: service_healthy
-    environment:
-      - 'TRUST_PROXY_HEADER=1'
-      - 'DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/logto'
-      - 'ENDPOINT=https://${MAIN_DOMAIN}:${LOGTO_PORT}'
-      - 'ADMIN_ENDPOINT=https://${MAIN_DOMAIN}:${LOGTO_ADMIN_PORT}'
-    entrypoint: [ 'sh', '-c', 'npm run cli db seed -- --swe && npm start' ]
-    networks:
-      caddy_net:
-      internal_net:
-
   lobe:
     image: lobehub/lobe-chat-database
     container_name: lobe-app-container
@@ -66,9 +47,7 @@ services:
     depends_on:
       - postgresql
       - minio
-      - logto
     environment:
-      - 'NEXT_AUTH_SSO_PROVIDERS=logto'
       - 'NEXTAUTH_URL=${APP_URL}/api/auth'
       - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/${LOBE_DB_NAME}'
       - 'S3_ENABLE_PATH_STYLE=1'
@@ -80,7 +59,6 @@ services:
     networks:
       caddy_net:
       internal_net:
-  
   
 networks:
   caddy_net:
