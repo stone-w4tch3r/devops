@@ -10,7 +10,8 @@ services:
     environment:
       - X_AUTHELIA_CONFIG_FILTERS=template
     volumes:
-      - ./config:/config
+      - ./configuration.yml:/config/configuration.yml
+      - ./users_database.yml:/config/users_database.yml
     expose:
       - 9091
     env_file:
