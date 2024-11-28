@@ -36,7 +36,7 @@ access_control:
 session:
   secret: '{{ env "SESSION_SECRET" }}'
   cookies:
-    - domain: '{{ env "DOMAIN" }}'
+    - domain: 'awg.server1.{{ env "DOMAIN" }}'
       authelia_url: 'https://auth.{{ env "DOMAIN" }}'
       default_redirection_url: 'https://{{ env "DOMAIN" }}'
 

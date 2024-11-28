@@ -2,11 +2,11 @@
 ## It is important to read the following document before enabling this section:
 ##     https://www.authelia.com/integration/proxies/caddy/#trusted-proxies
 
-{
-    servers {
-        trusted_proxies static 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fc00::/7
-    }
-}
+#{
+#    servers {
+#        trusted_proxies static 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fc00::/7
+#    }
+#}
 
 # Authelia endpoint
 {$AUTH_DOMAIN} {
