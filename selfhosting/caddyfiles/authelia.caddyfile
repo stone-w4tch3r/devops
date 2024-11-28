@@ -1,9 +1,9 @@
 ## Uncomment & adjust the following line to configure specific ranges which should be considered as trustworthy.
 ## It is important to read the following document before enabling this section:
 ##     https://www.authelia.com/integration/proxies/caddy/#trusted-proxies
-# trusted_proxies 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fc00::/7
+trusted_proxies 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fc00::/7
 
-# Authelia Portal.
+# Authelia endpoint
 {$AUTH_DOMAIN} {
     reverse_proxy authelia-container:9091
 }
