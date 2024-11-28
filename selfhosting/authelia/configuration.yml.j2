@@ -32,7 +32,7 @@ access_control:
   default_policy: 'deny'
   rules:
     {%- for rule in rules %}
-    - domain: '{{ rule.domain }}.{{ os.environ["DOMAIN"] }}'
+    - domain: '{{ rule.domain }}'
       policy: '{{ rule.policy }}'
     {%- endfor %}
 
