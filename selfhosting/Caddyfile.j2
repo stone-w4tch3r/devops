@@ -5,7 +5,7 @@
 
 {%- if authelia_config %}
 import {{ authelia_config.strip() }}
-{%- endif %}
+{% endif %}
 
 {%- for domain, config_files in domains_configs.items() %}
 {{ domain }} {
