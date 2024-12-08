@@ -48,7 +48,7 @@ services:
       - postgresql
       - minio
     environment:
-      - 'NEXTAUTH_URL=${APP_URL}/api/auth/callback/authelia'
+#      - 'NEXTAUTH_URL=${APP_URL}/api/auth/callback/authelia'
       - 'DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@lobe-postgres-container:${POSTGRES_PORT}/${LOBE_DB_NAME}'
       - 'S3_ENABLE_PATH_STYLE=1'
       - 'S3_ENDPOINT=http://lobe-minio-container${MINIO_API_PORT}'
