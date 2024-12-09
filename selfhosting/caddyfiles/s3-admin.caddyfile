@@ -1,0 +1,5 @@
+# {$MINIO_ADMIN_DOMAIN}
+reverse_proxy minio-container:{$MINIO_CONSOLE_PORT} {
+    header_up Origin ''
+    header_down Origin ''
+}
