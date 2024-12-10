@@ -88,7 +88,7 @@ identity_providers:
         client_name: {{ client.name }}
         client_secret: '{{ client.secret }}'
         public: {{ client.public | default(false) }}
-        authorizaotion_policy: {{ client.policy }}
+        authorization_policy: {{ client.policy }}
         redirect_uris:
           {%- for uri in client.redirect_uris %}
           - '{{ uri }}'
