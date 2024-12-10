@@ -26,6 +26,11 @@ authentication_backend:
 # Second Factor https://www.authelia.com/configuration/second-factor/introduction/
 totp:
   issuer: 'auth.{{ os.environ["DOMAIN"] }}'
+webauthn:
+    disable: false
+    display_name: 'Authelia'
+    user_verification: 'required'
+    timeout: '60s'
 
 # Security https://www.authelia.com/configuration/security/access-control/
 access_control:
@@ -83,7 +88,7 @@ identity_providers:
         client_name: {{ client.name }}
         client_secret: '{{ client.secret }}'
         public: {{ client.public | default(false) }}
-        authorization_policy: {{ client.policy }}
+        authorizaotion_policy: {{ client.policy }}
         redirect_uris:
           {%- for uri in client.redirect_uris %}
           - '{{ uri }}'
