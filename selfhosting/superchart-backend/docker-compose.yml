@@ -1,7 +1,7 @@
 services:
   superchart-backend:
     image: ghcr.io/stone-w4tch3r/superchart-backend:release
-    container_name: superchart-backend
+    container_name: superchart-backend-container
     pull_policy: always
     ports:
       - "5001:8080"
