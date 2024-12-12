@@ -13,3 +13,9 @@ services:
       - BASIC_AUTH_USERNAME=${BASIC_AUTH_USERNAME}
       - BASIC_AUTH_PASSWORD=${BASIC_AUTH_PASSWORD}
       - BASE_URL=${BASE_URL}
+    networks:
+      caddy_net:
+
+networks:
+  caddy_net:
+    external: true
