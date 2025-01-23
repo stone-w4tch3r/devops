@@ -1,0 +1,151 @@
+images:
+- location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
+  arch: "aarch64"
+
+memory: "6GiB"
+disk: "20GiB"
+cpus: 4
+
+mounts:
+- location: "~/Projects"
+  mountPoint: "{{.Home}}/Projects"
+  writable: true
+
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    sudo apt-get update
+
+    #########################################################
+    # Docker
+    #########################################################
+    for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
+
+    # Add Docker's official GPG key:
+    sudo apt-get update
+    sudo apt-get install -y ca-certificates curl gnupg
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+    # Add the repository to Apt sources:
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    sudo groupadd docker
+    sudo usermod -aG docker user1 # TODO HARDCODED
+    newgrp docker
+
+    #########################################################
+    # dotnet
+    #########################################################
+    sudo add-apt-repository ppa:dotnet/backports
+    sudo apt-get update
+    sudo apt-get install -y dotnet-sdk-9.0 dotnet-sdk-8.0 dotnet-sdk-7.0 dotnet-sdk-6.0
+
+    #########################################################
+    # dodo networking
+    #########################################################
+    # azure cli
+    curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+    # telepresence
+    sudo curl -fL https://app.getambassador.io/download/tel2/linux/arm64/2.14.4/telepresence -o /usr/local/bin/telepresence
+    sudo chmod a+x /usr/local/bin/telepresence
+
+    # kubectl
+    sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+
+    # If the folder `/etc/apt/keyrings` does not exist, it should be created before the curl command, read the note below.
+    sudo mkdir -p -m 755 /etc/apt/keyrings
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg # allow unprivileged APT programs to read this keyring
+
+    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list   # helps tools such as command-not-found to work correctly
+    sudo apt-get update
+    sudo apt-get install -y kubectl
+
+    # yandex cli
+    curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -a
+
+    #########################################################
+    # xray
+    #########################################################
+    sudo bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
+    sudo systemctl enable xray
+    sudo systemctl start xray
+
+    # url to json converter
+    sudo apt-get install -y jq
+    git clone https://github.com/ImanSeyed/v2ray-uri2json
+
+    # auto run xray
+    sudo tee /etc/systemd/system/xray-connect.service << 'EOF'
+    [Unit]
+    Description=Connect to XRAY VPN Service
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/local/bin/xray -c /home/user1.linux/vpn-config.json
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+    sudo systemctl enable xray-connect
+    sudo systemctl start xray-connect
+
+    #########################################################
+    # browsh (headless firefox)
+    #########################################################
+    # firefox deb (instead of snap)
+    sudo add-apt-repository ppa:mozillateam/ppa -y
+    echo '
+    Package: *
+    Pin: release o=LP-PPA-mozillateam
+    Pin-Priority: 1001
+
+    Package: firefox
+    Pin: version 1:1snap*
+    Pin-Priority: -1
+    ' | sudo tee /etc/apt/preferences.d/mozilla-firefox
+    sudo apt-get update
+    sudo apt-get install -y firefox
+
+    # browsh
+    # TODO create repository
+    wget https://github.com/browsh-org/browsh/releases/download/v1.8.0/browsh_1.8.0_linux_arm64.deb
+    sudo apt install ./browsh_1.8.0_linux_arm64.deb
+    rm ./browsh_1.8.0_linux_arm64.deb
+
+
+    #########################################################
+    # various apps
+    #########################################################
+    sudo apt-get install -y neofetch micro git curl jq
+
+    #########################################################
+    # create motd
+    #########################################################
+    sudo tee /etc/update-motd.d/99-custom << 'EOF'
+    #!/bin/bash
+    echo "Welcome to your dodo dev VM!"
+    echo "-------------------"
+    echo "Before you start, you need to connect to the VPN:"
+    echo "1. Obtain a key, it should start with 'vless://'"
+    echo "2. Run `./v2ray-uri2json/scripts/vless2json.sh 'YOUR_KEY' && mv config.json ~/vpn-config.json` (single quotes are important)"
+    echo "3. Run `sudo systemctl start xray-connect` to connect to the VPN (it will start automatically in future)"
+    echo "-------------------"
+    neofetch
+    EOF
+    sudo chmod +x /etc/update-motd.d/99-custom
+    
+ssh:
+  localPort: 2222
+
+
