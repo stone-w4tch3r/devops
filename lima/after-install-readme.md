@@ -15,3 +15,7 @@ yc managed-kubernetes cluster get-credentials --id catf9nipallfltblhjo2 --extern
 kubectl config use-context yc-d-kube
 ```
 
+# TODO
+
+- [dev connection docs](https://www.notion.so/dodobrands/Your-workstation-software-7499e8f07fad49c4adad06ca1d5ad876#e271fe808d484c50b6332cdea18256bb)
+- Find how to connect yandex without browser in ubuntu server
