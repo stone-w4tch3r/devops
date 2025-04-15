@@ -14,9 +14,21 @@
   tags:
     - vbox_guestadditions
 
+- name: Set default VirtualBox version if not provided
+  set_fact:
+    vbox_version: "{{ vbox_host_version | default('7.1.6') }}"
+  tags:
+    - vbox_guestadditions
+
+- name: Display VirtualBox version being used
+  debug:
+    msg: "Using VirtualBox version {{ vbox_version }} for GuestAdditions"
+  tags:
+    - vbox_guestadditions
+
 - name: Download VirtualBox GuestAdditions ISO
   win_get_url:
-    url: 'https://download.virtualbox.org/virtualbox/7.0.14/VBoxGuestAdditions_7.0.14.iso'
+    url: 'https://download.virtualbox.org/virtualbox/{{ vbox_version }}/VBoxGuestAdditions_{{ vbox_version }}.iso'
     dest: 'C:\Windows\Temp\VBoxGuestAdditions.iso'
   when: vbox_check.rc != 0
   tags:

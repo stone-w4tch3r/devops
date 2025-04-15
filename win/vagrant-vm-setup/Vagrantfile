@@ -6,6 +6,10 @@ Vagrant.configure("2") do |config|
     # Bridge networking
     config.vm.network "public_network"
     
+    # Detect host VirtualBox version
+    vbox_version = `VBoxManage --version`.strip.split(/[^0-9\.]/)[0]
+    puts "Host VirtualBox Version: #{vbox_version}"
+    
     config.vm.provider "virtualbox" do |vb|
       # VM resources configuration
       vb.memory = 6144
@@ -39,7 +43,8 @@ Vagrant.configure("2") do |config|
         ansible_password: "vagrant",
         ansible_connection: "winrm",
         ansible_winrm_transport: "basic",
-        ansible_winrm_server_cert_validation: "ignore"
+        ansible_winrm_server_cert_validation: "ignore",
+        vbox_host_version: vbox_version
       }
     end
   end
