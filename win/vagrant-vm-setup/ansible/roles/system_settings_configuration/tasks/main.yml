@@ -1,0 +1,55 @@
+---
+- name: Set timezone to Asia/Yekaterinburg
+  win_shell: Set-TimeZone -Id "Asia/Yekaterinburg"
+  tags:
+    - system_settings_configuration
+
+- name: Set system locale to EN-US
+  win_shell: |
+    Set-WinSystemLocale -SystemLocale en-US
+  tags:
+    - system_settings_configuration
+
+- name: Set user locale settings
+  win_shell: |
+    Set-WinUserLanguageList -LanguageList en-US -Force
+  tags:
+    - system_settings_configuration
+
+- name: Set regional format settings
+  win_shell: |
+    Set-WinCultureFromLanguageListOptOut -OptOut $False
+    Set-WinHomeLocation -GeoId 244  # United States
+  tags:
+    - system_settings_configuration
+
+- name: Configure Windows Explorer settings
+  win_shell: |
+    # Show file extensions
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
+    
+    # Show hidden files
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Hidden" -Value 1
+    
+    # Show protected operating system files
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "ShowSuperHidden" -Value 1
+    
+    # Restart Explorer to apply changes
+    Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+  tags:
+    - system_settings_configuration
+
+- name: Disable hibernation
+  win_shell: powercfg -h off
+  become: yes
+  become_method: runas
+  tags:
+    - system_settings_configuration
+
+- name: Set performance options for best performance
+  win_shell: |
+    # Disable visual effects for better performance
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name "VisualFXSetting" -Value 2
+  ignore_errors: true
+  tags:
+    - system_settings_configuration

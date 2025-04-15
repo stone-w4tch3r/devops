@@ -971,3 +971,4 @@ FodyWeavers.xsd
 
 /os_setuper/__pycache__
 .aider*
+.vagrant

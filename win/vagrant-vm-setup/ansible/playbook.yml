@@ -5,7 +5,9 @@
 
   roles:
     - powershell_policy
+    - vbox_guestadditions
+    - system_settings_configuration
     - winget_packages
     - powershell_setup
     - terminal_fonts
-    - windows_activation
+    - windows_activation_readme
