@@ -1,11 +1,7 @@
-# Vagrantfile
 Vagrant.configure("2") do |config|
-  # Define different boxes based on architecture
   config.vm.define "windows" do |windows|
-      # Determine architecture and best provider
       is_arm = RUBY_PLATFORM.include?("arm64")
       
-      # Default provider precedence based on architecture
       if is_arm
         ENV['VAGRANT_DEFAULT_PROVIDER'] = 'parallels' unless ENV['VAGRANT_DEFAULT_PROVIDER']
       else
@@ -20,17 +16,11 @@ Vagrant.configure("2") do |config|
       
       # VirtualBox provider (for Intel Macs or linux)
       windows.vm.provider "virtualbox" do |vb|
-          # Detect host VirtualBox version
-          vbox_version = `VBoxManage --version 2>/dev/null`.strip.split(/[^0-9\.]/)[0] rescue ""
-          puts "Host VirtualBox Version: #{vbox_version}" unless vbox_version.empty?
-          
-          # VM resources configuration
           vb.memory = 6144
           vb.cpus = 4
           vb.name = "windows-dev-vm"
           vb.gui = true
 
-          # Additional optimizations
           vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
           vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
           vb.customize ["modifyvm", :id, "--graphicscontroller", "vboxsvga"]
@@ -38,24 +28,17 @@ Vagrant.configure("2") do |config|
       
       # Parallels provider (for ARM Macs)
       windows.vm.provider "parallels" do |prl|
-          # VM resources configuration
           prl.memory = 6144
           prl.cpus = 4
           prl.name = "windows-dev-vm"
           prl.update_guest_tools = true
           
-          # Additional optimizations
           prl.customize ["set", :id, "--clipboard-sync", "bidirectional"]
           prl.customize ["set", :id, "--shared-profile", "off"]
           prl.customize ["set", :id, "--shared-cloud", "off"]
       end
 
-      # Auto-detect provider for synced folders
       windows.vm.synced_folder "../../", "/Projects", type: is_arm ? "parallels" : "virtualbox"
-      
-      # Detect active provider for Ansible variables
-      is_vbox = Vagrant::Util::Platform.windows? || 
-               (!is_arm && !`which VBoxManage 2>/dev/null`.empty?)
       
       # WinRM configuration for Ansible
       windows.vm.communicator = "winrm"
@@ -66,16 +49,26 @@ Vagrant.configure("2") do |config|
       
       # Provisioning with Ansible
       windows.vm.provision "ansible" do |ansible|
+          vbox_host_version = begin
+            `VBoxManage --version 2>/dev/null`.strip.split(/[^0-9\.]/)[0]
+          rescue
+            ""
+          end
+
+          is_vbox = Vagrant::Util::Platform.windows? || 
+               (!is_arm && !`which VBoxManage 2>/dev/null`.empty?)
+
           ansible.playbook = "ansible/playbook.yml"
           ansible.compatibility_mode = "2.0"
           ansible.become = false
+          
           ansible.extra_vars = {
               ansible_user: "vagrant",
               ansible_password: "vagrant",
               ansible_connection: "winrm",
               ansible_winrm_transport: "basic",
               ansible_winrm_server_cert_validation: "ignore",
-              vbox_host_version: `VBoxManage --version 2>/dev/null`.strip.split(/[^0-9\.]/)[0] rescue "",
+              vbox_host_version: vbox_host_version,
               is_vbox: is_vbox
           }
       end

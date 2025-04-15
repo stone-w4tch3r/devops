@@ -1,6 +1,6 @@
 # Windows Development VM Setup
 
-This project provides an automated setup for a Windows 10 development virtual machine using Vagrant and Ansible. It's designed to work cross-platform, allowing you to create consistent Windows development environments on macOS, Linux, or Windows hosts.
+Simple windows dev vm with basic configuration
 
 ## Prerequisites
 
@@ -78,7 +78,8 @@ This project provides an automated setup for a Windows 10 development virtual ma
    ```
 
    This will:
-   - Download the Windows 10 box
+   - Auto resolve required provider (virtualbox/parallels)
+   - Download windows 11 image
    - Create and configure the VM
    - Run the Ansible playbook to set up the development environment
 
