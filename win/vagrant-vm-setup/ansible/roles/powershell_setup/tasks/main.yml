@@ -1,0 +1,35 @@
+---
+- name: Create PowerShell profile directory if it doesn't exist
+  win_shell: |
+    $profileDir = Split-Path -Parent $PROFILE
+    if (!(Test-Path $profileDir)) {
+      New-Item -Path $profileDir -ItemType Directory -Force
+    }
+  tags:
+    - powershell
+
+- name: Create PowerShell profile
+  win_copy:
+    src: Microsoft.PowerShell_profile.ps1
+    dest: "{{ ansible_env.USERPROFILE }}\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"
+    force: yes
+  tags:
+    - powershell
+
+- name: Install PSReadLine module
+  win_shell: Install-Module PSReadLine -SkipPublisherCheck -Force
+  tags:
+    - powershell
+
+- name: Install WinGet Client module
+  win_shell: Install-Module Microsoft.WinGet.Client -SkipPublisherCheck -Force
+  tags:
+    - powershell
+
+- name: Create python3 symlink
+  win_shell: |
+    $venv = ((get-command python).source | Get-ItemProperty).DirectoryName
+    New-Item -Path $venv -Name "python3.exe" -Value "$venv\python.exe" -ItemType SymbolicLink -Force
+  ignore_errors: true
+  tags:
+    - powershell

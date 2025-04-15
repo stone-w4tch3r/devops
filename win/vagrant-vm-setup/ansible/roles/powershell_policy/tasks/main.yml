@@ -1,0 +1,3 @@
+---
+- name: Set PowerShell execution policy to RemoteSigned
+  win_shell: Set-ExecutionPolicy RemoteSigned -Force

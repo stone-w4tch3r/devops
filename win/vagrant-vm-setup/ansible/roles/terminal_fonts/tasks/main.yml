@@ -1,0 +1,48 @@
+---
+- name: Install Meslo Nerd Font
+  win_shell: oh-my-posh font install Meslo
+  tags:
+    - fonts
+
+- name: Get Windows Terminal settings file path
+  win_shell: |
+    $settingsPath = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+    if (!(Test-Path $settingsPath)) {
+      $settingsPath = "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+    }
+    Write-Output $settingsPath
+  register: terminal_settings_path
+  changed_when: false
+  tags:
+    - fonts
+
+- name: Check if Windows Terminal settings file exists
+  win_stat:
+    path: "{{ terminal_settings_path.stdout | trim }}"
+  register: terminal_settings_stat
+  tags:
+    - fonts
+
+- name: Update Windows Terminal settings with Meslo font
+  win_shell: |
+    $settingsPath = "{{ terminal_settings_path.stdout | trim }}"
+    $settings = Get-Content -Path $settingsPath | ConvertFrom-Json
+    
+    # Check if defaults exists in profiles
+    if (-not $settings.profiles.PSObject.Properties.Name.Contains("defaults")) {
+      $settings.profiles | Add-Member -Name "defaults" -Value ([PSCustomObject]@{}) -MemberType NoteProperty
+    }
+    
+    # Check if font exists in defaults
+    if (-not $settings.profiles.defaults.PSObject.Properties.Name.Contains("font")) {
+      $settings.profiles.defaults | Add-Member -Name "font" -Value ([PSCustomObject]@{}) -MemberType NoteProperty
+    }
+    
+    # Set the font face
+    $settings.profiles.defaults.font | Add-Member -Name "face" -Value "MesloLGM Nerd Font" -MemberType NoteProperty -Force
+    
+    # Save the settings
+    $settings | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsPath
+  when: terminal_settings_stat.stat.exists
+  tags:
+    - fonts

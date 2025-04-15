@@ -1,0 +1,14 @@
+---
+- name: Create README.md at desktop
+  win_file:
+    path: "{{ ansible_env.USERPROFILE }}\\Desktop\\README.md"
+    state: touch
+  tags:
+    - windows_activation
+
+- name: Write activation guide into README.md
+  win_lineinfile:
+    path: "{{ ansible_env.USERPROFILE }}\\Desktop\\README.md"
+    line: "Manual activate: `irm https://massgrave.dev/get | iex`"
+  tags:
+    - windows_activation

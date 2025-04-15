@@ -1,0 +1,33 @@
+---
+- name: Set packages path variable
+  set_fact:
+    packages_path: "C:\\{{ ansible_env.USERPROFILE }}\\Desktop\\packages-minimum.json"
+  tags:
+    - winget_packages
+
+- name: Copy packages-minimum.json file
+  win_copy:
+    src: packages-minimum.json
+    dest: "{{ packages_path }}"
+  tags:
+    - winget_packages
+
+- name: Ensure winget is installed (via App Installer)
+  win_shell: |
+    $progressPreference = 'silentlyContinue'
+    Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+    Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+    Remove-Item Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+  args:
+    creates: C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*\winget.exe
+  ignore_errors: true
+  tags:
+    - winget_packages
+
+- name: Install packages from JSON using winget
+  win_shell: |
+    cat {{ packages_path }} | ConvertFrom-Json | foreach { winget install --source winget $_ }
+  register: winget_result
+  changed_when: winget_result.stdout.find('Successfully installed') != -1
+  tags:
+    - winget_packages

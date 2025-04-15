@@ -1,0 +1,37 @@
+# Vagrantfile
+Vagrant.configure("2") do |config|
+    config.vm.box = "gusztavvargadr/windows-10"
+    config.vm.hostname = "windev"
+    
+    # Bridge networking
+    config.vm.network "public_network"
+    
+    # VM resources configuration
+    config.vm.provider "virtualbox" do |vb|
+      vb.memory = 4096
+      vb.cpus = 2
+      vb.name = "windows-dev-vm"
+      vb.gui = true
+    end
+    
+    # WinRM configuration for Ansible
+    config.vm.communicator = "winrm"
+    config.winrm.username = "vagrant"
+    config.winrm.password = "vagrant"
+    config.winrm.transport = :plaintext
+    config.winrm.basic_auth_only = true
+    
+    # Provisioning with Ansible
+    config.vm.provision "ansible" do |ansible|
+      ansible.playbook = "ansible/playbook.yml"
+      ansible.compatibility_mode = "2.0"
+      ansible.become = false
+      ansible.extra_vars = {
+        ansible_user: "vagrant",
+        ansible_password: "vagrant",
+        ansible_connection: "winrm",
+        ansible_winrm_transport: "basic",
+        ansible_winrm_server_cert_validation: "ignore"
+      }
+    end
+  end

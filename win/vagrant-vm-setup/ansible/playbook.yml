@@ -1,0 +1,11 @@
+---
+- name: Configure Windows Development VM
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - powershell_policy
+    - winget_packages
+    - powershell_setup
+    - terminal_fonts
+    - windows_activation
