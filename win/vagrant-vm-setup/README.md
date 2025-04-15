@@ -14,6 +14,14 @@ This project provides an automated setup for a Windows 10 development virtual ma
    brew install ansible
    ```
 
+2. **Install Parallels somehow**
+
+3. **Prepare vagrant for Parallels**:
+
+   ```bash
+   vagrant plugin install vagrant-parallels
+   ```
+
 ### For Linux (Ubuntu/Debian)
 
 1. **Install VirtualBox, Vagrant, and Ansible**:

@@ -3,11 +3,22 @@
   hosts: all
   gather_facts: true
 
+  pre_tasks:
+    - name: Set default for is_vbox if not defined
+      ansible.builtin.set_fact:
+        is_vbox: false
+      when: is_vbox is not defined
+
+    - name: Display virtualization provider information
+      ansible.builtin.debug:
+        msg: "Using VirtualBox: {{ is_vbox | bool }}"
+
   roles:
     - powershell_policy
-    - vbox_guestadditions
     - system_settings_configuration
     - winget_packages
     - powershell_setup
     - terminal_fonts
     - windows_activation_readme
+    - role: vbox_guestadditions
+      when: is_vbox | bool
