@@ -93,6 +93,53 @@ Simple windows dev vm with basic configuration
    - **Stop the VM**: `vagrant halt`
    - **Delete the VM**: `vagrant destroy`
 
+## Running Ansible Standalone
+
+If you want to run the Ansible playbook separately from Vagrant (for example, to reconfigure an existing VM or troubleshoot specific roles), follow these steps:
+
+1. **Create an inventory file**:
+
+   Create a file named `inventory.ini` in the ansible directory:
+
+   ```ini
+   [windows]
+   windev ansible_host=IP_ADDRESS_OF_YOUR_VM
+
+   [windows:vars]
+   ansible_user=vagrant
+   ansible_password=vagrant
+   ansible_connection=winrm
+   ansible_winrm_transport=basic
+   ansible_winrm_server_cert_validation=ignore
+   ```
+
+   Replace `IP_ADDRESS_OF_YOUR_VM` with the actual IP address of your Windows VM.
+
+2. **Run the Ansible playbook manually**:
+
+   ```bash
+   cd /path/to/devops/win/vagrant-vm-setup
+   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+   ```
+
+3. **Run specific tags only**:
+
+   ```bash
+   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --tags "winget_packages,powershell"
+   ```
+
+4. **Skip specific roles**:
+
+   ```bash
+   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --skip-tags "vbox_guestadditions"
+   ```
+
+5. **Pass variables via CLI**:
+
+   ```bash
+   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml -e "is_vbox=true"
+   ```
+
 ## Troubleshooting
 
 ### Vagrant Issues
