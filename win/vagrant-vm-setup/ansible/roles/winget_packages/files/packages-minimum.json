@@ -1,14 +1,15 @@
 [
   "neofetch",
-  "gdu",
   "zyedidia.micro",
-  "autohotkey",
+  "Git.Git",
+  "JanDeDobbeleer.OhMyPosh",
   "Microsoft.PowerShell",
   "Microsoft.WindowsTerminal",
+  "Warp.Warp",
+  "Microsoft.DotNet.SDK.8",
   "VSCodium.VSCodium",
   "Python.Python.3.12",
-  "Microsoft.DotNet.SDK.8",
-  "JanDeDobbeleer.OhMyPosh",
-  "Git.Git",
-  "cURL.cURL"
+  "cURL.cURL",
+  "gdu",
+  "autohotkey"
 ]
