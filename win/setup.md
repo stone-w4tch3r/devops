@@ -1,4 +1,15 @@
-## install winget 
+## install winget
+
+Simple:
+
+```ps1
+$progressPreference = 'silentlyContinue'
+Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+Remove-Item Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+```
+
+Complex:
 
 ```ps1
 cd ~/Downloads/
@@ -31,6 +42,7 @@ rm Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
 4. Fonts:
 `oh-my-posh font install Meslo`
 In MS Terminal `settings.json` ensure:
+
 ```json
 {
     "profiles":
@@ -45,14 +57,15 @@ In MS Terminal `settings.json` ensure:
     }
 }
 ```
+
 5. Plugins:
 `Install-Module PSReadLine -SkipPublisherCheck -Force`
 `Install-Module Microsoft.WinGet.Client -SkipPublisherCheck -Force` (powershell wrapper)
 6. `python3` symlinc:
 `$venv=((get-command python).source | Get-ItemProperty).DirectoryName;New-Item -Path $venv -Name "python3.exe" -Value "$venv\python.exe" -ItemType SymbolicLink`
 
+## Final `$PROFILE`
 
-## Final `$PROFILE`:
 ```ps1
 oh-my-posh init pwsh | Invoke-Expression
 oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/powerlevel10k_classic.omp.json" | Invoke-Expression
@@ -78,9 +91,11 @@ Set-PSReadLineKeyHandler -Key Ctrl+Shift+z -Function Redo
 ```
 
 ## Other
+
 - fix npm ssl error: `setx NODE_OPTIONS "--openssl-legacy-provider"`
 - add .caps-layout.ahk and symlink it to startup folder
 - fix VBox Hyper-V conflict:
+
     ```ps1
     Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-Hypervisor
 
@@ -92,9 +107,11 @@ Set-PSReadLineKeyHandler -Key Ctrl+Shift+z -Function Redo
     Set-ItemProperty -Path $registryPath1 -Name "LsaCfgFlags" -Value 0
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LsaCfgFlags" -Value 0
     ```
+
     And disable Core Isolation: Defender > Device Security > Core Isolation
 
 ## Take $PATH from another user
+
 ```ps1
 $currentUsername = "USERNAME_HERE"
 $targetUsername = "TARGET_USERNAME_HERE"

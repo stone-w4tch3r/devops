@@ -8,11 +8,11 @@ Vagrant.configure("2") do |config|
         ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox' unless ENV['VAGRANT_DEFAULT_PROVIDER']
       end
       
-      windows.vm.box = "stromweld/windows-11"
-      windows.vm.hostname = "windev"
+      ansible.windows.vm.box = "stromweld/windows-11"
+      ansible.windows.vm.hostname = "windev"
       
       # VirtualBox provider (for Intel Macs or linux)
-      windows.vm.provider "virtualbox" do |vb|
+      ansible.windows.vm.provider "virtualbox" do |vb|
           vb.memory = 6144
           vb.cpus = 4
           vb.name = "windows-dev-vm"
@@ -24,34 +24,34 @@ Vagrant.configure("2") do |config|
       end
       
       # Parallels provider (for ARM Macs)
-      windows.vm.provider "parallels" do |prl|
+      ansible.windows.vm.provider "parallels" do |prl|
           prl.memory = 6144
           prl.cpus = 4
           prl.name = "windows-dev-vm"
           prl.update_guest_tools = true
       end
 
-      windows.vm.synced_folder "../../../", "/Projects", type: is_arm ? "parallels" : "virtualbox"
+      ansible.windows.vm.synced_folder "../../../", "/Projects", type: is_arm ? "parallels" : "virtualbox"
       
       # Bridge networking
-      windows.vm.network "public_network"
+      ansible.windows.vm.network "public_network"
       
       # Disable Windows Firewall to allow Ansible connectivity
-      windows.vm.provision "shell", inline: <<-SHELL
+      ansible.windows.vm.provision "shell", inline: <<-SHELL
         Write-Host "Disabling Windows Firewall..."
         Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
         Write-Host "Windows Firewall disabled successfully."
       SHELL
       
       # WinRM configuration for Ansible
-      windows.vm.communicator = "winrm"
-      windows.winrm.username = "vagrant"
-      windows.winrm.password = "vagrant"
-      windows.winrm.transport = :plaintext
-      windows.winrm.basic_auth_only = true
+      ansible.windows.vm.communicator = "winrm"
+      ansible.windows.winrm.username = "vagrant"
+      ansible.windows.winrm.password = "vagrant"
+      ansible.windows.winrm.transport = :plaintext
+      ansible.windows.winrm.basic_auth_only = true
       
       # Provisioning with Ansible
-      windows.vm.provision "ansible" do |ansible|
+      ansible.windows.vm.provision "ansible" do |ansible|
           vbox_host_version = begin
             `VBoxManage --version 2>/dev/null`.strip.split(/[^0-9\.]/)[0]
           rescue

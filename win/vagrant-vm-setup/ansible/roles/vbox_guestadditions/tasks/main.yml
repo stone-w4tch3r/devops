@@ -1,6 +1,6 @@
 ---
 - name: Check if VirtualBox GuestAdditions are installed
-  win_shell: |
+  ansible.windows.win_shell: |
     if (Get-Service -Name VBoxService -ErrorAction SilentlyContinue) {
       Write-Output "VirtualBox GuestAdditions are already installed"
       exit 0
@@ -27,7 +27,7 @@
     - vbox_guestadditions
 
 - name: Download VirtualBox GuestAdditions ISO
-  win_get_url:
+  ansible.windows.win_get_url:
     url: 'https://download.virtualbox.org/virtualbox/{{ vbox_version }}/VBoxGuestAdditions_{{ vbox_version }}.iso'
     dest: 'C:\Windows\Temp\VBoxGuestAdditions.iso'
   when: vbox_check.rc != 0
@@ -35,7 +35,7 @@
     - vbox_guestadditions
 
 - name: Mount ISO
-  win_shell: |
+  ansible.windows.win_shell: |
     $mountResult = Mount-DiskImage -ImagePath 'C:\Windows\Temp\VBoxGuestAdditions.iso' -PassThru
     $driveLetter = ($mountResult | Get-Volume).DriveLetter
     Write-Output $driveLetter
@@ -45,7 +45,7 @@
     - vbox_guestadditions
 
 - name: Install VirtualBox GuestAdditions
-  win_shell: |
+  ansible.windows.win_shell: |
     $driveLetter = "{{ iso_mount.stdout | trim }}"
     Start-Process -FilePath "$($driveLetter):\VBoxWindowsAdditions.exe" -ArgumentList "/S" -Wait
   when: vbox_check.rc != 0 and iso_mount.stdout | trim != ""
@@ -53,14 +53,14 @@
     - vbox_guestadditions
 
 - name: Unmount ISO
-  win_shell: |
+  ansible.windows.win_shell: |
     Dismount-DiskImage -ImagePath 'C:\Windows\Temp\VBoxGuestAdditions.iso'
   when: vbox_check.rc != 0 and iso_mount.stdout | trim != ""
   tags:
     - vbox_guestadditions
 
 - name: Remove ISO file
-  win_file:
+  ansible.windows.win_file:
     path: 'C:\Windows\Temp\VBoxGuestAdditions.iso'
     state: absent
   when: vbox_check.rc != 0

@@ -6,147 +6,111 @@ Simple windows dev vm with basic configuration
 
 ### For macOS
 
-1. **Install VirtualBox, Vagrant, and Ansible**:
-
-   ```bash
-   brew install --cask virtualbox
-   brew install --cask vagrant
-   brew install ansible
-   ```
-
-2. **Install Parallels somehow**
-
-3. **Prepare vagrant for Parallels**:
-
-   ```bash
-   vagrant plugin install vagrant-parallels
-   ```
+```bash
+brew install --cask virtualbox vagrant
+brew install ansible
+vagrant plugin install vagrant-parallels
+```
 
 ### For Linux (Ubuntu/Debian)
 
-1. **Install VirtualBox, Vagrant, and Ansible**:
-
-   ```bash
-   sudo apt update
-   sudo apt install virtualbox -y
-   sudo apt install ansible -y
-   ```
-
-2. **Install Vagrant**:
-
-   ```bash
-   curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-   sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-   sudo apt update
-   sudo apt install vagrant
-   ```
+```bash
+sudo apt update && sudo apt install virtualbox ansible -y
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt update && sudo apt install vagrant -y
+```
 
 ### For Linux (Fedora/RHEL/CentOS)
 
-1. **Install VirtualBox**:
-
-   Preinstall RPMFusion repository, [read more](https://rpmfusion.org/Howto/VirtualBox)
-
-   ```bash
-   dnf install VirtualBox
-   akmods
-   systemctl restart vboxdrv
-   lsmod  | grep -i vbox
-   ```
-
-2. **Install Vagrant and Ansible**:
-
-   ```bash
-   sudo dnf install vagrant
-   sudo dnf install ansible
-   ```
+```bash
+# Install RPMFusion first: https://rpmfusion.org/Howto/VirtualBox
+dnf install VirtualBox ansible vagrant
+akmods && systemctl restart vboxdrv
+```
 
 ## Setup Instructions
 
-1. **Clone this repository** (if you haven't already)
-
-2. **Navigate to the vagrant-vm-setup directory**:
+1. **Clone and navigate to the repo**:
 
    ```bash
-   cd /path/to/devops/win/vagrant-vm-setup
+   cd devops/win/vagrant-vm-setup
    ```
 
-3. **Start the VM**:
+2. **Start the VM**: `vagrant up`
+   - Auto-selects provider (virtualbox/parallels)
+   - Downloads Windows 11 image
+   - Configures VM with Ansible
 
-   ```bash
-   vagrant up
-   ```
+3. **Access**: Login with `vagrant`/`vagrant`
 
-   This will:
-   - Auto resolve required provider (virtualbox/parallels)
-   - Download windows 11 image
-   - Create and configure the VM
-   - Run the Ansible playbook to set up the development environment
-
-4. **Access the VM**:
-   - The VM will start with a GUI
-   - Login with username: `vagrant` and password: `vagrant`
-
-5. **Manage the VM**:
-   - **Suspend the VM**: `vagrant suspend`
-   - **Resume the VM**: `vagrant resume`
-   - **Stop the VM**: `vagrant halt`
-   - **Delete the VM**: `vagrant destroy`
+4. **VM Commands**:
+   - Suspend: `vagrant suspend`
+   - Resume: `vagrant resume`
+   - Stop: `vagrant halt`
+   - Delete: `vagrant destroy`
 
 ## Running Ansible Standalone
 
-If you want to run the Ansible playbook separately from Vagrant (for example, to reconfigure an existing VM or troubleshoot specific roles), follow these steps:
+1. **Ansible ini files are pre-packed**
 
-1. **Create an inventory file**:
-
-   Create a file named `inventory.ini` in the ansible directory:
-
-   ```ini
-   [windows]
-   windev ansible_host=IP_ADDRESS_OF_YOUR_VM
-
-   [windows:vars]
-   ansible_user=vagrant
-   ansible_password=vagrant
-   ansible_connection=winrm
-   ansible_winrm_transport=basic
-   ansible_winrm_server_cert_validation=ignore
-   ```
-
-   Replace `IP_ADDRESS_OF_YOUR_VM` with the actual IP address of your Windows VM.
-
-2. **Run the Ansible playbook manually**:
+2. **Usage examples**:
 
    ```bash
-   cd /path/to/devops/win/vagrant-vm-setup
-   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
-   ```
-
-3. **Run specific tags only**:
-
-   ```bash
+   # Run all
+   ansible-playbook -i ansible/inventory.ini ansible/playbook.yml -e ansible_remote_tmp=/tmp/.ansible-xxx/tmp
+   
+   # Run specific tags
    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --tags "winget_packages,powershell"
-   ```
-
-4. **Skip specific roles**:
-
-   ```bash
+   
+   # Skip tags
    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml --skip-tags "vbox_guestadditions"
-   ```
-
-5. **Pass variables via CLI**:
-
-   ```bash
+   
+   # Pass variables
    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml -e "is_vbox=true"
    ```
 
-## Troubleshooting
+## Running Ansible on Windows
 
-### Vagrant Issues
+### Running Ansible from Windows to Itself
 
-- If you encounter WinRM connection errors, try running `vagrant reload` to restart the VM
+1. **Using WSL**:
 
-### Ansible Issues
+   a. **Install WSL**:
 
-- If Ansible provisioning fails, you can retry with `vagrant provision`
-- Check the Ansible logs for detailed error information
+   ```powershell
+   wsl --install
+   Restart-Computer
+   ```
+
+   b. **Install Ubuntu**:
+
+   ```powershell
+   wsl --install ubuntu
+   wsl
+   ```
+
+   c. **Setup Ansible**:
+
+   ```bash
+   sudo apt update && sudo apt install ansible python3-pip -y
+   pip install pywinrm
+   ```
+
+   d. **Run playbook**:
+
+   ```bash
+   ansible-playbook -i ~/ansible/inventory-itself-from-wsl.ini playbook.yml -e ansible_remote_tmp=/tmp/.ansible-xxx/tmp
+   ```
+
+### Preparing Windows for WinRM
+
+Run in PowerShell as Administrator:
+
+```powershell
+winrm quickconfig -q
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/service/auth '@{Basic="true"}'
+# For testing only (reduces security)
+Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord
+```
