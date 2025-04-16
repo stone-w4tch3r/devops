@@ -11,9 +11,6 @@ Vagrant.configure("2") do |config|
       windows.vm.box = "stromweld/windows-11"
       windows.vm.hostname = "windev"
       
-      # Bridge networking
-      windows.vm.network "public_network"
-      
       # VirtualBox provider (for Intel Macs or linux)
       windows.vm.provider "virtualbox" do |vb|
           vb.memory = 6144
@@ -34,7 +31,17 @@ Vagrant.configure("2") do |config|
           prl.update_guest_tools = true
       end
 
-      windows.vm.synced_folder "../../", "/Projects", type: is_arm ? "parallels" : "virtualbox"
+      windows.vm.synced_folder "../../../", "/Projects", type: is_arm ? "parallels" : "virtualbox"
+      
+      # Bridge networking
+      windows.vm.network "public_network"
+      
+      # Disable Windows Firewall to allow Ansible connectivity
+      windows.vm.provision "shell", inline: <<-SHELL
+        Write-Host "Disabling Windows Firewall..."
+        Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+        Write-Host "Windows Firewall disabled successfully."
+      SHELL
       
       # WinRM configuration for Ansible
       windows.vm.communicator = "winrm"
