@@ -32,10 +32,6 @@ Vagrant.configure("2") do |config|
           prl.cpus = 4
           prl.name = "windows-dev-vm"
           prl.update_guest_tools = true
-          
-          prl.customize ["set", :id, "--clipboard-sync", "bidirectional"]
-          prl.customize ["set", :id, "--shared-profile", "off"]
-          prl.customize ["set", :id, "--shared-cloud", "off"]
       end
 
       windows.vm.synced_folder "../../", "/Projects", type: is_arm ? "parallels" : "virtualbox"
