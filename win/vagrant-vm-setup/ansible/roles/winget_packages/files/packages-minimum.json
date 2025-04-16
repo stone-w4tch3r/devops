@@ -10,6 +10,7 @@
   "VSCodium.VSCodium",
   "Python.Python.3.12",
   "cURL.cURL",
+  "Mozilla.Firefox",
   "gdu",
   "autohotkey"
 ]
