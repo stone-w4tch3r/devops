@@ -1,2 +1,0 @@
-# pyinfra~=2.9.2
-pyinfra-forked-by-stone-w4tch3r~=0.3.1
