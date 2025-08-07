@@ -7,7 +7,6 @@ sudo mkdir -p $HOME/.ssh
 sudo chmod 700 $HOME/.ssh
 sudo chown user1:user1 $HOME/.ssh # TODO hardcoded user
 
-# Copy only the specific public key
 if [ -f "/tmp/host-ssh-key/${SSH_KEY_NAME}.pub" ]; then
     sudo cp "/tmp/host-ssh-key/${SSH_KEY_NAME}.pub" $HOME/.ssh/authorized_keys
     sudo chmod 600 $HOME/.ssh/authorized_keys
@@ -17,6 +16,7 @@ else
     echo "Warning: SSH key not found"
 fi
 
+# Add host docker wrapper
 sudo mkdir -p /usr/local/bin
 sudo tee /usr/local/bin/docker > /dev/null << 'EOF'
 #!/bin/bash
@@ -48,3 +48,6 @@ sudo chown user1:user1 -R $HOME/.config/
 
 # Enable the user service (it will start on next proper login)
 systemctl --user enable sshd-autostart.service
+
+# Install claude
+sudo npm install -g @anthropic-ai/claude-code

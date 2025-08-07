@@ -26,7 +26,7 @@ distrobox create \
   --image "${BASE_IMAGE:-fedora-toolbox:42}" \
   --init \
   --unshare-all \
-  --additional-packages "git openssh-server micro" \
+  --additional-packages "openssh-server micro nodejs-npm the_silver_searcher" \
   --additional-flags "--publish ${SSH_PORT:-2222}:22" \
   --additional-flags "--env \"SSH_KEY_NAME=${SSH_KEY_NAME:-distrobox-key}\"" \
   --volume ~/.ssh/${SSH_KEY_NAME:-distrobox-key}.pub:/tmp/host-ssh-key/${SSH_KEY_NAME:-distrobox-key}.pub:ro \
