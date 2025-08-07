@@ -18,24 +18,29 @@ Configurable distrobox setup:
 SSH_PORT=2222
 CONTAINER_NAME="dev"
 SSH_KEY_NAME="distrobox-key"
+BASE_IMAGE="fedora-toolbox:42"
 
 # Create
 distrobox create \
   --name "${CONTAINER_NAME:-dev}" \
-  --image fedora-toolbox:42 \
-  --additional-flags "--publish ${SSH_PORT:-2222}:22 --env \"SSH_KEY_NAME=${SSH_KEY_NAME:-distrobox-key}\"" \
-  --additional-packages "git openssh-server micro" \
+  --image "${BASE_IMAGE:-fedora-toolbox:42}" \
   --init \
-  --volume ~/Projects/devops/provisioning_distrobox/distrobox-init.sh:/tmp/container-init.sh:ro \
+  --unshare-all \
+  --additional-packages "git openssh-server micro" \
+  --additional-flags "--publish ${SSH_PORT:-2222}:22" \
+  --additional-flags "--env \"SSH_KEY_NAME=${SSH_KEY_NAME:-distrobox-key}\"" \
   --volume ~/.ssh/${SSH_KEY_NAME:-distrobox-key}.pub:/tmp/host-ssh-key/${SSH_KEY_NAME:-distrobox-key}.pub:ro \
-  --volume ~/Projects/org.telegram.desktop.webview/:/var/home/user1/org.telegram.desktop.webview:rw \
-  --volume ~/Projects/kotatogram-fork/:/var/home/user1/kotatogram-fork:rw \
+  --volume ~/Projects/devops/provisioning_distrobox/distrobox-init.sh:/tmp/container-init.sh:ro \
   --init-hooks "/tmp/container-init.sh" \
-  --unshare-all
+  --volume ~/.claude/:${HOME}/.claude/:rw \
+  --volume ~/.claude.json:${HOME}/.claude.json:rw \
+  --volume ~/.claude.json.backup:${HOME}/.claude.json.backup:rw \
+  --volume ~/Projects/kotatogram-fork/:${HOME}/kotatogram-fork:rw \
+  --yes
 
 # Start SSH service
-distrobox enter "${CONTAINER_NAME:-dev}" -- sudo systemctl start sshd
+distrobox enter "${CONTAINER_NAME:-dev}" -- echo configured!
 
 # Enter
-ssh -p "${SSH_PORT:-2222}" user1@localhost -o StrictHostKeyChecking=no -i ~/.ssh/distrobox-key
+ssh -p "${SSH_PORT:-2222}" ${USER}@localhost -o StrictHostKeyChecking=no -i ~/.ssh/distrobox-key
 ```
