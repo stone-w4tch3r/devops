@@ -24,7 +24,7 @@ distrobox create \
   --name "${CONTAINER_NAME:-dev}" \
   --image fedora-toolbox:42 \
   --additional-flags "--publish ${SSH_PORT:-2222}:22 --env \"SSH_KEY_NAME=${SSH_KEY_NAME:-distrobox-key}\"" \
-  --additional-packages "flatpak flatpak-builder git openssh-server" \
+  --additional-packages "git openssh-server micro" \
   --init \
   --volume ~/Projects/devops/provisioning_distrobox/distrobox-init.sh:/tmp/container-init.sh:ro \
   --volume ~/.ssh/${SSH_KEY_NAME:-distrobox-key}.pub:/tmp/host-ssh-key/${SSH_KEY_NAME:-distrobox-key}.pub:ro \
@@ -37,5 +37,5 @@ distrobox create \
 distrobox enter "${CONTAINER_NAME:-dev}" -- sudo systemctl start sshd
 
 # Enter
-ssh -p "${SSH_PORT:-2222}" user1@localhost
+ssh -p "${SSH_PORT:-2222}" user1@localhost -o StrictHostKeyChecking=no -i ~/.ssh/distrobox-key
 ```

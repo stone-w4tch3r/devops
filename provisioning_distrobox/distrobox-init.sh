@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-# Setup Flatpak
-sudo flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
-sudo flatpak install -y org.freedesktop.Sdk/x86_64/24.08
-
 # Setup SSH
 sudo systemctl enable sshd
 sudo mkdir -p $HOME/.ssh
