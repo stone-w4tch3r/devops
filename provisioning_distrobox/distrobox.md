@@ -19,6 +19,7 @@ SSH_PORT=2222
 CONTAINER_NAME="dev"
 SSH_KEY_NAME="distrobox-key"
 BASE_IMAGE="fedora-toolbox:42"
+PROJECT="project"
 
 # Create
 distrobox create \
@@ -26,7 +27,6 @@ distrobox create \
   --image "${BASE_IMAGE:-fedora-toolbox:42}" \
   --init \
   --unshare-all \
-  --additional-packages "openssh-server micro nodejs-npm the_silver_searcher" \
   --additional-flags "--publish ${SSH_PORT:-2222}:22" \
   --additional-flags "--env \"SSH_KEY_NAME=${SSH_KEY_NAME:-distrobox-key}\"" \
   --volume ~/.ssh/${SSH_KEY_NAME:-distrobox-key}.pub:/tmp/host-ssh-key/${SSH_KEY_NAME:-distrobox-key}.pub:ro \
@@ -35,7 +35,7 @@ distrobox create \
   --volume ~/.claude/:${HOME}/.claude/:rw \
   --volume ~/.claude.json:${HOME}/.claude.json:rw \
   --volume ~/.claude.json.backup:${HOME}/.claude.json.backup:rw \
-  --volume ~/Projects/kotatogram-fork/:${HOME}/kotatogram-fork:rw \
+  --volume ~/Projects/${PROJECT:project}/:${HOME}/${PROJECT:-project}:rw \
   --yes
 
 # Start SSH service
@@ -43,4 +43,17 @@ distrobox enter "${CONTAINER_NAME:-dev}" -- echo configured!
 
 # Enter
 ssh -p "${SSH_PORT:-2222}" ${USER}@localhost -o StrictHostKeyChecking=no -i ~/.ssh/distrobox-key
+```
+
+Using distrobox assemble:
+
+```bash
+# prepare template
+distrobox assemble create --name template --file ~/Projects/devops/provisioning_distrobox/distrobox.ini
+
+# commit image
+docker commit template fedora-toolbox-template:latest
+
+# create dev container
+distrobox assemble create --name default-material-dark-theme-extension-dev --replace
 ```

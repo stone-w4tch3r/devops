@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Install packages
+sudo dnf install openssh-server micro nodejs-npm the_silver_searcher wl-clipboard -y
+
 # Setup SSH
 sudo systemctl enable sshd
 sudo mkdir -p $HOME/.ssh
@@ -28,6 +31,17 @@ EOF
 sudo chmod +x /usr/local/bin/docker
 echo "Docker wrapper installed to /usr/local/bin/docker"
 
+# Add host gh wrapper
+sudo tee /usr/local/bin/gh > /dev/null << 'EOF'
+#!/bin/bash
+# gh wrapper for distrobox - always uses host gh
+echo "Calling host's gh with distrobox-host-exec"
+exec distrobox-host-exec gh "$@"
+EOF
+
+sudo chmod +x /usr/local/bin/gh
+echo "Docker wrapper installed to /usr/local/bin/gh"
+
 # Create systemd user service to start sshd on first login
 echo "Setting up SSH auto-start service..."
 mkdir -p $HOME/.config/systemd/user
@@ -49,5 +63,31 @@ sudo chown user1:user1 -R $HOME/.config/
 # Enable the user service (it will start on next proper login)
 systemctl --user enable sshd-autostart.service
 
-# Install claude
-sudo npm install -g @anthropic-ai/claude-code
+# Alias claude from ~/.claude/local
+if [ -f "$HOME/.claude/local/claude" ]; then
+    alias='alias claude="~/.claude/local/claude"'
+    if [ ! -f $HOME/.bashrc ]; then
+        echo "$alias" >> $HOME/.bashrc
+    else
+        if ! grep -qxF "$alias" $HOME/.bashrc; then
+            sed -i "/alias claude=/d" $HOME/.bashrc
+            echo "$alias" >> $HOME/.bashrc
+        fi
+    fi
+fi
+
+# Setup micro
+mkdir -p $HOME/.config/micro
+cat > $HOME/.config/micro/settings.json << 'EOF'
+{
+    "clipboard": "terminal",
+    "mkparents": true
+}
+
+EOF
+sudo chown -R user1:user1 $HOME/.config/micro
+
+# Setup broot
+sudo curl -s https://dystroy.org/broot/download/x86_64-linux/broot --output /usr/local/bin/broot
+sudo chmod ugo+x /usr/local/bin/broot
+/usr/local/bin/broot --install
