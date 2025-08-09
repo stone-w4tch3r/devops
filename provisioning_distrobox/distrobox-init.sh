@@ -2,7 +2,7 @@
 set -e
 
 # Install packages
-sudo dnf install openssh-server micro nodejs-npm the_silver_searcher wl-clipboard -y
+sudo dnf install openssh-server micro nodejs-npm the_silver_searcher wl-clipboard jq -y
 
 # Setup SSH
 sudo systemctl enable sshd
@@ -64,17 +64,27 @@ sudo chown user1:user1 -R $HOME/.config/
 systemctl --user enable sshd-autostart.service
 
 # Alias claude from ~/.claude/local
-if [ -f "$HOME/.claude/local/claude" ]; then
-    alias='alias claude="~/.claude/local/claude"'
-    if [ ! -f $HOME/.bashrc ]; then
+alias='alias claude="~/.claude/local/claude"'
+if [ ! -f $HOME/.bashrc ]; then
+    echo "$alias" >> $HOME/.bashrc
+else
+    if ! grep -qxF "$alias" $HOME/.bashrc; then
+        sed -i "/alias claude=/d" $HOME/.bashrc
         echo "$alias" >> $HOME/.bashrc
-    else
-        if ! grep -qxF "$alias" $HOME/.bashrc; then
-            sed -i "/alias claude=/d" $HOME/.bashrc
-            echo "$alias" >> $HOME/.bashrc
-        fi
     fi
 fi
+if [ ! -f $HOME/.profile ]; then
+    echo "$alias" >> $HOME/.profile
+else
+    if ! grep -qxF "$alias" $HOME/.profile; then
+        sed -i "/alias claude=/d" $HOME/.profile
+        echo "$alias" >> $HOME/.profile
+    fi
+fi
+
+# chown .profile and .bashrc
+sudo chown user1:user1 $HOME/.bashrc
+sudo chown user1:user1 $HOME/.profile
 
 # Setup micro
 mkdir -p $HOME/.config/micro
@@ -91,3 +101,5 @@ sudo chown -R user1:user1 $HOME/.config/micro
 sudo curl -s https://dystroy.org/broot/download/x86_64-linux/broot --output /usr/local/bin/broot
 sudo chmod ugo+x /usr/local/bin/broot
 /usr/local/bin/broot --install
+sudo chown -R user1:user1 $HOME/.local
+sudo chown -R user1:user1 $HOME/.config/broot

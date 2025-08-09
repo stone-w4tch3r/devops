@@ -56,4 +56,27 @@ docker commit template fedora-toolbox-template:latest
 
 # create dev container
 distrobox assemble create --name default-material-dark-theme-extension-dev --replace
+
+# pdate template
+distrobox assemble create --name template --file ~/Projects/devops/provisioning_distrobox/distrobox.ini && docker commit template fedora-toolbox-template:latest && distrobox stop template --yes
+```
+
+Store ssh config:
+
+```bash
+cat ~/.ssh/config 
+# Dev containers
+Host task1-dev
+    HostName localhost
+    Port 2222
+    User user1
+    IdentityFile ~/.ssh/distrobox-key
+    StrictHostKeyChecking no
+
+Host windsurf-flatpak-dev
+    HostName localhost
+    Port 4444
+    User user1
+    IdentityFile ~/.ssh/distrobox-key
+    StrictHostKeyChecking no
 ```
