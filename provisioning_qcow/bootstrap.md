@@ -30,6 +30,12 @@ quickemu --vm ubuntu-quickemu.conf --display spice
 # and monitor /var/log/cloud-init-output.log
 
 # Step 7: save VM as a template
+sudo cloud-init clean # in VM
+
+sudo virt-sysprep -a ubuntu-24.04-golden.qcow2 --operations machine-id,udev-persistent-net,logfiles # remove some state
+qemu-img convert -O qcow2 -c ubuntu-24.04-golden.qcow2 ubuntu-24.04-golden-compressed.qcow2 # compress
+chmod 444 ubuntu-24.04-golden.qcow2 # make read-only
+cp ubuntu-24.04-golden.qcow2 ~/VMs
 ```
 
 ## VM Creation via libvirt

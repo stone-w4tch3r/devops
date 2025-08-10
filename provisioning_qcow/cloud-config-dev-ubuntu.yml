@@ -15,6 +15,7 @@ users:
 ssh_pwauth: true
 
 package_update: true
+package_upgrade: true
 packages:
   # System
   - openssh-server
@@ -138,7 +139,7 @@ runcmd:
   - echo "deb [signed-by=/etc/apt/keyrings/sourcegit.asc, arch=amd64,arm64] https://codeberg.org/api/packages/yataro/debian generic main" | sudo tee /etc/apt/sources.list.d/sourcegit.list
 
   # Firefox deb
-  - sudo snap remove firefox
+  - sudo apt remove firefox
   - sudo add-apt-repository ppa:mozillateam/ppa
   - |
     echo '
@@ -185,3 +186,6 @@ runcmd:
 
   # Fix ownership
   - chown -R dev:dev /home/dev
+
+  # Reboot
+  - reboot
