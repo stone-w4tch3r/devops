@@ -1,0 +1,24 @@
+#cloud-config
+# Simple MTU fix for Mullvad VPN VMs
+write_files:
+  - path: /etc/netplan/99-mtu-fix.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          "eth*":
+            dhcp4: true
+            dhcp6: true
+            mtu: 1360
+          "enp*":
+            dhcp4: true
+            dhcp6: true
+            mtu: 1360
+          "ens*":
+            dhcp4: true
+            dhcp6: true
+            mtu: 1360
+    permissions: '0600'
+
+runcmd:
+  - netplan apply

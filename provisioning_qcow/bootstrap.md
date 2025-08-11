@@ -1,6 +1,21 @@
 Process, from .
 
-## VM Creation via quickemu (recommended)
+## Run new VM from a template via virt manager
+
+```bash
+# Step 0: Install cloud config tools (in distrobox)
+sudo dnf install -y cloud-utils
+
+# Step 1: prepare seed.iso for cloud-init (in distrobox)
+cp meta-data-devbox.yml meta-data-devbox.local.yml
+sed -i 's/devbox-n/devbox-0/' meta-data-devbox.local.yml
+cloud-localds seed.local.iso cloud-config-devbox.yml meta-data-devbox.local.yml
+
+# Step 2: mount seed in virt manager
+# ...
+```
+
+## Template VM Creation via quickemu (recommended)
 
 ```bash
 # Step 1: Create clean base image (do this once)
@@ -11,7 +26,7 @@ chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 sudo dnf install -y cloud-utils
 
 # Step 3: Create cloud-init seed (in distrobox)
-cloud-localds seed.iso cloud-config-dev-ubuntu.yml meta-data.yml
+cloud-localds seed.iso cloud-config-ubuntu-golden.yml meta-data-ubuntu-golden.yml
 
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
@@ -33,12 +48,11 @@ quickemu --vm ubuntu-quickemu.conf --display spice
 sudo cloud-init clean # in VM
 
 sudo virt-sysprep -a ubuntu-24.04-golden.qcow2 --operations machine-id,udev-persistent-net,logfiles # remove some state
-qemu-img convert -O qcow2 -c ubuntu-24.04-golden.qcow2 ubuntu-24.04-golden-compressed.qcow2 # compress
 chmod 444 ubuntu-24.04-golden.qcow2 # make read-only
 cp ubuntu-24.04-golden.qcow2 ~/VMs
 ```
 
-## VM Creation via libvirt
+## Template VM Creation via libvirt
 
 ```bash
 # Step 1: Create clean base image (do this once)
@@ -49,7 +63,7 @@ chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 sudo dnf install -y cloud-utils
 
 # Step 3: Create cloud-init seed (in distrobox)
-cloud-localds seed.iso cloud-config-dev-ubuntu.yml meta-data.yml
+cloud-localds seed.iso cloud-config-ubuntu-golden.yml meta-data-ubuntu-golden.yml
 
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
@@ -122,6 +136,7 @@ sudo systemctl enable --now virtlogd
 **Better alternatives:**
 
 ### Option 1: Keep a clean master image
+
 ```bash
 # Download once, keep as read-only master
 wget -O ubuntu-24.04-master.qcow2 https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
@@ -133,6 +148,7 @@ cp ubuntu-24.04-master.qcow2 ubuntu-24.04-vm1.qcow2
 ```
 
 ### Option 2: Use qcow2 backing files (recommended)
+
 ```bash
 # Create clean master (backing file)
 wget -O ubuntu-24.04-master.qcow2 https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
