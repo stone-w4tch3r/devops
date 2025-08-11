@@ -20,5 +20,10 @@ write_files:
             mtu: 1360
     permissions: '0600'
 
+growpart:
+  mode: auto
+  devices: ["/"]
+resize_rootfs: true
+
 runcmd:
   - netplan apply

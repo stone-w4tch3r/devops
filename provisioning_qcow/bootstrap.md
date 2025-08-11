@@ -31,7 +31,7 @@ cloud-localds seed.iso cloud-config-ubuntu-golden.yml meta-data-ubuntu-golden.ym
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
 chmod a+rwx ubuntu-24.04-golden.qcow2
-qemu-img resize ubuntu-24.04-golden.qcow2 16G
+qemu-img resize ubuntu-24.04-golden.qcow2 30G
 
 # Step 5: start VM
 mkdir ubuntu-quickemu/
@@ -68,7 +68,7 @@ cloud-localds seed.iso cloud-config-ubuntu-golden.yml meta-data-ubuntu-golden.ym
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
 chmod a+rwx ubuntu-24.04-golden.qcow2
-qemu-img resize ubuntu-24.04-golden.qcow2 16G
+qemu-img resize ubuntu-24.04-golden.qcow2 30G
 
 # Step 5: Create template VM
 virt-install --connect qemu:///system \
@@ -140,7 +140,7 @@ sudo systemctl enable --now virtlogd
 ```bash
 # Download once, keep as read-only master
 wget -O ubuntu-24.04-master.qcow2 https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
-qemu-img resize ubuntu-24.04-master.qcow2 16G
+qemu-img resize ubuntu-24.04-master.qcow2 30G
 chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 
 # Copy for each VM
@@ -152,12 +152,12 @@ cp ubuntu-24.04-master.qcow2 ubuntu-24.04-vm1.qcow2
 ```bash
 # Create clean master (backing file)
 wget -O ubuntu-24.04-master.qcow2 https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
-qemu-img resize ubuntu-24.04-master.qcow2 16G
+qemu-img resize ubuntu-24.04-master.qcow2 30G
 
 # Create overlay images (only store differences)
 qemu-img create -f qcow2 -F qcow2 -b ubuntu-24.04-master.qcow2 vm1.qcow2
 qemu-img create -f qcow2 -F qcow2 -b ubuntu-24.04-master.qcow2 vm2.qcow2
 
-# Benefits: Fast VM creation, space-efficient (overlays ~100MB vs 16GB copies)
+# Benefits: Fast VM creation, space-efficient (overlays ~100MB vs 30GB copies)
 # Considerations: Don't delete/move the base file while VMs are using it
 ```
