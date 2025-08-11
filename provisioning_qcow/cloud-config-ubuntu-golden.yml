@@ -207,11 +207,19 @@ runcmd:
   - systemctl enable --now docker
 
   # claude alias
-  - echo 'alias claude=\"~/.claude/local/claude\"' >> '/home/dev/.bashrc'
-  - echo 'alias claude=\"~/.claude/local/claude\"' >> '/home/dev/.profile'
+  - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.bashrc'
+  - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.profile'
 
   # Install the "br" shell function for broot (non-interactive)
   - su - dev -c 'printf "y\n" | broot --install || true'
+
+  # Install claude code locally
+  - mkdir -p /home/dev/.claude/local
+  - chown -R dev:dev /home/dev/.claude
+  - su - dev -c 'cd /home/dev/.claude/local && npm i @anthropic-ai/claude-code'
+  - su - dev -c 'echo "#!/bin/bash" >> /home/dev/.claude/local/claude'
+  - su - dev -c 'echo "exec \"/home/dev/.claude/local/node_modules/.bin/claude\" \"\$@\"" >> /home/dev/.claude/local/claude'
+  - su - dev -c 'chmod +x /home/dev/.claude/local/claude'
 
   # Fix ownership
   - chown -R dev:dev /home/dev
