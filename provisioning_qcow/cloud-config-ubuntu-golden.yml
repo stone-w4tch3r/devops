@@ -50,6 +50,7 @@ packages:
   - mitmproxy
   - trash-cli
   - speedtest-cli
+  - pipx
 
   # Apps
   - chromium
@@ -102,6 +103,26 @@ write_files:
             dhcp6: true
             mtu: 1360
     permissions: '0600'
+
+  # Readme
+  - path: /home/dev/Desktop/README.md
+    permissions: "0644"
+    owner: dev:dev
+    defer: true
+    content: |
+      Welcome!
+
+      To mount shared folders:
+      
+      ```bash
+      sudo mount -t virtiofs folder1 ~/folder1
+      ```
+
+      To persist it:
+        
+      ```bash
+      echo "folder1 /home/dev/folder1 virtiofs defaults 0 0" | sudo tee -a /etc/fstab
+      ```
 
 growpart:
   mode: auto
@@ -210,12 +231,15 @@ runcmd:
   - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.bashrc'
   - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.profile'
 
+  # Python stuff
+  - pipx ensurepath
+  - pipx install uv # python's npx
+
   # Install the "br" shell function for broot (non-interactive)
   - su - dev -c 'printf "y\n" | broot --install || true'
 
   # Install claude code locally
-  - mkdir -p /home/dev/.claude/local
-  - chown -R dev:dev /home/dev/.claude
+  - su - dev -c 'mkdir -p /home/dev/.claude/local'
   - su - dev -c 'cd /home/dev/.claude/local && npm i @anthropic-ai/claude-code'
   - su - dev -c 'echo "#!/bin/bash" >> /home/dev/.claude/local/claude'
   - su - dev -c 'echo "exec \"/home/dev/.claude/local/node_modules/.bin/claude\" \"\$@\"" >> /home/dev/.claude/local/claude'
