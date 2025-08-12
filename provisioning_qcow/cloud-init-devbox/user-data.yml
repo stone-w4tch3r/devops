@@ -1,0 +1,7 @@
+#cloud-config
+# Minimal devbox configuration
+
+growpart:
+  mode: auto
+  devices: ["/"]
+resize_rootfs: true

@@ -1,0 +1,82 @@
+#cloud-config
+# Development tools and environment setup for golden VM template
+
+write_files:
+  # Playwright MCP systemd service for AI agents
+  - path: /etc/systemd/user/playwright-mcp.service
+    content: |
+      [Unit]
+      Description=Playwright MCP (headed) for AI agents
+      After=graphical-session.target
+      PartOf=graphical-session.target
+      # Only start once the Wayland socket exists
+      ConditionPathExists=%t/wayland-0
+
+      [Service]
+      Type=simple
+      Environment=XDG_RUNTIME_DIR=%t
+      Environment=WAYLAND_DISPLAY=wayland-0
+      # If you prefer Playwright's bundled Chrome, just omit --executable-path
+      ExecStart=/usr/bin/env npx @playwright/mcp@latest --port 8931
+      Restart=on-failure
+
+      [Install]
+      WantedBy=graphical-session.target
+    permissions: '0644'
+
+runcmd:
+  # Apply network configuration
+  - netplan apply
+
+  # Enable and configure services
+  - systemctl enable --now ssh
+  - systemctl restart ssh
+  - systemctl enable --now qemu-guest-agent
+  - systemctl set-default graphical.target
+
+  # Ensure password authentication works
+  - echo "dev:dev" | chpasswd
+  - passwd -u dev
+
+  # Initialize shell configuration files
+  - touch /home/dev/.profile
+  - touch /home/dev/.bashrc
+  
+  # Set micro as default editor
+  - echo 'export EDITOR=micro' >> /home/dev/.bashrc
+  - echo 'export EDITOR=micro' >> /home/dev/.profile
+  - update-alternatives --install /usr/bin/editor editor /usr/bin/micro 100
+  - update-alternatives --set editor /usr/bin/micro
+
+  # Install and configure development tools
+  - su - dev -c 'printf "y\n" | broot --install || true'
+
+  # Install Claude CLI locally
+  - su - dev -c 'mkdir -p /home/dev/.claude/local'
+  - su - dev -c 'cd /home/dev/.claude/local && npm i @anthropic-ai/claude-code'
+  - su - dev -c 'echo "#!/bin/bash" >> /home/dev/.claude/local/claude'
+  - su - dev -c 'echo "exec \"/home/dev/.claude/local/node_modules/.bin/claude\" \"\$@\"" >> /home/dev/.claude/local/claude'
+  - su - dev -c 'chmod +x /home/dev/.claude/local/claude'
+
+  # Setup Node.js package managers
+  - npm install -g corepack@latest
+  - /usr/local/bin/corepack enable
+  - /usr/local/bin/corepack prepare yarn@stable --activate
+  - /usr/local/bin/corepack prepare pnpm@latest-10 --activate
+
+  # Python development tools
+  - pipx ensurepath
+  - pipx install uv
+
+  # Add Claude alias
+  - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.bashrc'
+  - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.profile'
+
+  # Enable Playwright MCP service for user session
+  - su - dev -c 'systemctl --user enable --now playwright-mcp.service'
+
+  # Fix ownership of user files
+  - chown -R dev:dev /home/dev
+
+  # Final reboot to ensure all changes take effect
+  - reboot

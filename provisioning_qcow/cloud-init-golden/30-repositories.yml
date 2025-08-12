@@ -1,0 +1,53 @@
+#cloud-config
+# External repositories and package sources for golden VM template
+
+runcmd:
+  # --- Azlux repo for broot ---
+  - install -m 0755 -d /usr/share/keyrings
+  - bash -c 'curl -fsSL https://azlux.fr/repo.gpg -o /usr/share/keyrings/azlux-archive-keyring.gpg'
+  - bash -c 'echo "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] https://packages.azlux.fr/debian/ stable main" > /etc/apt/sources.list.d/azlux.list'
+
+  # --- Docker official apt repo ---
+  - install -m 0755 -d /etc/apt/keyrings
+  - bash -c 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg'
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - bash -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo ${UBUNTU_CODENAME:-$VERSION_CODENAME}) stable" > /etc/apt/sources.list.d/docker.list'
+
+  # --- Warp terminal repo ---
+  - wget -qO- https://releases.warp.dev/linux/keys/warp.asc | gpg --dearmor > warpdotdev.gpg
+  - sudo install -D -o root -g root -m 644 warpdotdev.gpg /etc/apt/keyrings/warpdotdev.gpg
+  - sudo sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/warpdotdev.gpg] https://releases.warp.dev/linux/deb stable main" > /etc/apt/sources.list.d/warpdotdev.list'
+  - rm warpdotdev.gpg
+  
+  # --- VSCodium repo ---
+  - | 
+    wget -qO - https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg \
+      | gpg --dearmor \
+      | sudo dd of=/usr/share/keyrings/vscodium-archive-keyring.gpg
+    echo 'deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/vscodium-archive-keyring.gpg] https://download.vscodium.com/debs vscodium main' \
+      | sudo tee /etc/apt/sources.list.d/vscodium.list
+  
+  # --- Mullvad VPN repo ---
+  - sudo curl -fsSLo /usr/share/keyrings/mullvad-keyring.asc https://repository.mullvad.net/deb/mullvad-keyring.asc
+  - echo "deb [signed-by=/usr/share/keyrings/mullvad-keyring.asc arch=$( dpkg --print-architecture )] https://repository.mullvad.net/deb/stable stable main" | sudo tee /etc/apt/sources.list.d/mullvad.list
+
+  # --- Sourcegit repo ---
+  - curl https://codeberg.org/api/packages/yataro/debian/repository.key | sudo tee /etc/apt/keyrings/sourcegit.asc
+  - echo "deb [signed-by=/etc/apt/keyrings/sourcegit.asc, arch=amd64,arm64] https://codeberg.org/api/packages/yataro/debian generic main" | sudo tee /etc/apt/sources.list.d/sourcegit.list
+
+  # --- Firefox PPA (remove snap version) ---
+  - sudo apt remove firefox
+  - sudo add-apt-repository ppa:mozillateam/ppa
+  - |
+    echo '
+    Package: *
+    Pin: release o=LP-PPA-mozillateam
+    Pin-Priority: 1001
+
+    Package: firefox
+    Pin: version 1:1snap1-0ubuntu2
+    Pin-Priority: -1
+    ' | sudo tee /etc/apt/preferences.d/mozilla-firefox
+  - |
+    echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' \
+      | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox

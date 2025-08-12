@@ -1,0 +1,52 @@
+#cloud-config
+# Package installation for golden VM template
+
+packages:
+  # System essentials
+  - openssh-server
+  - ca-certificates
+  - gnupg
+  - wget
+  - gpg
+  - unzip
+  - curl
+  - apt-transport-https
+  - flatpak
+
+  # Development tools
+  - git
+  - jq
+  - tree
+  - build-essential
+  - nodejs
+  - npm
+  - micro
+  - ripgrep
+  - fd-find
+  - silversearcher-ag
+
+  # System utilities
+  - net-tools
+  - traceroute
+  - htop
+  - wl-clipboard
+  - neofetch
+  - gh
+  - ncdu
+  - distrobox
+  - mitmproxy
+  - trash-cli
+  - speedtest-cli
+  - pipx
+  - lm-sensors
+
+  # Applications
+  - chromium
+
+  # Desktop environment
+  - ubuntu-desktop-minimal
+
+  # VM guest agents
+  - spice-vdagent
+  - spice-webdavd
+  - qemu-guest-agent

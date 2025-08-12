@@ -1,0 +1,296 @@
+#cloud-config
+# dev Memory Management Setup with zRAM, Swap, and Monitoring
+# Author: System Configuration
+# Purpose: Automated setup for memory management on dev VMs
+
+# Update system packages
+package_update: true
+package_upgrade: true
+
+# Install required packages
+packages:
+  - linux-modules-extra-$(uname -r)
+  - zram-tools
+  - util-linux
+
+# Write all files
+write_files:
+  # zRAM setup script
+  - path: /scripts/init-zram-optimized.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Optimized zRAM configuration
+      modprobe zram num_devices=1
+      echo lz4 > /sys/block/zram0/comp_algorithm
+      echo 4G > /sys/block/zram0/disksize
+      mkswap /dev/zram0
+      swapon -p 10 /dev/zram0
+      echo "zRAM optimized: 4GB LZ4 compression, priority 10"
+
+  # zRAM stop script
+  - path: /scripts/stop-zram-optimized.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      swapoff /dev/zram0 2>/dev/null || true
+      rmmod zram 2>/dev/null || true
+
+  # zRAM systemd service
+  - path: /etc/systemd/system/zram-optimized.service
+    content: |
+      [Unit]
+      Description=Optimized zRAM swap setup
+      After=multi-user.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/init-zram-optimized.sh
+      ExecStop=/usr/local/bin/stop-zram-optimized.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+
+  # Memory monitor script
+  - path: /scripts/memory-monitor
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Essential Memory Monitor - Auto warnings based on MemAvailable
+
+      # Thresholds
+      AVAILABLE_WARN_MB=1000
+      AVAILABLE_CRIT_MB=500
+      SWAP_WARN_THRESHOLD=60
+      SWAP_CRIT_THRESHOLD=90
+
+      # Files
+      ALERT_FILE="$HOME/Desktop/MEMORY_ALERT.txt"
+      LOG_FILE="$HOME/.memory-monitor.log"
+      STATE_FILE="$HOME/.memory-monitor.state"
+
+      log_message() {
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+      }
+
+      send_notification() {
+          if command -v notify-send >/dev/null 2>&1; then
+              DISPLAY=:0 notify-send -u "$1" -i "$4" "$2" "$3" 2>/dev/null
+          fi
+      }
+
+      create_alert() {
+          cat > "$ALERT_FILE" << EOL
+      🚨 MEMORY ALERT - $1
+      Generated: $(date)
+
+      $2
+      $3
+
+      TOP MEMORY PROCESSES:
+      $(ps aux --sort=-%mem | head -6 | awk 'NR==1{print} NR>1{printf "%-10s %5.1f%% %s\n", $1, $4, $11}')
+
+      ACTIONS:
+      - Close unnecessary applications
+      - Run: memory-stats for detailed analysis
+      - Run: memory-cleanup for emergency cleanup
+
+      This alert will clear automatically when memory pressure reduces.
+      EOL
+      }
+
+      remove_alert() {
+          if [ -f "$ALERT_FILE" ]; then
+              rm "$ALERT_FILE"
+              send_notification "low" "Memory Alert Cleared" "Memory pressure resolved" "dialog-information"
+          fi
+      }
+
+      main() {
+          # Get memory metrics
+          MemAvailable=$(grep '^MemAvailable:' /proc/meminfo | awk '{print $2}')
+          MemTotal=$(grep '^MemTotal:' /proc/meminfo | awk '{print $2}')
+          SwapTotal=$(grep '^SwapTotal:' /proc/meminfo | awk '{print $2}')
+          SwapFree=$(grep '^SwapFree:' /proc/meminfo | awk '{print $2}')
+          
+          mem_available_mb=$((MemAvailable / 1024))
+          swap_used_mb=$(( (SwapTotal - SwapFree) / 1024 ))
+          swap_percent=0
+          [ $SwapTotal -gt 0 ] && swap_percent=$(( ((SwapTotal - SwapFree) * 100) / SwapTotal ))
+          
+          # Determine state
+          previous_state=$(cat "$STATE_FILE" 2>/dev/null || echo "normal")
+          current_state="normal"
+          
+          if [ $mem_available_mb -le $AVAILABLE_CRIT_MB ] || [ $swap_percent -ge $SWAP_CRIT_THRESHOLD ]; then
+              current_state="critical"
+          elif [ $mem_available_mb -le $AVAILABLE_WARN_MB ] || [ $swap_percent -ge $SWAP_WARN_THRESHOLD ]; then
+              current_state="warning"
+          fi
+          
+          # Handle state changes
+          case "$current_state" in
+              "critical")
+                  if [ "$previous_state" != "critical" ]; then
+                      memory_info="CRITICAL: Only ${mem_available_mb}MB available"
+                      swap_info="SWAP: ${swap_used_mb}MB used (${swap_percent}%)"
+                      create_alert "CRITICAL" "$memory_info" "$swap_info"
+                      send_notification "critical" "🚨 Critical Memory Alert" "$memory_info" "dialog-error"
+                      log_message "CRITICAL: Available ${mem_available_mb}MB, Swap ${swap_percent}%"
+                  fi
+                  ;;
+              "warning")
+                  if [ "$previous_state" = "normal" ]; then
+                      memory_info="WARNING: Only ${mem_available_mb}MB available"
+                      swap_info="SWAP: ${swap_used_mb}MB used (${swap_percent}%)"
+                      create_alert "WARNING" "$memory_info" "$swap_info"
+                      send_notification "normal" "⚠️ Memory Warning" "$memory_info" "dialog-warning"
+                      log_message "WARNING: Available ${mem_available_mb}MB, Swap ${swap_percent}%"
+                  fi
+                  ;;
+              "normal")
+                  [ "$previous_state" != "normal" ] && remove_alert && log_message "NORMAL: Available ${mem_available_mb}MB"
+                  ;;
+          esac
+          
+          echo "$current_state" > "$STATE_FILE"
+      }
+
+      main "$@"
+
+  # Memory stats script
+  - path: /scripts/memory-stats
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Memory Statistics CLI Tool
+
+      # Get memory data
+      MemTotal=$(grep '^MemTotal:' /proc/meminfo | awk '{print $2}')
+      MemFree=$(grep '^MemFree:' /proc/meminfo | awk '{print $2}')
+      MemAvailable=$(grep '^MemAvailable:' /proc/meminfo | awk '{print $2}')
+      Buffers=$(grep '^Buffers:' /proc/meminfo | awk '{print $2}')
+      Cached=$(grep '^Cached:' /proc/meminfo | awk '{print $2}')
+      SwapTotal=$(grep '^SwapTotal:' /proc/meminfo | awk '{print $2}')
+      SwapFree=$(grep '^SwapFree:' /proc/meminfo | awk '{print $2}')
+
+      # Convert to MB
+      mem_total_mb=$((MemTotal / 1024))
+      mem_free_mb=$((MemFree / 1024))
+      mem_available_mb=$((MemAvailable / 1024))
+      cached_mb=$((Cached / 1024))
+      swap_total_mb=$((SwapTotal / 1024))
+      swap_used_mb=$(( (SwapTotal - SwapFree) / 1024 ))
+
+      # Calculate percentages
+      mem_pressure=$((mem_total_mb - mem_available_mb))
+      mem_pressure_percent=$(( (mem_pressure * 100) / mem_total_mb ))
+      swap_percent=0
+      [ $SwapTotal -gt 0 ] && swap_percent=$(( ((SwapTotal - SwapFree) * 100) / SwapTotal ))
+
+      echo "📊 MEMORY STATUS"
+      echo "================"
+      printf "Total RAM:      %8d MB\n" $mem_total_mb
+      printf "Available:      %8d MB (%d%% free)\n" $mem_available_mb $((100 - mem_pressure_percent))
+      printf "Cached:         %8d MB (instantly freeable)\n" $cached_mb
+      printf "Memory Pressure: %7d MB (%d%% under pressure)\n" $mem_pressure $mem_pressure_percent
+
+      echo
+      echo "💾 SWAP STATUS"
+      echo "=============="
+      printf "Total Swap:     %8d MB\n" $swap_total_mb
+      printf "Used Swap:      %8d MB (%d%%)\n" $swap_used_mb $swap_percent
+
+      # Pressure assessment
+      echo
+      echo "🚦 ASSESSMENT"
+      echo "============="
+      if [ $mem_available_mb -gt 1000 ]; then
+          echo "Status: ✅ Good - Plenty of memory available"
+      elif [ $mem_available_mb -gt 500 ]; then
+          echo "Status: ⚠️  Watch - Memory getting low"
+      else
+          echo "Status: 🚨 Critical - Very low memory!"
+      fi
+
+      echo
+      echo "🔧 DETAILED BREAKDOWN"
+      echo "===================="
+      zramctl 2>/dev/null || echo "zRAM: Not active"
+      echo
+      swapon --show 2>/dev/null || echo "No swap configured"
+
+      case "$1" in
+          "--top"|"-t")
+              echo
+              echo "📈 TOP MEMORY CONSUMERS"
+              echo "======================="
+              ps aux --sort=-%mem | head -11 | awk 'NR==1{print} NR>1{printf "%-12s %5.1f%% %8s %s\n", $1, $4, $6, $11}'
+              ;;
+          "--help"|"-h")
+              echo
+              echo "Usage: memory-stats [options]"
+              echo "  -t, --top    Show top memory consumers"
+              echo "  -h, --help   Show this help"
+              ;;
+      esac
+
+  # Memory monitor systemd service
+  - path: /etc/systemd/system/memory-monitor.service
+    content: |
+      [Unit]
+      Description=Memory monitoring service
+      After=multi-user.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/memory-monitor
+      User=dev
+      
+      [Install]
+      WantedBy=multi-user.target
+
+  # Memory monitor systemd timer (runs every 30 seconds)
+  - path: /etc/systemd/system/memory-monitor.timer
+    content: |
+      [Unit]
+      Description=Run memory monitor every 30 seconds
+      
+      [Timer]
+      OnBootSec=1min
+      OnUnitActiveSec=30sec
+      
+      [Install]
+      WantedBy=timers.target
+
+runcmd:
+  # Create symlinks for system PATH access
+  - ln -sf /scripts/init-zram-optimized.sh /usr/local/bin/
+  - ln -sf /scripts/stop-zram-optimized.sh /usr/local/bin/
+  - ln -sf /scripts/memory-monitor /usr/local/bin/
+  - ln -sf /scripts/memory-stats /usr/local/bin/
+  
+  # zRAM
+  - modprobe zram num_devices=1
+  - echo 'zram' >> /etc/modules
+  - systemctl enable --now zram-optimized.service
+  
+  # Traditional swap file (4GB backup)
+  - fallocate -l 4G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  
+  # Kernel swappiness
+  - echo 'vm.swappiness=10' >> /etc/sysctl.conf
+  - sysctl vm.swappiness=10
+  
+  # Memory monitoring
+  - systemctl daemon-reload
+  - systemctl enable --now memory-monitor.timer

@@ -1,21 +1,47 @@
-Process, from .
+# VM Provisioning with Cloud-Init
 
-## Run new VM from a template via virt manager
+This directory contains organized cloud-init configurations for creating Ubuntu VMs:
+
+- **`cloud-init-golden/`** - Golden VM template configuration (full development environment)
+- **`cloud-init-devbox/`** - Lightweight devbox configuration (minimal setup)
+
+## Directory Structure
+
+```
+cloud-init-golden/
+├── user-data-master.yml    # Master config (includes all modules)
+├── 00-base.yml            # Base system configuration
+├── 10-packages.yml        # Package installation
+├── 20-config-files.yml    # Configuration files
+├── memory-management.yml   # zRAM and memory optimization
+├── 30-repositories.yml    # External package repositories
+├── 40-applications.yml    # Application installation
+├── 50-development-tools.yml # Development environment setup
+└── meta-data.yml          # Instance metadata
+
+cloud-init-devbox/
+├── user-data.yml          # Minimal devbox configuration
+├── meta-data.yml          # Instance metadata
+└── meta-data.local.yml    # Local instance metadata
+```
+
+## Quick Start - Devbox VM
 
 ```bash
 # Step 0: Install cloud config tools (in distrobox)
 sudo dnf install -y cloud-utils
 
 # Step 1: prepare seed.iso for cloud-init (in distrobox)
-cp meta-data-devbox.yml meta-data-devbox.local.yml
-sed -i 's/devbox-n/devbox-0/' meta-data-devbox.local.yml
-cloud-localds seed.local.iso cloud-config-devbox.yml meta-data-devbox.local.yml
+cd cloud-init-devbox/
+cp meta-data.yml meta-data.local.yml
+sed -i 's/devbox-n/devbox-0/' meta-data.local.yml
+cloud-localds seed.local.iso user-data.yml meta-data.local.yml
 
 # Step 2: mount seed in virt manager
 # ...
 ```
 
-## Template VM Creation via quickemu (recommended)
+## Golden VM Template Creation via quickemu (recommended)
 
 ```bash
 # Step 1: Create clean base image (do this once)
@@ -26,7 +52,10 @@ chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 sudo dnf install -y cloud-utils
 
 # Step 3: Create cloud-init seed (in distrobox)
-cloud-localds seed.iso cloud-config-ubuntu-golden.yml meta-data-ubuntu-golden.yml
+cd cloud-init-golden/
+cloud-localds seed.iso user-data-master.yml meta-data.yml
+cp seed.iso ../
+cd ..
 
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
@@ -52,7 +81,7 @@ chmod 444 ubuntu-24.04-golden.qcow2 # make read-only
 cp ubuntu-24.04-golden.qcow2 ~/VMs
 ```
 
-## Template VM Creation via libvirt
+## Golden VM Template Creation via libvirt (!!! script unmaintained!!!)
 
 ```bash
 # Step 1: Create clean base image (do this once)
@@ -63,7 +92,10 @@ chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 sudo dnf install -y cloud-utils
 
 # Step 3: Create cloud-init seed (in distrobox)
-cloud-localds seed.iso cloud-config-ubuntu-golden.yml meta-data-ubuntu-golden.yml
+cd cloud-init-golden/
+cloud-localds seed.iso user-data-master.yml meta-data.yml
+cp seed.iso ../
+cd ..
 
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
@@ -86,10 +118,12 @@ virt-install --connect qemu:///system \
 # and monitor /var/log/cloud-init-output.log
 
 # Step 7: Create additional VMs (fast clones)
-qemu-img create -f qcow2 -F qcow2 -b ubuntu-24.04-golden.qcow2 project1.qcow2
+cd cloud-init-devbox/
+cloud-localds devbox-seed.iso user-data.yml meta-data.local.yml
+qemu-img create -f qcow2 -F qcow2 -b ../cloud-init-golden/ubuntu-24.04-golden.qcow2 project1.qcow2
 virt-install --connect qemu:///system --name project1 --memory 4096 --vcpus 2 \
   --disk path=$PWD/project1.qcow2,format=qcow2,bus=virtio \
-  --disk path=$PWD/seed.iso,device=cdrom \
+  --disk path=$PWD/devbox-seed.iso,device=cdrom \
   --os-variant ubuntu24.04 --graphics spice \
   --network network=default,model=virtio --import
 ```

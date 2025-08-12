@@ -1,0 +1,27 @@
+#cloud-config
+# Application installation and setup for golden VM template
+
+runcmd:
+  # Update package lists after adding repositories
+  - apt-get update
+
+  # Install applications from external repositories
+  - |
+    apt-get install -y \
+      broot \
+      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+      warp-terminal \
+      codium \
+      mullvad-vpn \
+      sourcegit \
+      firefox
+
+  # Setup Flathub
+  - flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+  # Install Flatpak applications
+  - flatpak install org.kde.kate --assumeyes
+
+  # Configure Docker for non-root usage
+  - usermod -aG docker dev
+  - systemctl enable --now docker

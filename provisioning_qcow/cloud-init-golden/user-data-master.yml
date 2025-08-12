@@ -1,0 +1,12 @@
+#cloud-config
+# Master configuration for golden VM template
+# This file includes all modular configurations in order
+
+#include
+- ./00-base.yml
+- ./10-packages.yml
+- ./20-config-files.yml
+- ./15-memory-management.yml
+- ./30-repositories.yml
+- ./40-applications.yml
+- ./50-development-tools.yml
