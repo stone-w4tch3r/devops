@@ -3,7 +3,7 @@
 
 write_files:
   # Playwright MCP systemd service for AI agents
-  - path: /etc/systemd/user/playwright-mcp.service
+  - path: /home/dev/.config/systemd/user/playwright-mcp.service
     content: |
       [Unit]
       Description=Playwright MCP (headed) for AI agents
@@ -80,3 +80,7 @@ runcmd:
 
   # Final reboot to ensure all changes take effect
   - reboot
+
+  # Enable docker arm64 emulation
+  - docker run --privileged --rm tonistiigi/binfmt --install arm64
+  - docker buildx ls || docker buildx create --use
