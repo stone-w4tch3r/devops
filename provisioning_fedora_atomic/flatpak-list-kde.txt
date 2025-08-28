@@ -1,0 +1,2 @@
+Adwaita theme	org.kde.KStyle.Adwaita		5.15-24.08	flathub	system
+kde platform translations	org.kde.Platform.Locale		5.15-24.08	flathub	system

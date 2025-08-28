@@ -1,0 +1,22 @@
+Fedora Media Writer	org.fedoraproject.MediaWriter	5.2.3	stable	system
+Fedora Platform	org.fedoraproject.Platform	42	f42	system
+default	org.fedoraproject.Platform.GL.default		f42	system
+fedoraproject platform translations	org.fedoraproject.Platform.Locale		f42	system
+Intel	org.fedoraproject.Platform.VAAPI.Intel		f42	system
+Calculator	org.gnome.Calculator	48.0.2	stable	system
+Calendar	org.gnome.Calendar	48.1	stable	system
+Characters	org.gnome.Characters	48.0	stable	system
+Connections	org.gnome.Connections	48.0	stable	system
+Contacts	org.gnome.Contacts	48.0	stable	system
+Document Viewer	org.gnome.Evince	48.0	stable	system
+Extensions	org.gnome.Extensions	48.alpha	stable	system
+Logs	org.gnome.Logs	45.0	stable	system
+Image Viewer	org.gnome.Loupe	48.0	stable	system
+Maps	org.gnome.Maps	48.1	stable	system
+Sushi	org.gnome.NautilusPreviewer	46.0	stable	system
+Camera	org.gnome.Snapshot	48.0.1	stable	system
+Text Editor	org.gnome.TextEditor	48.2	stable	system
+Weather	org.gnome.Weather	48.0	stable	system
+Disk Usage Analyzer	org.gnome.baobab	48.0	stable	system
+Clocks	org.gnome.clocks	48.0	stable	system
+Fonts	org.gnome.font-viewer	48.0	stable	system
