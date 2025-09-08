@@ -41,6 +41,43 @@ write_files:
             mtu: 1360
     permissions: '0600'
 
+  # OR MAYBE THIS? OR SYSTEMD-NETWORKD FOR PORTABILITY? TEST
+  # network:
+  # version: 2
+  # ethernets:
+  #   ethernet-devices:
+  #     match:
+  #       name: "en*"
+  #     dhcp4: true
+  #     dhcp6: true
+  #     mtu: 1360
+  #   ethernet-legacy:
+  #     match:
+  #       name: "eth*"  
+  #     dhcp4: true
+  #     dhcp6: true
+  #     mtu: 1360
+  #   wireless-devices:
+  #     match:
+  #       name: "wl*"
+  #     dhcp4: true
+  #     dhcp6: true  
+  #     mtu: 1360
+  ########################
+  # /etc/systemd/network/10-mtu-fix.network
+  # [Match]
+  # Name=en* eth* wl*
+  #
+  # [Network]
+  # DHCP=yes
+  # MTU=1360
+  #
+  # [DHCPv4]
+  # UseMTU=false
+  #
+  # [DHCPv6]
+  # UseMTU=false
+
   # Welcome README
   - path: /home/dev/Desktop/README.md
     permissions: "0644"

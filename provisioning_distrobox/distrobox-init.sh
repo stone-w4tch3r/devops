@@ -1,19 +1,36 @@
 #!/bin/bash
 set -e
 
+# Get current user info
+CURRENT_USER=$(whoami)
+CURRENT_UID=$(id -u)
+CURRENT_GID=$(id -g)
+
+echo "Running init script as user: $CURRENT_USER (uid:$CURRENT_UID, gid:$CURRENT_GID)"
+
+# Fix sudo configuration ownership if needed
+if [ -f /etc/sudo.conf ] && [ "$(stat -c %u /etc/sudo.conf)" != "0" ]; then
+    echo "Fixing sudo.conf ownership..."
+    sudo chown root:root /etc/sudo.conf 2>/dev/null || true
+fi
+
+if [ -f /etc/sudoers ] && [ "$(stat -c %u /etc/sudoers)" != "0" ]; then
+    echo "Fixing sudoers ownership..."
+    sudo chown root:root /etc/sudoers 2>/dev/null || true
+fi
+
 # Install packages
 sudo dnf install openssh-server micro nodejs-npm the_silver_searcher wl-clipboard jq -y
 
 # Setup SSH
 sudo systemctl enable sshd
-sudo mkdir -p $HOME/.ssh
-sudo chmod 700 $HOME/.ssh
-sudo chown user1:user1 $HOME/.ssh # TODO hardcoded user
+mkdir -p $HOME/.ssh
+chmod 700 $HOME/.ssh
 
 if [ -f "/tmp/host-ssh-key/${SSH_KEY_NAME}.pub" ]; then
-    sudo cp "/tmp/host-ssh-key/${SSH_KEY_NAME}.pub" $HOME/.ssh/authorized_keys
-    sudo chmod 600 $HOME/.ssh/authorized_keys
-    sudo chown user1:user1 $HOME/.ssh/authorized_keys # TODO hardcoded user
+    cp "/tmp/host-ssh-key/${SSH_KEY_NAME}.pub" $HOME/.ssh/authorized_keys
+    chmod 600 $HOME/.ssh/authorized_keys
+    chown $CURRENT_USER:$CURRENT_USER $HOME/.ssh/authorized_keys
     echo "SSH key installed successfully"
 else
     echo "Warning: SSH key not found"
@@ -58,7 +75,7 @@ RemainAfterExit=yes
 [Install]
 WantedBy=default.target
 EOF
-sudo chown user1:user1 -R $HOME/.config/
+chown $CURRENT_USER:$CURRENT_USER -R $HOME/.config/
 
 # Enable the user service (it will start on next proper login)
 systemctl --user enable sshd-autostart.service
@@ -102,4 +119,4 @@ systemctl --user enable sshd-autostart.service
 # sudo chmod ugo+x /usr/local/bin/broot
 # /usr/local/bin/broot --install
 # sudo chown -R user1:user1 $HOME/.local
-sudo chown -R user1:user1 $HOME/.ssh
+chown -R $CURRENT_USER:$CURRENT_USER $HOME/.ssh
