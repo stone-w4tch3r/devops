@@ -1,0 +1,315 @@
+#cloud-config
+# Network Recovery Configuration
+# Handles automatic network recovery after VM suspend/resume operations
+
+write_files:
+  # Network recovery script
+  - path: /usr/local/bin/vm-network-recovery.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # VM Network Recovery Script
+      # Automatically fixes network connectivity issues after VM resume
+      
+      set -e
+      
+      LOGFILE="/var/log/vm-network-recovery.log"
+      LOCKFILE="/var/run/vm-network-recovery.lock"
+      
+      log() {
+          echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOGFILE"
+      }
+      
+      # Prevent multiple instances
+      exec 200>"$LOCKFILE"
+      if ! flock -n 200; then
+          log "Another instance is running, exiting"
+          exit 0
+      fi
+      
+      log "Starting network recovery process"
+      
+      # Function to check network connectivity
+      check_connectivity() {
+          local test_hosts=("8.8.8.8" "1.1.1.1" "google.com")
+          
+          for host in "${test_hosts[@]}"; do
+              if ping -c 1 -W 2 "$host" >/dev/null 2>&1; then
+                  log "Network connectivity verified with $host"
+                  return 0
+              fi
+          done
+          
+          log "No network connectivity detected"
+          return 1
+      }
+      
+      # Function to restart network service
+      restart_network_service() {
+          local service=""
+          
+          # Detect which network service is available
+          if systemctl is-enabled NetworkManager >/dev/null 2>&1; then
+              service="NetworkManager"
+          elif systemctl is-enabled systemd-networkd >/dev/null 2>&1; then
+              service="systemd-networkd"
+          elif systemctl is-enabled networking >/dev/null 2>&1; then
+              service="networking"
+          else
+              log "No recognized network service found"
+              return 1
+          fi
+          
+          log "Restarting network service: $service"
+          systemctl restart "$service"
+          sleep 3
+          
+          return 0
+      }
+      
+      # Function to restart network interfaces
+      restart_interfaces() {
+          log "Restarting network interfaces"
+          
+          # Get all non-loopback interfaces
+          local interfaces
+          interfaces=$(ip link show | grep -E '^[0-9]+:' | grep -v lo: | cut -d: -f2 | tr -d ' ')
+          
+          for iface in $interfaces; do
+              log "Restarting interface: $iface"
+              ip link set "$iface" down 2>/dev/null || true
+              sleep 1
+              ip link set "$iface" up 2>/dev/null || true
+              sleep 2
+          done
+      }
+      
+      # Function to flush DNS cache
+      flush_dns() {
+          log "Flushing DNS cache"
+          
+          # systemd-resolved
+          if systemctl is-active systemd-resolved >/dev/null 2>&1; then
+              systemctl restart systemd-resolved
+          fi
+          
+          # nscd
+          if systemctl is-active nscd >/dev/null 2>&1; then
+              systemctl restart nscd
+          fi
+      }
+      
+      # Function to renew DHCP leases
+      renew_dhcp() {
+          log "Renewing DHCP leases"
+          
+          # Try dhclient first
+          if command -v dhclient >/dev/null 2>&1; then
+              local interfaces
+              interfaces=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}(?=/\d+\s+brd\s+\d+(\.\d+){3}\s+scope\s+global\s+dynamic\s+)\K.*' | head -1)
+              if [ -n "$interfaces" ]; then
+                  dhclient -r 2>/dev/null || true
+                  sleep 2
+                  dhclient 2>/dev/null || true
+              fi
+          fi
+          
+          # Try NetworkManager if available
+          if command -v nmcli >/dev/null 2>&1; then
+              nmcli connection reload 2>/dev/null || true
+              nmcli networking off 2>/dev/null || true
+              sleep 2
+              nmcli networking on 2>/dev/null || true
+          fi
+      }
+      
+      # Main recovery process
+      main() {
+          log "VM Network Recovery started"
+          
+          # Initial connectivity check
+          if check_connectivity; then
+              log "Network is already working, no recovery needed"
+              exit 0
+          fi
+          
+          # Recovery attempts
+          local attempts=0
+          local max_attempts=3
+          
+          while [ $attempts -lt $max_attempts ]; do
+              attempts=$((attempts + 1))
+              log "Recovery attempt $attempts/$max_attempts"
+              
+              case $attempts in
+                  1)
+                      # First attempt: restart network service
+                      restart_network_service
+                      ;;
+                  2)
+                      # Second attempt: restart interfaces and renew DHCP
+                      restart_interfaces
+                      sleep 5
+                      renew_dhcp
+                      ;;
+                  3)
+                      # Third attempt: full reset including DNS
+                      restart_interfaces
+                      sleep 5
+                      renew_dhcp
+                      sleep 3
+                      flush_dns
+                      ;;
+              esac
+              
+              # Wait for network to stabilize
+              sleep 10
+              
+              # Check if recovery was successful
+              if check_connectivity; then
+                  log "Network recovery successful after attempt $attempts"
+                  exit 0
+              fi
+              
+              log "Attempt $attempts failed, network still not working"
+          done
+          
+          log "All recovery attempts failed"
+          exit 1
+      }
+      
+      # Run main function
+      main "$@"
+
+  # Systemd service for network recovery
+  - path: /etc/systemd/system/vm-network-recovery.service
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=VM Network Recovery Service
+      After=network.target
+      Wants=network.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/vm-network-recovery.sh
+      RemainAfterExit=no
+      StandardOutput=journal
+      StandardError=journal
+      TimeoutStartSec=120
+      
+      [Install]
+      WantedBy=multi-user.target
+
+  # Systemd timer for periodic network checks
+  - path: /etc/systemd/system/vm-network-recovery.timer
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=VM Network Recovery Timer
+      Requires=vm-network-recovery.service
+      
+      [Timer]
+      # Run 30 seconds after boot
+      OnBootSec=30s
+      # Run every 5 minutes if network issues persist
+      OnUnitActiveSec=5m
+      AccuracySec=10s
+      
+      [Install]
+      WantedBy=timers.target
+
+  # Network recovery trigger script for resume detection
+  - path: /usr/local/bin/vm-resume-detector.sh
+    owner: root:root
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # VM Resume Detection Script
+      # Detects when a VM has been resumed and triggers network recovery
+      
+      LOGFILE="/var/log/vm-network-recovery.log"
+      LAST_BOOT_FILE="/var/lib/vm-resume-detector/last_boot_id"
+      
+      log() {
+          echo "$(date '+%Y-%m-%d %H:%M:%S') - [RESUME-DETECTOR] $1" | tee -a "$LOGFILE"
+      }
+      
+      # Create directory for state files
+      mkdir -p "$(dirname "$LAST_BOOT_FILE")"
+      
+      # Get current boot ID
+      current_boot_id=$(cat /proc/sys/kernel/random/boot_id)
+      
+      # Check if we have a previous boot ID
+      if [ -f "$LAST_BOOT_FILE" ]; then
+          last_boot_id=$(cat "$LAST_BOOT_FILE")
+          
+          if [ "$current_boot_id" != "$last_boot_id" ]; then
+              log "Boot ID changed, system may have been suspended/resumed"
+              
+              # Check system uptime (if very low, might be resume rather than reboot)
+              uptime_seconds=$(awk '{print $1}' /proc/uptime | cut -d. -f1)
+              
+              if [ "$uptime_seconds" -lt 300 ]; then  # Less than 5 minutes uptime
+                  log "Low uptime detected ($uptime_seconds seconds), triggering network recovery"
+                  systemctl start vm-network-recovery.service &
+              fi
+          fi
+      else
+          log "First run, recording boot ID"
+      fi
+      
+      # Save current boot ID
+      echo "$current_boot_id" > "$LAST_BOOT_FILE"
+
+  # Systemd service for resume detection
+  - path: /etc/systemd/system/vm-resume-detector.service
+    owner: root:root
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=VM Resume Detector
+      After=network.target
+      Wants=network.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/vm-resume-detector.sh
+      RemainAfterExit=no
+      StandardOutput=journal
+      StandardError=journal
+      
+      [Install]
+      WantedBy=multi-user.target
+
+  # Cron job for additional monitoring (backup method)
+  - path: /etc/cron.d/vm-network-check
+    owner: root:root
+    permissions: '0644'
+    content: |
+      # VM Network Connectivity Check
+      # Runs every 2 minutes to ensure network connectivity
+      */2 * * * * root /usr/local/bin/vm-network-recovery.sh >/dev/null 2>&1
+
+# Commands to run after files are written
+runcmd:
+  # Enable and start systemd services
+  - systemctl daemon-reload
+  - systemctl enable vm-network-recovery.service
+  - systemctl enable vm-network-recovery.timer
+  - systemctl enable vm-resume-detector.service
+  
+  # Start the timer and resume detector
+  - systemctl start vm-network-recovery.timer
+  - systemctl start vm-resume-detector.service
+  
+  # Create log file with proper permissions
+  - touch /var/log/vm-network-recovery.log
+  - chmod 644 /var/log/vm-network-recovery.log
+  
+  # Log that network recovery is configured
+  - echo "$(date '+%Y-%m-%d %H:%M:%S') - VM Network Recovery configured and started" >> /var/log/vm-network-recovery.log

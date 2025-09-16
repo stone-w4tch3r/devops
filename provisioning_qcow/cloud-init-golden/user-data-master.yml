@@ -10,3 +10,4 @@
 - ./30-repositories.yml
 - ./40-applications.yml
 - ./50-development-tools.yml
+- ./60-network-recovery.yml
