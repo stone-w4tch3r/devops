@@ -1,0 +1,23 @@
+#cloud-config
+# README and other user files
+
+write_files:
+  # Welcome README
+  - path: /home/dev/Desktop/README.md
+    permissions: "0644"
+    owner: dev:dev
+    defer: true
+    content: |
+      Welcome!
+
+      To mount shared folders:
+      
+      ```bash
+      sudo mount -t virtiofs folder1 ~/folder1
+      ```
+
+      To persist it:
+        
+      ```bash
+      echo "folder1 /home/dev/folder1 virtiofs defaults 0 0" | sudo tee -a /etc/fstab
+      ```

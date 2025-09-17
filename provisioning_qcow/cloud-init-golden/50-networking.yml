@@ -1,0 +1,79 @@
+#cloud-config
+# network related stuff
+
+write_files:
+  # Smaller timeout for faster boot
+  - path: /etc/systemd/system/NetworkManager-wait-online.service.d/timeout.conf
+    content: |
+      [Service]
+      TimeoutStartSec=30
+      ExecStart=
+      ExecStart=/usr/bin/nm-online -s -q --timeout=30
+    permissions: '0644'
+
+  # Network MTU fix for Mullvad VPN VMs
+  - path: /etc/netplan/66-mtu-fix.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          "eth*":
+            dhcp4: true
+            dhcp6: true
+            mtu: 1360
+          "enp*":
+            dhcp4: true
+            dhcp6: true
+            mtu: 1360
+          "ens*":
+            dhcp4: true
+            dhcp6: true
+            mtu: 1360
+    permissions: '0600'
+
+  # OR MAYBE THIS? OR SYSTEMD-NETWORKD FOR PORTABILITY? TEST
+  # network:
+  # version: 2
+  # ethernets:
+  #   ethernet-devices:
+  #     match:
+  #       name: "en*"
+  #     dhcp4: true
+  #     dhcp6: true
+  #     mtu: 1360
+  #   ethernet-legacy:
+  #     match:
+  #       name: "eth*"  
+  #     dhcp4: true
+  #     dhcp6: true
+  #     mtu: 1360
+  #   wireless-devices:
+  #     match:
+  #       name: "wl*"
+  #     dhcp4: true
+  #     dhcp6: true  
+  #     mtu: 1360
+  ########################
+  # /etc/systemd/network/10-mtu-fix.network
+  # [Match]
+  # Name=en* eth* wl*
+  #
+  # [Network]
+  # DHCP=yes
+  # MTU=1360
+  #
+  # [DHCPv4]
+  # UseMTU=false
+  #
+  # [DHCPv6]
+  # UseMTU=false
+
+runcmd:
+  # Apply network configuration
+  - netplan apply
+
+  # Disable systemd-networkd since we use NetworkManager from ubuntu-desktop
+  - systemctl disable --now systemd-networkd-wait-online.service
+  - systemctl disable --now systemd-networkd.service
+  - systemctl disable --now systemd-networkd.socket
+  - systemctl daemon-reload

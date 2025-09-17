@@ -5,9 +5,12 @@
 #include
 - ./00-base.yml
 - ./10-packages.yml
-- ./20-config-files.yml
 - ./15-memory-management.yml
+- ./20-config-files.yml
+- ./25-ssh.yml
 - ./30-repositories.yml
 - ./40-applications.yml
-- ./50-development-tools.yml
+- ./50-networking.yml
 - ./60-network-recovery.yml
+- ./90-readme.yml
+- ./99-final-commands.yml

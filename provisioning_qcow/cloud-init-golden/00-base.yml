@@ -14,9 +14,6 @@ users:
       # TODO automate in future
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIc66jPOUdqTt5OAAYpPy5H5Skxkinz5xEoDyV7aQE5n distrobox-key
 
-# Enable SSH password authentication
-ssh_pwauth: true
-
 # System updates
 package_update: true
 package_upgrade: true

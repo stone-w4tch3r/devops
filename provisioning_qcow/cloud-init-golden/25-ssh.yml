@@ -1,0 +1,19 @@
+#cloud-config
+# SSH related stuff
+# note: ssh key is set in 00-base.yml
+
+# Enable SSH password authentication
+ssh_pwauth: true
+
+write_files:
+  # SSH configuration
+  - path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+    content: |
+      PasswordAuthentication yes
+      PubkeyAuthentication yes
+      MaxSessions 10
+    permissions: "0644"
+
+runcmd:
+  - systemctl enable --now ssh
+  - systemctl restart ssh
