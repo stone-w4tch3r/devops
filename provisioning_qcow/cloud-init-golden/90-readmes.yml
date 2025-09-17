@@ -1,0 +1,77 @@
+#cloud-config
+# READMEs and other user files
+
+write_files:
+  # Welcome README
+  - path: /home/dev/Desktop/README.md
+    permissions: "0644"
+    owner: dev:dev
+    defer: true
+    content: |
+      Welcome!
+
+      To mount shared folders:
+      
+      ```bash
+      sudo mount -t virtiofs folder1 ~/folder1
+      ```
+
+      To persist it:
+        
+      ```bash
+      echo "folder1 /home/dev/folder1 virtiofs defaults 0 0" | sudo tee -a /etc/fstab
+      ```
+  # Clipboard sharing fix
+  - path: /home/dev/Desktop/CLIPBOARD_SHARING_FIX.md
+    permissions: "0644"
+    owner: dev:dev
+    defer: true
+    content: |
+      # VM Clipboard Sharing Fix
+      
+      ## Quick Fix for Broken Clipboard Sharing
+      
+      If clipboard sharing between your Ubuntu VM and host stops working, follow these steps:
+      
+      ### 1. Check Service Status
+      ```bash
+      # Check system services
+      systemctl status qemu-guest-agent spice-vdagentd
+      
+      # Check user service
+      systemctl --user status spice-vdagent
+      ```
+      
+      ### 2. Start Missing Services
+      ```bash
+      # Start system services (if not running)
+      sudo systemctl start qemu-guest-agent
+      sudo systemctl start spice-vdagentd
+      
+      # Start user service (if not running)
+      systemctl --user start spice-vdagent
+      ```
+      
+      ### 3. Verify Communication
+      ```bash
+      # Should show both virtio channels
+      ls -la /dev/virtio-ports/
+      
+      # Should show both daemons running
+      ps aux | grep spice-vdagent
+      ```
+      
+      ### 4. Test Clipboard
+      Try copying text between host and VM in both directions.
+      
+      ## What These Services Do
+      - **qemu-guest-agent**: Enables communication between host and VM
+      - **spice-vdagentd**: System daemon for SPICE guest integration  
+      - **spice-vdagent**: User-space agent that handles clipboard in your session
+      
+      ## Auto-Start
+      The services should start automatically:
+      - System services start on boot
+      - User service starts via desktop autostart (`/etc/xdg/autostart/spice-vdagent.desktop`)
+      
+      If autostart fails, you may need to manually start the user service after login.

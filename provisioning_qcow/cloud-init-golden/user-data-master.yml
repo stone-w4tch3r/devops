@@ -12,5 +12,5 @@
 - ./40-applications.yml
 - ./50-networking.yml
 - ./60-network-recovery.yml
-- ./90-readme.yml
+- ./90-readmes.yml
 - ./99-final-commands.yml
