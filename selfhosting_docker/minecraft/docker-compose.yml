@@ -1,0 +1,40 @@
+services:
+  mc:
+    image: itzg/minecraft-server:latest
+    environment:
+      EULA: "true"
+      ONLINE_MODE: "false"
+      MEMORY: "4G"
+      ANNOUNCE_PLAYER_ACHIEVEMENTS: "true"
+    # Expose on LAN
+    ports:
+      - "25565:25565"
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  tailscale:
+    image: tailscale/tailscale:latest
+    # Share the network namespace with the MC container
+    network_mode: "service:mc"
+    depends_on:
+      - mc
+    environment:
+      TS_AUTHKEY: "${TS_AUTHKEY}"
+    volumes:
+      - ./tailscale-state:/var/lib/tailscale
+    command: >
+      sh -c '
+        tailscaled --state=/var/lib/tailscale/tailscaled.state --tun=userspace-networking &
+        sleep 3 &&
+        tailscale up --authkey=${TS_AUTHKEY} --hostname=mc-tailscale --ssh=false &&
+        tailscale serve --tcp 25565 &&
+        tail -f /dev/null
+      '
+    restart: unless-stopped
+
+volumes:
+  data:
+  tailscale-state:
