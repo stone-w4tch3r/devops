@@ -59,6 +59,18 @@ runcmd:
   - /usr/local/bin/corepack prepare yarn@stable --activate
   - /usr/local/bin/corepack prepare pnpm@latest-10 --activate
 
+  # Install Volta node manager (works alongside system Node.js)
+  # Volta allows per-project Node.js versions while keeping system Node.js available
+  # Use 'volta pin node@version' in project directories to set specific versions
+  - su - dev -c 'curl https://get.volta.sh | bash'
+  - su - dev -c '$HOME/.volta/bin/volta setup'
+  
+  # Install latest LTS Node.js via Volta (alongside system Node.js)
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install node@lts'
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install npm@latest'
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install pnpm@latest'
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install yarn@latest'
+
   # Python development tools
   - pipx ensurepath
   - pipx install uv
