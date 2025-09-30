@@ -58,7 +58,8 @@ write_files:
           if ! grep -q '^zram' /etc/modules; then
               echo 'zram' >> /etc/modules
           fi
-          systemctl enable --now zram-optimized.service || log "WARNING: zram-optimized.service failed to start"
+          systemctl enable --now zramswap.service || log "WARNING: zramswap.service failed to start"
+          systemctl restart zramswap.service || log "WARNING: zramswap.service restart failed"
       else
           log "WARNING: zRAM module not available on kernel $CURRENT_KERNEL"
       fi

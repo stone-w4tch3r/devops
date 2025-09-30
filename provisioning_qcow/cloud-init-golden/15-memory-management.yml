@@ -15,44 +15,16 @@ packages:
 
 # Write all files
 write_files:
-  # zRAM setup script
-  - path: /scripts/init-zram-optimized.sh
+  - path: /etc/default/zramswap
     owner: root:root
-    permissions: '0755'
+    permissions: '0644'
     content: |
-      #!/bin/bash
-      # Optimized zRAM configuration
-      modprobe zram num_devices=1
-      echo lz4 > /sys/block/zram0/comp_algorithm
-      echo 4G > /sys/block/zram0/disksize
-      mkswap /dev/zram0
-      swapon -p 10 /dev/zram0
-      echo "zRAM optimized: 4GB LZ4 compression, priority 10"
-
-  # zRAM stop script
-  - path: /scripts/stop-zram-optimized.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      #!/bin/bash
-      swapoff /dev/zram0 2>/dev/null || true
-      rmmod zram 2>/dev/null || true
-
-  # zRAM systemd service
-  - path: /etc/systemd/system/zram-optimized.service
-    content: |
-      [Unit]
-      Description=Optimized zRAM swap setup
-      After=multi-user.target
-      
-      [Service]
-      Type=oneshot
-      ExecStart=/scripts/init-zram-optimized.sh
-      ExecStop=/scripts/stop-zram-optimized.sh
-      RemainAfterExit=yes
-      
-      [Install]
-      WantedBy=multi-user.target
+      # zram-tools configuration
+      ALGO=lz4
+      # Choose one of the following. SIZE is in MiB and takes precedence if set.
+      SIZE=4096
+      # PERCENT=         # leave unset when SIZE is used
+      PRIORITY=10
 
   # Memory monitor script
   - path: /scripts/memory-monitor
@@ -270,8 +242,6 @@ write_files:
 
 runcmd:
   # Create symlinks for system PATH access
-  - ln -sf /scripts/init-zram-optimized.sh /usr/local/bin/
-  - ln -sf /scripts/stop-zram-optimized.sh /usr/local/bin/
   - ln -sf /scripts/memory-monitor /usr/local/bin/
   - ln -sf /scripts/memory-stats /usr/local/bin/
   
