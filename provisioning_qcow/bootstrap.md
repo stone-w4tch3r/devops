@@ -98,8 +98,14 @@ sed -i 's/devbox-n/devbox-0/' meta-data.local.yml
 distrobox-enter fedora -- cloud-localds seed.local.iso user-data.yml meta-data.local.yml
 
 # Step 2: mount seed in virt manager
-# ...
-```
+# - In the VM details window:
+# - Add Hardware → Storage.
+# - Select or create custom storage → choose your seed.iso.
+# - Set Device type = CDROM device.
+# - Bus can be SATA/IDE (works everywhere) or SCSI (fine too).
+# - Click Finish.
+# - Still in details:
+# - Boot Options → make sure the CDROM is checked/connected. (Order doesn’t actually need CD first; cloud-init only needs the ISO attached at boot.)
 
 ## Golden VM Template Creation via libvirt (!!! script unmaintained!!!)
 
