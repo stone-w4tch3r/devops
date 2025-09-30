@@ -215,3 +215,9 @@ qemu-img create -f qcow2 -F qcow2 -b ubuntu-24.04-master.qcow2 vm2.qcow2
 # Benefits: Fast VM creation, space-efficient (overlays ~100MB vs 30GB copies)
 # Considerations: Don't delete/move the base file while VMs are using it
 ```
+
+# TODO
+
+- auto-bootstrap script
+- auto distrobox setup
+- validate seed.iso
