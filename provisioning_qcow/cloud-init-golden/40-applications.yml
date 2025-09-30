@@ -6,13 +6,13 @@ runcmd:
   - apt-get update
 
   # Install applications from external repositories
+  # Note: --allow-downgrades needed for Firefox PPA downgrade from snap version
   - |
-    apt-get install -y \
+    apt-get install -y --allow-downgrades \
       broot \
       docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
       warp-terminal \
       codium \
-      mullvad-vpn \
       sourcegit \
       firefox
 
@@ -22,6 +22,5 @@ runcmd:
   # Install Flatpak applications
   - flatpak install org.kde.kate --assumeyes
 
-  # Configure Docker for non-root usage
-  - usermod -aG docker dev
-  - systemctl enable --now docker
+  # Note: Docker service and user group setup moved to post-reboot stage
+  # This ensures the service files exist and user environment is properly configured

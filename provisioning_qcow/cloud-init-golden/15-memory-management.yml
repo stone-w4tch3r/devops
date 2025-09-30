@@ -9,9 +9,9 @@ package_upgrade: true
 
 # Install required packages
 packages:
-  - linux-modules-extra-$(uname -r)
   - zram-tools
   - util-linux
+  # Note: linux-modules-extra will be installed post-reboot when kernel version is stable
 
 # Write all files
 write_files:
@@ -47,8 +47,8 @@ write_files:
       
       [Service]
       Type=oneshot
-      ExecStart=/usr/local/bin/init-zram-optimized.sh
-      ExecStop=/usr/local/bin/stop-zram-optimized.sh
+      ExecStart=/scripts/init-zram-optimized.sh
+      ExecStop=/scripts/stop-zram-optimized.sh
       RemainAfterExit=yes
       
       [Install]
@@ -249,7 +249,7 @@ write_files:
       
       [Service]
       Type=oneshot
-      ExecStart=/usr/local/bin/memory-monitor
+      ExecStart=/scripts/memory-monitor
       User=dev
       
       [Install]
@@ -275,22 +275,16 @@ runcmd:
   - ln -sf /scripts/memory-monitor /usr/local/bin/
   - ln -sf /scripts/memory-stats /usr/local/bin/
   
-  # zRAM
-  - modprobe zram num_devices=1
-  - echo 'zram' >> /etc/modules
-  - systemctl enable --now zram-optimized.service
-  
-  # Traditional swap file (4GB backup)
+  # Traditional swap file (4GB backup) - safe to do pre-reboot
   - fallocate -l 4G /swapfile
   - chmod 600 /swapfile
   - mkswap /swapfile
   - swapon /swapfile
   - echo '/swapfile none swap sw 0 0' >> /etc/fstab
   
-  # Kernel swappiness
+  # Kernel swappiness configuration
   - echo 'vm.swappiness=10' >> /etc/sysctl.conf
   - sysctl vm.swappiness=10
   
-  # Memory monitoring
-  - systemctl daemon-reload
-  - systemctl enable --now memory-monitor.timer
+  # Note: zRAM setup and memory monitoring moved to post-reboot stage
+  # These require kernel modules and proper systemd environment

@@ -1,11 +1,11 @@
 #cloud-config
-# Final commands
+# Final commands - Pre-reboot setup
+# Note: Post-reboot items (Docker setup, zRAM, user services) are handled by 98-post-reboot.yml
 
 runcmd:
-  # Enable and configure services
+  # Enable and configure essential services
   - systemctl enable --now qemu-guest-agent
   - systemctl set-default graphical.target
-
 
   # Initialize shell configuration files
   - touch /home/dev/.profile
@@ -40,6 +40,8 @@ runcmd:
   # Volta allows per-project Node.js versions while keeping system Node.js available
   # Use 'volta pin node@version' in project directories to set specific versions
   - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'mkdir -p /home/dev/.volta'  # Ensure directory exists
+  - chown dev:dev /home/dev/.volta  # Ensure proper ownership
   - su - dev -c 'curl https://get.volta.sh | bash'
   - su - dev -c '$HOME/.volta/bin/volta setup'
   
@@ -58,15 +60,12 @@ runcmd:
   - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.bashrc'
   - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.profile'
 
-  # Enable Playwright MCP service for user session
-  - su - dev -c 'systemctl --user enable --now playwright-mcp.service'
-
-  # Fix ownership of user files
+  # Fix ownership of user files (final chown before reboot)
   - chown -R dev:dev /home/dev
 
-  # Enable docker arm64 emulation
-  - docker run --privileged --rm tonistiigi/binfmt --install arm64
-  - docker buildx ls || docker buildx create --use
+  # Again update and upgrade
+  - apt-get update
+  - apt-get upgrade -y
 
-  # Final reboot to ensure all changes take effect
+  # Final reboot to activate new kernel and trigger post-reboot setup
   - reboot

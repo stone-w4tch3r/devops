@@ -1,0 +1,149 @@
+#cloud-config
+# Post-reboot setup pattern
+# This handles tasks that need to run after the first reboot (new kernel, services, etc.)
+
+write_files:
+  # Post-reboot systemd service
+  - path: /etc/systemd/system/cloud-init-post-reboot.service
+    content: |
+      [Unit]
+      Description=Cloud-init post-reboot setup
+      After=multi-user.target NetworkManager.service docker.service
+      Wants=NetworkManager.service
+      ConditionPathExists=!/var/lib/cloud/post-reboot-complete
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/cloud-init-post-reboot.sh
+      RemainAfterExit=yes
+      TimeoutStartSec=600
+      StandardOutput=journal
+      StandardError=journal
+
+      [Install]
+      WantedBy=multi-user.target
+    permissions: '0644'
+
+  # Post-reboot setup script
+  - path: /usr/local/bin/cloud-init-post-reboot.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Cloud-init post-reboot setup script
+      
+      set -e
+      
+      LOGFILE="/var/log/cloud-init-post-reboot.log"
+      COMPLETE_FLAG="/var/lib/cloud/post-reboot-complete"
+      
+      log() {
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOGFILE"
+      }
+      
+      log "Starting post-reboot setup..."
+      
+      # Ensure we're running the new kernel
+      CURRENT_KERNEL=$(uname -r)
+      log "Running kernel: $CURRENT_KERNEL"
+      
+      # 0. Install kernel modules for current kernel (now that it's stable)
+      log "Installing kernel modules for $CURRENT_KERNEL..."
+      apt-get update -qq
+      apt-get install -y "linux-modules-extra-$CURRENT_KERNEL" || log "WARNING: Could not install modules for $CURRENT_KERNEL"
+      
+      # 1. zRAM setup with new kernel modules
+      log "Setting up zRAM..."
+      if modprobe zram num_devices=1; then
+          log "zRAM module loaded successfully"
+          if ! grep -q '^zram' /etc/modules; then
+              echo 'zram' >> /etc/modules
+          fi
+          systemctl enable --now zram-optimized.service || log "WARNING: zram-optimized.service failed to start"
+      else
+          log "WARNING: zRAM module not available on kernel $CURRENT_KERNEL"
+      fi
+      
+      # 2. Docker setup (ensure service exists and user is added to group)
+      log "Setting up Docker..."
+      if systemctl list-unit-files | grep -q docker.service; then
+          # Add user to docker group
+          usermod -aG docker dev || log "WARNING: Failed to add dev to docker group"
+          
+          # Enable and start docker if not already running
+          systemctl enable --now docker || log "WARNING: Docker service failed to start"
+          
+          # Docker buildx and emulation setup
+          log "Setting up Docker buildx and ARM64 emulation..."
+          if command -v docker >/dev/null 2>&1 && systemctl is-active docker >/dev/null 2>&1; then
+              # Wait for docker to be fully ready
+              sleep 5
+              
+              # Install ARM64 emulation
+              docker run --privileged --rm tonistiigi/binfmt --install arm64 2>/dev/null || log "WARNING: ARM64 emulation setup failed"
+              
+              # Setup buildx
+              docker buildx ls >/dev/null 2>&1 || docker buildx create --use || log "WARNING: Docker buildx setup failed"
+          else
+              log "WARNING: Docker not available for buildx setup"
+          fi
+      else
+          log "WARNING: Docker service not found"
+      fi
+      
+      # 3. User systemd services setup
+      log "Setting up user systemd services..."
+      if [ -f /home/dev/.config/systemd/user/playwright-mcp.service ]; then
+          # Ensure proper ownership
+          chown -R dev:dev /home/dev/.config/
+          
+          # Reload and enable user services
+          sudo -u dev XDG_RUNTIME_DIR=/run/user/$(id -u dev) systemctl --user daemon-reload || log "WARNING: User daemon-reload failed"
+          sudo -u dev XDG_RUNTIME_DIR=/run/user/$(id -u dev) systemctl --user enable playwright-mcp.service || log "WARNING: Playwright service enable failed"
+          
+          # Start the service only if graphical session is available
+          if [ -n "$XDG_RUNTIME_DIR" ] && [ -S "$XDG_RUNTIME_DIR/wayland-0" ]; then
+              sudo -u dev XDG_RUNTIME_DIR=/run/user/$(id -u dev) systemctl --user start playwright-mcp.service || log "WARNING: Playwright service start failed - will start with user session"
+          else
+              log "INFO: Playwright service will start with user graphical session"
+          fi
+      else
+          log "WARNING: Playwright service file not found"
+      fi
+      
+      # 4. Memory monitoring setup
+      log "Setting up memory monitoring..."
+      systemctl daemon-reload
+      systemctl enable --now memory-monitor.timer || log "WARNING: Memory monitor timer failed to start"
+      
+      # 5. Finalize user environment
+      log "Finalizing user environment..."
+      
+      # Ensure proper ownership of all user files
+      chown -R dev:dev /home/dev/
+      
+      # Ensure user can access Docker socket (may need logout/login)
+      if [ -S /var/run/docker.sock ]; then
+          chmod g+rw /var/run/docker.sock || log "WARNING: Could not set docker.sock permissions"
+      fi
+      
+      # 6. Mark completion
+      touch "$COMPLETE_FLAG"
+      log "Post-reboot setup completed successfully"
+      
+      # 7. Optional: Log system state for debugging
+      log "System state summary:"
+      log "- Kernel: $(uname -r)"
+      log "- zRAM module: $(lsmod | grep zram | head -1 || echo 'not loaded')"
+      log "- Docker service: $(systemctl is-active docker || echo 'inactive')"
+      log "- User in docker group: $(groups dev | grep docker >/dev/null && echo 'yes' || echo 'no')"
+
+runcmd:
+  # Enable the post-reboot service to run after the first reboot
+  - systemctl enable cloud-init-post-reboot.service
+  
+  # Create log directory and set permissions
+  - touch /var/log/cloud-init-post-reboot.log
+  - chmod 644 /var/log/cloud-init-post-reboot.log
+  
+  # Log that post-reboot service is configured
+  - echo "[$(date '+%Y-%m-%d %H:%M:%S')] Post-reboot service configured, will run after reboot" >> /var/log/cloud-init-post-reboot.log

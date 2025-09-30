@@ -27,17 +27,20 @@ runcmd:
     echo 'deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/vscodium-archive-keyring.gpg] https://download.vscodium.com/debs vscodium main' \
       | sudo tee /etc/apt/sources.list.d/vscodium.list
   
-  # --- Mullvad VPN repo ---
-  - sudo curl -fsSLo /usr/share/keyrings/mullvad-keyring.asc https://repository.mullvad.net/deb/mullvad-keyring.asc
-  - echo "deb [signed-by=/usr/share/keyrings/mullvad-keyring.asc arch=$( dpkg --print-architecture )] https://repository.mullvad.net/deb/stable stable main" | sudo tee /etc/apt/sources.list.d/mullvad.list
-
   # --- Sourcegit repo ---
   - curl https://codeberg.org/api/packages/yataro/debian/repository.key | sudo tee /etc/apt/keyrings/sourcegit.asc
   - echo "deb [signed-by=/etc/apt/keyrings/sourcegit.asc, arch=amd64,arm64] https://codeberg.org/api/packages/yataro/debian generic main" | sudo tee /etc/apt/sources.list.d/sourcegit.list
 
-  # --- Firefox PPA (remove snap version) ---
-  - sudo apt remove firefox
-  - sudo add-apt-repository ppa:mozillateam/ppa
+  # --- Firefox PPA (remove snap version and install proper APT version) ---
+  # Remove snap version first (both snap package and transition package)
+  - sudo snap remove firefox || true
+  - sudo apt remove -y firefox || true
+  - sudo apt autoremove -y || true
+  
+  # Add Mozilla PPA
+  - sudo add-apt-repository -y ppa:mozillateam/ppa
+  
+  # Set up package preferences to prefer PPA over snap
   - |
     echo '
     Package: *
@@ -51,3 +54,4 @@ runcmd:
   - |
     echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:${distro_codename}";' \
       | sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox
+  

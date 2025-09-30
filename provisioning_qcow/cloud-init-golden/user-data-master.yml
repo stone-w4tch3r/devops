@@ -14,4 +14,6 @@
 - ./50-networking.yml
 - ./60-network-recovery.yml
 - ./90-readmes.yml
-- ./99-final-commands.yml
+- ./95-final-commands.yml
+- ./99-post-reboot.yml
+

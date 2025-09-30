@@ -17,15 +17,15 @@ write_files:
       network:
         version: 2
         ethernets:
-          "eth*":
+          ethernet-devices:
+            match:
+              name: "en*"
             dhcp4: true
             dhcp6: true
             mtu: 1360
-          "enp*":
-            dhcp4: true
-            dhcp6: true
-            mtu: 1360
-          "ens*":
+          legacy-ethernet:
+            match:
+              name: "eth*"  
             dhcp4: true
             dhcp6: true
             mtu: 1360
