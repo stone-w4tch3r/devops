@@ -1,5 +1,16 @@
 {
     "cSpell.words": [
+        "devbox",
+        "distrobox",
+        "libvirtd",
+        "localds",
+        "qcow",
+        "quickemu",
+        "vcpus",
+        "virsh",
+        "virt",
+        "virtio",
+        "virtlogd",
         "winget"
     ]
 }

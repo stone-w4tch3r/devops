@@ -27,11 +27,11 @@ wget -O ubuntu-24.04-master.qcow2 https://cloud-images.ubuntu.com/noble/current/
 chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 
 # Step 2: Install cloud config tools (in distrobox)
-sudo dnf install -y cloud-utils
+distrobox-enter fedora -- sudo dnf install -y cloud-utils
 
 # Step 3: Create cloud-init seed (in distrobox)
 cd cloud-init-golden/
-cloud-localds seed.iso user-data-master.yml meta-data.yml
+distrobox-enter fedora -- cloud-localds seed.iso user-data-master.yml meta-data.yml
 mv seed.iso ../
 cd ..
 
@@ -63,13 +63,13 @@ cp ubuntu-24.04-golden.qcow2 ~/VMs
 
 ```bash
 # Step 0: Install cloud config tools (in distrobox)
-sudo dnf install -y cloud-utils
+distrobox-enter fedora -- sudo dnf install -y cloud-utils
 
 # Step 1: prepare seed.iso for cloud-init (in distrobox)
 cd cloud-init-devbox/
 cp meta-data.yml meta-data.local.yml
 sed -i 's/devbox-n/devbox-0/' meta-data.local.yml
-cloud-localds seed.local.iso user-data.yml meta-data.local.yml
+distrobox-enter fedora -- cloud-localds seed.local.iso user-data.yml meta-data.local.yml
 
 # Step 2: mount seed in virt manager
 # ...
@@ -83,11 +83,11 @@ wget -O ubuntu-24.04-master.qcow2 https://cloud-images.ubuntu.com/noble/current/
 chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 
 # Step 2: Install cloud config tools (in distrobox)
-sudo dnf install -y cloud-utils
+distrobox-enter fedora -- sudo dnf install -y cloud-utils
 
 # Step 3: Create cloud-init seed (in distrobox)
 cd cloud-init-golden/
-cloud-localds seed.iso user-data-master.yml meta-data.yml
+distrobox-enter fedora -- cloud-localds seed.iso user-data-master.yml meta-data.yml
 cp seed.iso ../
 cd ..
 
@@ -113,7 +113,7 @@ virt-install --connect qemu:///system \
 
 # Step 7: Create additional VMs (fast clones)
 cd cloud-init-devbox/
-cloud-localds devbox-seed.iso user-data.yml meta-data.local.yml
+distrobox-enter fedora -- cloud-localds devbox-seed.iso user-data.yml meta-data.local.yml
 qemu-img create -f qcow2 -F qcow2 -b ../cloud-init-golden/ubuntu-24.04-golden.qcow2 project1.qcow2
 virt-install --connect qemu:///system --name project1 --memory 4096 --vcpus 2 \
   --disk path=$PWD/project1.qcow2,format=qcow2,bus=virtio \
