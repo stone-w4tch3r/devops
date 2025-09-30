@@ -31,10 +31,10 @@ runcmd:
   - su - dev -c 'chmod +x /home/dev/.claude/local/claude'
 
   # Setup Node.js package managers
-  - npm install -g corepack@latest
-  - /usr/local/bin/corepack enable
-  - /usr/local/bin/corepack prepare yarn@stable --activate
-  - /usr/local/bin/corepack prepare pnpm@latest-10 --activate
+  - su - dev -c 'npm install -g corepack@latest'
+  - su - dev -c '/usr/local/bin/corepack enable'
+  - su - dev -c '/usr/local/bin/corepack prepare yarn@stable --activate'
+  - su - dev -c '/usr/local/bin/corepack prepare pnpm@latest-10 --activate'
 
   # Install Volta node manager (works alongside system Node.js)
   # Volta allows per-project Node.js versions while keeping system Node.js available
@@ -53,8 +53,9 @@ runcmd:
   - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install yarn@latest'
 
   # Python development tools
-  - pipx ensurepath
-  - pipx install uv
+  - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'pipx ensurepath'
+  - su - dev -c 'pipx install uv'
 
   # Add Claude alias
   - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.bashrc'
