@@ -1,28 +1,5 @@
 #cloud-config
-# Development tools and environment setup for golden VM template
-
-write_files:
-  # Playwright MCP systemd service for AI agents
-  - path: /home/dev/.config/systemd/user/playwright-mcp.service
-    content: |
-      [Unit]
-      Description=Playwright MCP (headed) for AI agents
-      After=graphical-session.target
-      PartOf=graphical-session.target
-      # Only start once the Wayland socket exists
-      ConditionPathExists=%t/wayland-0
-
-      [Service]
-      Type=simple
-      Environment=XDG_RUNTIME_DIR=%t
-      Environment=WAYLAND_DISPLAY=wayland-0
-      # If you prefer Playwright's bundled Chrome, just omit --executable-path
-      ExecStart=/usr/bin/env npx @playwright/mcp@latest --port 8931
-      Restart=on-failure
-
-      [Install]
-      WantedBy=graphical-session.target
-    permissions: '0644'
+# Final commands
 
 runcmd:
   # Enable and configure services

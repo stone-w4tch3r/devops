@@ -10,35 +10,13 @@ This directory contains organized cloud-init configurations for creating Ubuntu 
 ```
 cloud-init-golden/
 ├── user-data-master.yml    # Master config (includes all modules)
-├── 00-base.yml            # Base system configuration
-├── 10-packages.yml        # Package installation
-├── 20-config-files.yml    # Configuration files
-├── memory-management.yml   # zRAM and memory optimization
-├── 30-repositories.yml    # External package repositories
-├── 40-applications.yml    # Application installation
-├── 50-development-tools.yml # Development environment setup
+├── nn-*.yml                # Module configs
 └── meta-data.yml          # Instance metadata
 
 cloud-init-devbox/
 ├── user-data.yml          # Minimal devbox configuration
 ├── meta-data.yml          # Instance metadata
 └── meta-data.local.yml    # Local instance metadata
-```
-
-## Quick Start - Devbox VM
-
-```bash
-# Step 0: Install cloud config tools (in distrobox)
-sudo dnf install -y cloud-utils
-
-# Step 1: prepare seed.iso for cloud-init (in distrobox)
-cd cloud-init-devbox/
-cp meta-data.yml meta-data.local.yml
-sed -i 's/devbox-n/devbox-0/' meta-data.local.yml
-cloud-localds seed.local.iso user-data.yml meta-data.local.yml
-
-# Step 2: mount seed in virt manager
-# ...
 ```
 
 ## Golden VM Template Creation via quickemu (recommended)
@@ -54,13 +32,13 @@ sudo dnf install -y cloud-utils
 # Step 3: Create cloud-init seed (in distrobox)
 cd cloud-init-golden/
 cloud-localds seed.iso user-data-master.yml meta-data.yml
-cp seed.iso ../
+mv seed.iso ../
 cd ..
 
 # Step 4: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
 chmod a+rwx ubuntu-24.04-golden.qcow2
-qemu-img resize ubuntu-24.04-golden.qcow2 30G
+qemu-img resize ubuntu-24.04-golden.qcow2 50G
 
 # Step 5: start VM
 mkdir ubuntu-quickemu/
@@ -79,6 +57,22 @@ sudo cloud-init clean # in VM
 sudo virt-sysprep -a ubuntu-24.04-golden.qcow2 --operations machine-id,udev-persistent-net,logfiles # remove some state
 chmod 444 ubuntu-24.04-golden.qcow2 # make read-only
 cp ubuntu-24.04-golden.qcow2 ~/VMs
+```
+
+## Quick Start - Devbox VM
+
+```bash
+# Step 0: Install cloud config tools (in distrobox)
+sudo dnf install -y cloud-utils
+
+# Step 1: prepare seed.iso for cloud-init (in distrobox)
+cd cloud-init-devbox/
+cp meta-data.yml meta-data.local.yml
+sed -i 's/devbox-n/devbox-0/' meta-data.local.yml
+cloud-localds seed.local.iso user-data.yml meta-data.local.yml
+
+# Step 2: mount seed in virt manager
+# ...
 ```
 
 ## Golden VM Template Creation via libvirt (!!! script unmaintained!!!)
