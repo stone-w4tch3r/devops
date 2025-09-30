@@ -12,15 +12,18 @@ runcmd:
   - touch /home/dev/.bashrc
   
   # Set micro as default editor
+  - chown -R dev:dev /home/dev # chown home
   - echo 'export EDITOR=micro' >> /home/dev/.bashrc
   - echo 'export EDITOR=micro' >> /home/dev/.profile
   - update-alternatives --install /usr/bin/editor editor /usr/bin/micro 100
   - update-alternatives --set editor /usr/bin/micro
 
   # Install and configure broot function
+  - chown -R dev:dev /home/dev # chown home
   - su - dev -c 'printf "y\n" | broot --install || true'
 
   # Install Claude CLI locally
+  - chown -R dev:dev /home/dev # chown home
   - su - dev -c 'mkdir -p /home/dev/.claude/local'
   - su - dev -c 'cd /home/dev/.claude/local && npm i @anthropic-ai/claude-code'
   - su - dev -c 'echo "#!/bin/bash" >> /home/dev/.claude/local/claude'
@@ -36,10 +39,12 @@ runcmd:
   # Install Volta node manager (works alongside system Node.js)
   # Volta allows per-project Node.js versions while keeping system Node.js available
   # Use 'volta pin node@version' in project directories to set specific versions
+  - chown -R dev:dev /home/dev # chown home
   - su - dev -c 'curl https://get.volta.sh | bash'
   - su - dev -c '$HOME/.volta/bin/volta setup'
   
   # Install latest LTS Node.js via Volta (alongside system Node.js)
+  - chown -R dev:dev /home/dev # chown home
   - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install node@lts'
   - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install npm@latest'
   - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install pnpm@latest'
