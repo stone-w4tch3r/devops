@@ -1,3 +1,10 @@
+# local .gitignore, inherits default ignores from parent at root of a repo
+
+# Runtime temporary files
+.runtime/
+
+# VM files
 *.qcow2
+*.iso
 ubuntu-quickemu/
 *.local*

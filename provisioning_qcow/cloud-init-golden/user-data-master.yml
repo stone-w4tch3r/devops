@@ -1,6 +1,7 @@
-#cloud-config
 # Master configuration for golden VM template
 # This file includes all modular configurations in order
+# Note: IT WILL NOT WORK WITH CLOUD INIT DIRECTLY
+# preprocess it with merge_cloud_init.py first
 
 #include
 - ./00-base.yml

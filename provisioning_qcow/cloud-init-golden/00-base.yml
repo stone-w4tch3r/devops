@@ -4,15 +4,18 @@
 users:
   - name: dev
     groups: [sudo]
-    # Use multiple methods to ensure password works
-    plain_text_passwd: dev
-    passwd: dev
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
     lock_passwd: false
     ssh_authorized_keys:
       # TODO automate in future
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIc66jPOUdqTt5OAAYpPy5H5Skxkinz5xEoDyV7aQE5n distrobox-key
+
+# Set user passwords using chpasswd (proper method for plain text passwords)
+chpasswd:
+  list: |
+    dev:dev
+  expire: false
 
 # System updates
 package_update: true

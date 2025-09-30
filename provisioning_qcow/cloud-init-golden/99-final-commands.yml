@@ -6,9 +6,6 @@ runcmd:
   - systemctl enable --now qemu-guest-agent
   - systemctl set-default graphical.target
 
-  # Ensure password authentication works
-  - echo "dev:dev" | chpasswd
-  - passwd -u dev
 
   # Initialize shell configuration files
   - touch /home/dev/.profile

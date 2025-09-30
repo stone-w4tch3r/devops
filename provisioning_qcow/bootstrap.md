@@ -17,6 +17,26 @@ cloud-init-devbox/
 ├── user-data.yml          # Minimal devbox configuration
 ├── meta-data.yml          # Instance metadata
 └── meta-data.local.yml    # Local instance metadata
+
+scripts/
+├── merge_cloud_init.py     # Merges modular YAML files into single config
+└── validate_cloud_init.py  # Validates cloud-init configuration files
+
+.runtime/                   # Temporary files (gitignored)
+├── user-data-merged.yml    # Final merged configuration
+└── seed.iso                # Generated cloud-init ISO
+```
+
+## Scripts Usage
+
+### Merge Cloud-Init Configuration
+
+```bash
+# Merge modular configuration files
+python3 scripts/merge_cloud_init.py cloud-init-golden/user-data-master.yml .runtime/user-data-merged.yml
+
+# With validation
+python3 scripts/merge_cloud_init.py cloud-init-golden/user-data-master.yml .runtime/user-data-merged.yml --validate
 ```
 
 ## Golden VM Template Creation via quickemu (recommended)
@@ -29,29 +49,35 @@ chmod 444 ubuntu-24.04-master.qcow2  # make read-only
 # Step 2: Install cloud config tools (in distrobox)
 distrobox-enter fedora -- sudo dnf install -y cloud-utils
 
-# Step 3: Create cloud-init seed (in distrobox)
-cd cloud-init-golden/
-distrobox-enter fedora -- cloud-localds seed.iso user-data-master.yml meta-data.yml
-mv seed.iso ../
-cd ..
+# Step 3: Merge cloud-init configuration files
+# The user-data-master.yml contains #include directives that reference modular .yml files
+# We need to merge them into a single file since cloud-localds doesn't process includes
+python3 scripts/merge_cloud_init.py cloud-init-golden/user-data-master.yml .runtime/user-data-merged.yml
 
-# Step 4: Prepare image
+# Step 4: Validate the merged configuration (optional)
+python3 scripts/validate_cloud_init.py .runtime/user-data-merged.yml --verbose
+
+# Step 5: Create cloud-init seed with merged configuration
+distrobox-enter fedora -- cloud-localds .runtime/seed.iso .runtime/user-data-merged.yml cloud-init-golden/meta-data.yml
+
+# Step 6: Prepare image
 cp ubuntu-24.04-master.qcow2 ubuntu-24.04-golden.qcow2
 chmod a+rwx ubuntu-24.04-golden.qcow2
 qemu-img resize ubuntu-24.04-golden.qcow2 50G
 
-# Step 5: start VM
+# Step 7: start VM
 mkdir ubuntu-quickemu/
-cp ubuntu-quickemu.conf seed.iso ubuntu-quickemu/
+cp ubuntu-quickemu.conf .runtime/seed.iso ubuntu-quickemu/
 mv ubuntu-24.04-golden.qcow2 ubuntu-quickemu/
 cd ubuntu-quickemu/
 quickemu --vm ubuntu-quickemu.conf --display spice
 
-# Step 6: wait for provisioning to finish
+# Step 8: wait for provisioning to finish
 # check live via `sudo cloud-init status --long`
 # and monitor /var/log/cloud-init-output.log
+# Login should now work with dev/dev credentials
 
-# Step 7: save VM as a template
+# Step 9: save VM as a template
 sudo cloud-init clean # in VM
 
 sudo virt-sysprep -a ubuntu-24.04-golden.qcow2 --operations machine-id,udev-persistent-net,logfiles # remove some state
