@@ -20,3 +20,52 @@ runcmd:
 
   # Install Flatpak applications
   - flatpak install org.kde.kate --assumeyes
+
+  # Install latest distrobox locally
+  - su - dev -c 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh -s -- --prefix ~/.local'
+
+  # Install Claude CLI locally
+  - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'mkdir -p /home/dev/.claude/local'
+  - su - dev -c 'cd /home/dev/.claude/local && npm i @anthropic-ai/claude-code'
+  - su - dev -c 'echo "#!/bin/bash" >> /home/dev/.claude/local/claude'
+  - su - dev -c 'echo "exec \"/home/dev/.claude/local/node_modules/.bin/claude\" \"\$@\"" >> /home/dev/.claude/local/claude'
+  - su - dev -c 'chmod +x /home/dev/.claude/local/claude'
+  # Add Claude alias
+  - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.bashrc'
+  - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.profile'
+
+  # Install other AI agents
+  - su - dev -c 'npm install -g @openai/codex'
+  - su - dev -c 'npm install -g @google/gemini-cli'
+
+  # Setup Node.js package managers
+  - su - dev -c 'npm install -g corepack@latest'
+  - su - dev -c '/usr/local/bin/corepack enable'
+  - su - dev -c '/usr/local/bin/corepack prepare yarn@stable --activate'
+  - su - dev -c '/usr/local/bin/corepack prepare pnpm@latest-10 --activate'
+
+  # Install Volta node manager (works alongside system Node.js)
+  # Volta allows per-project Node.js versions while keeping system Node.js available
+  # Use 'volta pin node@version' in project directories to set specific versions
+  - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'mkdir -p /home/dev/.volta'  # Ensure directory exists
+  - chown dev:dev /home/dev/.volta  # Ensure proper ownership
+  - su - dev -c 'curl https://get.volta.sh | bash'
+  - su - dev -c '$HOME/.volta/bin/volta setup'
+  
+  # Install latest LTS Node.js via Volta (alongside system Node.js)
+  - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install node@lts'
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install npm@latest'
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install pnpm@latest'
+  - su - dev -c 'source /home/dev/.bashrc && /home/dev/.volta/bin/volta install yarn@latest'
+
+  # Python development tools
+  - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'pipx ensurepath'
+  - su - dev -c 'pipx install uv'
+
+  # Install and configure broot function
+  - chown -R dev:dev /home/dev # chown home
+  - su - dev -c 'printf "y\n" | broot --install || true'

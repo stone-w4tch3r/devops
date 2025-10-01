@@ -29,7 +29,6 @@ packages:
   - docker.io
   - docker-compose-v2
   - docker-buildx
-  - distrobox
 
   # System utilities
   - net-tools

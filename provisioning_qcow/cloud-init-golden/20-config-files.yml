@@ -34,3 +34,12 @@ write_files:
       [Install]
       WantedBy=graphical-session.target
     permissions: '0644'
+
+runcmd:
+  # Initialize shell configuration files
+  - touch /home/dev/.profile
+  - touch /home/dev/.bashrc
+
+  # Add .local/bin to PATH
+  - echo 'export PATH=$PATH:$HOME/.local/bin' >> /home/dev/.profile
+  - echo 'export PATH=$PATH:$HOME/.local/bin' >> /home/dev/.bashrc
