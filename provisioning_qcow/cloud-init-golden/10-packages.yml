@@ -25,6 +25,12 @@ packages:
   - fd-find
   - silversearcher-ag
 
+  # Virtualization
+  - docker.io
+  - docker-compose-v2
+  - docker-buildx
+  - distrobox
+
   # System utilities
   - net-tools
   - traceroute
@@ -33,7 +39,6 @@ packages:
   - neofetch
   - gh
   - ncdu
-  - distrobox
   - mitmproxy
   - trash-cli
   - speedtest-cli

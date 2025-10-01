@@ -10,7 +10,6 @@ runcmd:
   - |
     apt-get install -y --allow-downgrades \
       broot \
-      docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
       warp-terminal \
       codium \
       sourcegit \
@@ -21,6 +20,3 @@ runcmd:
 
   # Install Flatpak applications
   - flatpak install org.kde.kate --assumeyes
-
-  # Note: Docker service and user group setup moved to post-reboot stage
-  # This ensures the service files exist and user environment is properly configured

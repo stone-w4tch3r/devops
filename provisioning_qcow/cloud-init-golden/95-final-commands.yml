@@ -30,6 +30,9 @@ runcmd:
   - su - dev -c 'echo "exec \"/home/dev/.claude/local/node_modules/.bin/claude\" \"\$@\"" >> /home/dev/.claude/local/claude'
   - su - dev -c 'chmod +x /home/dev/.claude/local/claude'
 
+  # Other AI agents
+  - su - dev -c 'npm install -g @openai/codex'
+
   # Setup Node.js package managers
   - su - dev -c 'npm install -g corepack@latest'
   - su - dev -c '/usr/local/bin/corepack enable'
