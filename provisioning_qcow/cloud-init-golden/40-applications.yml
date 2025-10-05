@@ -22,6 +22,7 @@ runcmd:
   - flatpak install org.kde.kate --assumeyes
 
   # Install latest distrobox locally
+  - chown -R dev:dev /home/dev # chown home
   - su - dev -c 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh -s -- --prefix ~/.local'
 
   # Install Claude CLI locally
@@ -36,11 +37,11 @@ runcmd:
   - echo 'alias claude="~/.claude/local/claude"' >> '/home/dev/.profile'
 
   # Install other AI agents
-  - su - dev -c 'npm install -g @openai/codex'
-  - su - dev -c 'npm install -g @google/gemini-cli'
+  - su - dev -c 'sudo npm install -g @openai/codex'
+  - su - dev -c 'sudo npm install -g @google/gemini-cli'
 
   # Setup Node.js package managers
-  - su - dev -c 'npm install -g corepack@latest'
+  - su - dev -c 'sudo npm install -g corepack@latest'
   - su - dev -c '/usr/local/bin/corepack enable'
   - su - dev -c '/usr/local/bin/corepack prepare yarn@stable --activate'
   - su - dev -c '/usr/local/bin/corepack prepare pnpm@latest-10 --activate'
@@ -50,7 +51,7 @@ runcmd:
   # Use 'volta pin node@version' in project directories to set specific versions
   - chown -R dev:dev /home/dev # chown home
   - su - dev -c 'mkdir -p /home/dev/.volta'  # Ensure directory exists
-  - chown dev:dev /home/dev/.volta  # Ensure proper ownership
+  - chown -R dev:dev /home/dev/.volta  # Ensure proper ownership
   - su - dev -c 'curl https://get.volta.sh | bash'
   - su - dev -c '$HOME/.volta/bin/volta setup'
   
