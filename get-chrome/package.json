@@ -1,0 +1,30 @@
+{
+  "name": "get-chrome",
+  "version": "1.0.0",
+  "description": "Tool to get Chrome executable path",
+  "bin": {
+    "get-chrome": "./dist/chrome.cli.js"
+  },
+  "main": "./dist/chrome.js",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run build",
+    "postinstall": "npm run build && chmod +x dist/chrome.cli.js",
+    "get-chrome": "tsx chrome.cli.ts"
+  },
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  }
+}
