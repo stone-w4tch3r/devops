@@ -313,9 +313,9 @@ def ensure_start(pid: int, log_path: str) -> bool:
     log_file = Path(log_path)
     start_time = datetime.now()
 
-    # Sleep 5 seconds to let process initialize
-    print(f"⌛ Waiting 5 seconds for initialization...", file=sys.stderr)
-    time.sleep(5)
+    # Sleep 3 seconds to let process initialize
+    print(f"⌛ Waiting 3 seconds for initialization...", file=sys.stderr)
+    time.sleep(3)
 
     # Check if process is still alive
     try:
@@ -426,7 +426,24 @@ Multiple concurrent with verification:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔍 QUERYING SESSIONS (use helper)
+🛑 INTERRUPTING TASKS
+
+Kill a running task:
+  $ kill <PID>                    # Graceful termination
+  $ kill -9 <PID>                 # Force kill if needed
+
+Check if process finished:
+  $ kill -0 $PID 2>/dev/null && echo "Running" || echo "Done"
+  $ ps aux | grep $PID
+
+⚠️  IMPORTANT: Always verify the previous task has completed before continuing
+    a conversation. Check the PID status first to avoid inconsistent results:
+  
+  $ kill -0 $PREV_PID 2>/dev/null && echo "Still running!" || echo "Finished"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 QUERYING SESSIONS & CONTINUING CONVERSATIONS
 
 Get session ID:
   $ codex-helper get-id                # Latest
@@ -438,6 +455,12 @@ List sessions:
 
 Session details:
   $ codex-helper info 019a7174-1f4c-7482-8846-b2f7bd5d2d3e
+
+Continue conversation by session ID (always verify task is done first!):
+  $ kill -0 $PREV_PID 2>/dev/null || codex exec "follow up message" --full-auto --cd /project resume $SESSION_ID
+  
+  Example:
+  $ kill -0 2290964 2>/dev/null || codex exec "what's the status?" --full-auto --cd ~/Projects/job/ resume 019a7491-d609-7542-b918-d61bf703e227
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -511,14 +534,18 @@ wait $API_PID $UI_PID $TESTS_PID
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠️  LIMITATIONS
+⚠️  LIMITATIONS & NOTES
 
-• Resume/Interrupt: Not reliably supported by codex
-  If interrupted, start a new session instead of trying to resume
+• Task Interruption: Use `kill <PID>` or `kill -9 <PID>` to stop long-running tasks
+  Always check process status before continuing conversations to avoid inconsistencies
 
 • Session ID Timing: Wait ~2 seconds after starting before querying
 
 • Git Repo: Required unless using --skip-git-repo-check
+
+• Resume Reliability: Works better if you verify the previous process is done:
+  1. Check: kill -0 $OLD_PID 2>/dev/null && echo "Still running" || echo "Done"
+  2. If done, continue with: codex exec "message" --full-auto resume $SESSION_ID
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -596,12 +623,6 @@ def main():
         type=str,
         required=True,
         help="Path to the log file"
-    )
-    ensure_parser.add_argument(
-        "--head",
-        type=int,
-        default=5,
-        help="Number of lines to show from logs (default: 5)"
     )
 
     args = parser.parse_args()
