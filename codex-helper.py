@@ -13,9 +13,54 @@ AI agents should call codex commands directly and use this for queries only.
 import argparse
 import json
 import sys
+import time
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
+
+
+def time_ago(timestamp_str: str) -> str:
+    """
+    Convert ISO timestamp to human-readable 'X ago' format.
+    
+    Args:
+        timestamp_str: ISO format timestamp string (UTC)
+    
+    Returns:
+        Human-readable time difference (e.g., '5 minutes ago')
+    """
+    try:
+        from datetime import timezone
+        
+        # Parse timestamp (handle both with and without microseconds)
+        if '.' in timestamp_str:
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        else:
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00') if timestamp_str.endswith('Z') else timestamp_str)
+        
+        # Convert UTC to local time
+        if timestamp.tzinfo is not None:
+            timestamp = timestamp.astimezone().replace(tzinfo=None)
+        
+        now = datetime.now()
+        diff = now - timestamp
+        
+        seconds = int(diff.total_seconds())
+        
+        if seconds < 60:
+            return f"{seconds} seconds ago"
+        elif seconds < 3600:
+            minutes = seconds // 60
+            return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+        elif seconds < 86400:
+            hours = seconds // 3600
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+        else:
+            days = seconds // 86400
+            return f"{days} day{'s' if days != 1 else ''} ago"
+    except:
+        return "unknown time ago"
 
 
 class CodexHelper:
@@ -25,12 +70,13 @@ class CodexHelper:
         self.codex_dir = Path.home() / ".codex"
         self.sessions_dir = self.codex_dir / "sessions"
 
-    def get_latest_session_id(self, nth: int = 1) -> Optional[str]:
+    def get_latest_session_id(self, nth: int = 1, show_time: bool = False) -> Optional[str]:
         """
         Extract the Nth most recent session ID from codex storage.
 
         Args:
             nth: Which session to get (1 = most recent, 2 = second most recent, etc.)
+            show_time: If True, include time ago in output
 
         Returns:
             Session ID string or None if not found
@@ -65,11 +111,15 @@ class CodexHelper:
 
                 data = json.loads(first_line)
                 session_id = data.get('payload', {}).get('id')
+                timestamp = data.get('payload', {}).get('timestamp')
 
                 if not session_id:
                     print(f"ERROR: No session ID in file: {target_file}", file=sys.stderr)
                     return None
 
+                if show_time and timestamp:
+                    time_str = time_ago(timestamp)
+                    return f"{session_id}; started {time_str}"
                 return session_id
 
         except Exception as e:
@@ -139,9 +189,11 @@ class CodexHelper:
                             except:
                                 continue
 
+                        timestamp = payload.get('timestamp')
                         sessions.append({
                             'session_id': payload.get('id'),
-                            'timestamp': payload.get('timestamp'),
+                            'timestamp': timestamp,
+                            'time_ago': time_ago(timestamp) if timestamp else 'unknown',
                             'cwd': payload.get('cwd'),
                             'model_provider': payload.get('model_provider'),
                             'source': payload.get('source'),
@@ -216,9 +268,11 @@ class CodexHelper:
                                 except:
                                     continue
 
+                            timestamp = payload.get('timestamp')
                             return {
                                 'session_id': session_id,
-                                'timestamp': payload.get('timestamp'),
+                                'timestamp': timestamp,
+                                'time_ago': time_ago(timestamp) if timestamp else 'unknown',
                                 'cwd': payload.get('cwd'),
                                 'model_provider': payload.get('model_provider'),
                                 'cli_version': payload.get('cli_version'),
@@ -240,6 +294,107 @@ class CodexHelper:
             return None
 
 
+def ensure_start(pid: int, log_path: str) -> bool:
+    """
+    Verify that a codex task started successfully.
+    
+    Checks:
+    1. Process is still alive after sleep
+    2. Log file exists and has content
+    3. No startup errors in first lines
+    
+    Args:
+        pid: Process ID to check
+        log_path: Path to log file
+    
+    Returns:
+        True if all checks pass, False otherwise
+    """
+    log_file = Path(log_path)
+    start_time = datetime.now()
+
+    # Sleep 5 seconds to let process initialize
+    print(f"⌛ Waiting 5 seconds for initialization...", file=sys.stderr)
+    time.sleep(5)
+
+    # Check if process is still alive
+    try:
+        os.kill(pid, 0)  # Signal 0 just checks if process exists
+        is_alive = True
+    except (ProcessLookupError, OSError):
+        is_alive = False
+
+    # Check log file
+    has_logs = log_file.exists() and log_file.stat().st_size > 0
+    elapsed = datetime.now() - start_time
+
+    # Read first lines of log
+    log_lines = []
+    if has_logs:
+        try:
+            with open(log_file, 'r') as f:
+                log_lines = f.readlines()[:5]  # last 5 line
+        except Exception as e:
+            print(f"ERROR: Failed to read log file: {e}", file=sys.stderr)
+            return False
+
+    # Check for common startup errors
+    error_indicators = [
+        "error",
+        "not inside a trusted directory",
+        "no such file or directory",
+        "permission denied",
+        "fatal:",
+    ]
+    has_error = any(
+        any(indicator in line.lower() for indicator in error_indicators)
+        for line in log_lines
+    )
+
+    # Get session ID
+    helper = CodexHelper()
+    session_id = helper.get_latest_session_id(1, show_time=False)
+
+    # Print results
+    print()
+    print("╔════════════════════════════════════════════════════════════╗")
+    print("║         CODEX STARTUP VERIFICATION RESULTS                ║")
+    print("╚════════════════════════════════════════════════════════════╝")
+    print()
+
+    status = "✓ ALIVE" if is_alive else "✗ DEAD"
+    print(f"Process Status:  {status} (PID: {pid})")
+    print(f"Log File:        {log_path} ({log_file.stat().st_size if has_logs else 0} bytes)")
+    print(f"Session ID:      {session_id or 'Not yet available'}")
+    print(f"Start Time:      {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Elapsed:         {elapsed.total_seconds():.1f}s")
+    print()
+
+    if log_lines:
+        print("First log lines:")
+        print("─" * 60)
+        for line in log_lines:
+            print("  " + line.rstrip())
+        print("─" * 60)
+        print()
+
+    # Determine overall success
+    success = is_alive and has_logs and not has_error
+
+    if success:
+        print("✓ Task started successfully!")
+    else:
+        if not is_alive:
+            print("✗ FAILED: Process died during initialization")
+        if not has_logs:
+            print("✗ FAILED: No log output detected")
+        if has_error:
+            print("✗ FAILED: Startup error detected in logs")
+
+    print()
+    return success
+
+
 def print_guide():
     """Print comprehensive guide for AI agents"""
     guide = """
@@ -256,18 +411,18 @@ You execute codex commands directly. This tool only queries session info.
 Sync (wait for completion):
   $ codex exec "Create test file" --full-auto --cd /project
 
-Async (background) with proper startup error check:
+Async (background):
   $ codex exec "Build API" --full-auto --cd /project > /tmp/api.log 2>&1 &
-  $ API_PID=$!
-  $ sleep 2
-  $ kill -0 $API_PID # ensure is alive
-  $ cat /tmp/api.log | head -5 # check logs are ok
-  $ API_SESSION=$(codex-helper get-id)
 
-Multiple concurrent:
-  $ codex exec "Task 1" --full-auto --cd /path > /tmp/t1.log 2>&1 & T1_PID=$!
-  $ codex exec "Task 2" --full-auto --cd /path > /tmp/t2.log 2>&1 & T2_PID=$!
-  $ codex exec "Task 3" --full-auto --cd /path > /tmp/t3.log 2>&1 & T3_PID=$!
+Multiple concurrent with verification:
+  $ codex exec "Task 1" --full-auto --cd /path > /tmp/t1.log 2>&1 &
+  $ codex-helper ensure-start --pid $! --logs /tmp/t1.log
+
+  $ codex exec "Task 2" --full-auto --cd /path > /tmp/t2.log 2>&1 &
+  $ codex-helper ensure-start --pid $! --logs /tmp/t2.log
+
+  $ codex exec "Task 3" --full-auto --cd /path > /tmp/t3.log 2>&1 &
+  $ codex-helper ensure-start --pid $! --logs /tmp/t3.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -293,7 +448,7 @@ Check process:
   $ kill -0 $PID 2>/dev/null && echo "Running" || echo "Done"
 
 View logs:
-  $ tail -f /tmp/api.log
+  $ cat /tmp/api.log | tail -100
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -301,13 +456,13 @@ View logs:
 
 # Start 3 concurrent agents
 codex exec "Build API" --full-auto --cd /project > /tmp/api.log 2>&1 &
-API_PID=$!; sleep 2; API_SESSION=$(codex-helper get-id)
+codex-helper ensure-start --pid $! --logs /tmp/api.log
 
 codex exec "Build UI" --full-auto --cd /project > /tmp/ui.log 2>&1 &
-UI_PID=$!; sleep 2; UI_SESSION=$(codex-helper get-id)
+codex-helper ensure-start --pid $! --logs /tmp/ui.log
 
 codex exec "Write tests" --full-auto --cd /project > /tmp/tests.log 2>&1 &
-TESTS_PID=$!; sleep 2; TESTS_SESSION=$(codex-helper get-id)
+codex-helper ensure-start --pid $! --logs /tmp/tests.log
 
 # Monitor
 codex-helper list --limit 3
@@ -342,16 +497,17 @@ wait $API_PID $UI_PID $TESTS_PID
 2. Always specify --cd /path/to/project
 3. Always redirect output for async: > /tmp/task.log 2>&1 &
 4. Always store PIDs: PID=$! or echo $! > /tmp/session_id
-5. Always wait 2 seconds before getting session ID
+5. Always ensure codex started: codex-helper ensure-start --pid $! --logs /tmp/out.log
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🛠️  codex-helper Commands
 
-  get-id [--nth N]                         Get Nth most recent session ID
-  list [--limit N] [--json]                List recent sessions
-  info <session-id>                        Get detailed session info
-  guide                                    Show this guide
+  get-id [--nth N]                             Get Nth most recent session ID
+  list [--limit N] [--json]                    List recent sessions
+  info <session-id>                            Get detailed session info
+  ensure-start --pid <PID> --logs <PATH>       Verify task started successfully
+  guide                                        Show this guide
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -424,6 +580,30 @@ def main():
         help="Show comprehensive guide for AI agents"
     )
 
+    # ensure-start command
+    ensure_parser = subparsers.add_parser(
+        "ensure-start",
+        help="Verify codex task started successfully"
+    )
+    ensure_parser.add_argument(
+        "--pid",
+        type=int,
+        required=True,
+        help="Process ID of the codex command"
+    )
+    ensure_parser.add_argument(
+        "--logs",
+        type=str,
+        required=True,
+        help="Path to the log file"
+    )
+    ensure_parser.add_argument(
+        "--head",
+        type=int,
+        default=5,
+        help="Number of lines to show from logs (default: 5)"
+    )
+
     args = parser.parse_args()
 
     if args.command is None:
@@ -434,7 +614,7 @@ def main():
 
     try:
         if args.command == "get-id":
-            session_id = helper.get_latest_session_id(args.nth)
+            session_id = helper.get_latest_session_id(args.nth, show_time=True)
             if session_id:
                 print(session_id)
                 sys.exit(0)
@@ -479,6 +659,7 @@ def main():
                 print(f"\nSession: {info['session_id']}")
                 print("─" * 80)
                 print(f"Timestamp:      {info.get('timestamp', 'N/A')}")
+                print(f"Started:        {info.get('time_ago', 'N/A')}")
                 print(f"Working Dir:    {info.get('cwd', 'N/A')}")
                 print(f"Model Provider: {info.get('model_provider', 'N/A')}")
                 print(f"CLI Version:    {info.get('cli_version', 'N/A')}")
@@ -496,6 +677,10 @@ def main():
         elif args.command == "guide":
             print_guide()
             sys.exit(0)
+
+        elif args.command == "ensure-start":
+            result = ensure_start(args.pid, args.logs)
+            sys.exit(0 if result else 1)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted", file=sys.stderr)
