@@ -124,8 +124,31 @@ class ClaudeHelper:
                 print("ERROR: No session files found", file=sys.stderr)
                 return None
 
-            # Sort by modification time, newest first
-            session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            # Sort by last user message timestamp, newest first
+            def get_last_user_timestamp(session_file: Path) -> tuple:
+                """Extract the timestamp of the last user message from a session file.
+                
+                Returns a tuple (has_user_message, timestamp_str) to ensure proper sorting:
+                - Sessions with user messages sort before those without
+                - Among sessions with messages, timestamps sort chronologically
+                """
+                last_user_ts = None
+                try:
+                    with open(session_file, 'r') as f:
+                        for line in f:
+                            try:
+                                event = json.loads(line)
+                                if event.get('type') == 'user':
+                                    last_user_ts = event.get('timestamp')
+                            except:
+                                pass
+                except:
+                    pass
+                # Return tuple: (1, timestamp) for sessions with messages, (0, '') for others
+                # This ensures sessions with messages always sort first
+                return (1 if last_user_ts else 0, last_user_ts or '')
+            
+            session_files.sort(key=get_last_user_timestamp, reverse=True)
 
             if nth > len(session_files):
                 print(f"ERROR: Only {len(session_files)} sessions exist, cannot get #{nth}", file=sys.stderr)
@@ -191,8 +214,31 @@ class ClaudeHelper:
             if not session_files:
                 return []
 
-            # Sort by modification time, newest first
-            session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            # Sort by last user message timestamp, newest first
+            def get_last_user_timestamp(session_file: Path) -> tuple:
+                """Extract the timestamp of the last user message from a session file.
+                
+                Returns a tuple (has_user_message, timestamp_str) to ensure proper sorting:
+                - Sessions with user messages sort before those without
+                - Among sessions with messages, timestamps sort chronologically
+                """
+                last_user_ts = None
+                try:
+                    with open(session_file, 'r') as f:
+                        for line in f:
+                            try:
+                                event = json.loads(line)
+                                if event.get('type') == 'user':
+                                    last_user_ts = event.get('timestamp')
+                            except:
+                                pass
+                except:
+                    pass
+                # Return tuple: (1, timestamp) for sessions with messages, (0, '') for others
+                # This ensures sessions with messages always sort first
+                return (1 if last_user_ts else 0, last_user_ts or '')
+            
+            session_files.sort(key=get_last_user_timestamp, reverse=True)
 
             sessions = []
             for session_file in session_files[:limit]:
@@ -535,9 +581,9 @@ def ensure_start(pid: int, log_path: str) -> bool:
     log_file = Path(log_path)
     start_time = datetime.now()
 
-    # Sleep 3 seconds to let process initialize
-    print(f"⌛ Waiting 3 seconds for initialization...", file=sys.stderr)
-    time.sleep(3)
+    # Sleep 10 seconds to let process initialize and session file be written
+    print(f"⌛ Waiting 10 seconds for initialization...", file=sys.stderr)
+    time.sleep(10)
 
     # Check if process is still alive
     try:
@@ -572,9 +618,23 @@ def ensure_start(pid: int, log_path: str) -> bool:
         for line in log_lines
     )
 
-    # Get session ID
+    # Get session ID - for ensure-start, we want the most recently CREATED/MODIFIED file
+    # since the user message might not be written to disk yet
     helper = ClaudeHelper()
-    session_id = helper.get_latest_session_id(1, show_time=False)
+    session_id = None
+    try:
+        # Find all session files
+        session_files = []
+        for project_dir in helper.projects_dir.iterdir():
+            if project_dir.is_dir():
+                session_files.extend([f for f in project_dir.glob("*.jsonl") if not f.name.startswith('agent-')])
+        
+        if session_files:
+            # Sort by modification time (most recent first) - this catches newly created sessions
+            session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            session_id = session_files[0].stem
+    except:
+        pass
 
     # Print results
     print()
