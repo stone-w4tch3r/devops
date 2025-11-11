@@ -15,6 +15,7 @@ import json
 import sys
 import time
 import os
+import signal
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -39,13 +40,12 @@ def time_ago(timestamp_str: str) -> str:
         else:
             timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00') if timestamp_str.endswith('Z') else timestamp_str)
 
-        # Convert UTC to local time
-        if timestamp.tzinfo is not None:
-            timestamp = timestamp.astimezone().replace(tzinfo=None)
-
-        now = datetime.now()
+        # Get current time in UTC and compare directly
+        now = datetime.now(timezone.utc)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        
         diff = now - timestamp
-
         seconds = int(diff.total_seconds())
 
         if seconds < 60:
@@ -336,6 +336,185 @@ class ClaudeHelper:
             print(f"ERROR: Failed to get session info: {e}", file=sys.stderr)
             return None
 
+    def show_conversation(self, session_id: str, output_format: str = 'markdown') -> bool:
+        """
+        Display conversation from a session in readable format.
+
+        Args:
+            session_id: The session ID to show
+            output_format: 'markdown' or 'ndjson'
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.projects_dir.exists():
+            print("ERROR: ~/.claude/projects/ directory not found", file=sys.stderr)
+            return False
+
+        try:
+            # Find session file
+            session_file = None
+            for project_dir in self.projects_dir.iterdir():
+                if not project_dir.is_dir():
+                    continue
+                candidate = project_dir / f"{session_id}.jsonl"
+                if candidate.exists():
+                    session_file = candidate
+                    break
+
+            if not session_file:
+                print(f"ERROR: Session '{session_id}' not found", file=sys.stderr)
+                return False
+
+            # First pass: extract version safely
+            version = None
+            try:
+                with open(session_file, 'r') as f:
+                    for line in f:
+                        try:
+                            event = json.loads(line)
+                            if event.get('version'):
+                                version = event['version']
+                                break
+                        except:
+                            continue
+            except Exception as e:
+                print(f"WARNING: Could not extract version: {e}", file=sys.stderr)
+
+            # Check version
+            if version and version != "2.0.37":
+                print(f"⚠️  WARNING: Conversation was created with Claude CLI version {version}", file=sys.stderr)
+                print(f"⚠️  Supported version is 2.0.37. Parsing may be inaccurate.\n", file=sys.stderr)
+
+            # Parse conversation
+            messages = []
+            skipped_lines = 0
+            line_number = 0
+            try:
+                with open(session_file, 'r') as f:
+                    for line in f:
+                        line_number += 1
+                        try:
+                            event = json.loads(line)
+                            event_type = event.get('type')
+
+                            if event_type not in ('user', 'assistant'):
+                                continue
+
+                            # Skip meta messages
+                            if event.get('isMeta'):
+                                continue
+
+                            timestamp = event.get('timestamp', '')
+                            message = event.get('message', {})
+                            content = message.get('content', '')
+
+                            # Extract text from content
+                            text_parts = []
+                            tool_uses = []
+                            tool_results = []
+
+                            if isinstance(content, str):
+                                text_parts.append(content)
+                            elif isinstance(content, list):
+                                for item in content:
+                                    if isinstance(item, dict):
+                                        item_type = item.get('type')
+                                        if item_type == 'text':
+                                            text_parts.append(item.get('text', ''))
+                                        elif item_type == 'tool_use':
+                                            tool_uses.append({
+                                                'name': item.get('name', 'unknown'),
+                                                'id': item.get('id', '')
+                                            })
+                                        elif item_type == 'tool_result':
+                                            tool_results.append({
+                                                'tool_use_id': item.get('tool_use_id', ''),
+                                                'is_error': item.get('is_error', False)
+                                            })
+
+                            messages.append({
+                                'type': event_type,
+                                'timestamp': timestamp,
+                                'text': '\n'.join(text_parts).strip(),
+                                'tool_uses': tool_uses,
+                                'tool_results': tool_results
+                            })
+
+                        except Exception as e:
+                            # Log malformed line
+                            skipped_lines += 1
+                            import traceback
+                            with open('/tmp/claude-helper-parse-errors.log', 'a') as f:
+                                f.write(f"\n{'='*60}\n")
+                                f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                                f.write(f"Session: {session_id}\n")
+                                f.write(f"Line: {line_number}\n")
+                                f.write(f"Error: {str(e)}\n")
+                                f.write(f"Content: {line[:200]}...\n" if len(line) > 200 else f"Content: {line}\n")
+                                f.write(traceback.format_exc())
+                                f.write(f"{'='*60}\n")
+                            continue
+
+            except Exception as e:
+                error_msg = f"Error parsing conversation: {e}"
+                if version and version != "2.0.37":
+                    print(f"\n❌ PARSING FAILED: This conversation uses Claude CLI version {version}", file=sys.stderr)
+                    print(f"❌ Current parser was tested with version 2.0.37 only.", file=sys.stderr)
+                    print(f"❌ Debug info written to /tmp/claude-helper-error.log\n", file=sys.stderr)
+                    
+                    # Log error details
+                    import traceback
+                    with open('/tmp/claude-helper-error.log', 'a') as f:
+                        f.write(f"\n{'='*60}\n")
+                        f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                        f.write(f"Session: {session_id}\n")
+                        f.write(f"Version: {version}\n")
+                        f.write(f"Error: {error_msg}\n")
+                        f.write(traceback.format_exc())
+                        f.write(f"{'='*60}\n")
+                else:
+                    print(f"ERROR: {error_msg}", file=sys.stderr)
+                return False
+            
+            # Warn about skipped lines
+            if skipped_lines > 0:
+                print(f"\n⚠️  WARNING: Skipped {skipped_lines} malformed line(s) during parsing", file=sys.stderr)
+                print(f"⚠️  Details written to /tmp/claude-helper-parse-errors.log\n", file=sys.stderr)
+
+            # Output
+            if output_format == 'ndjson':
+                for msg in messages:
+                    print(json.dumps(msg))
+            else:  # markdown
+                print(f"\n# Conversation: {session_id}\n")
+                for i, msg in enumerate(messages, 1):
+                    role = "👤 User" if msg['type'] == 'user' else "🤖 Assistant"
+                    print(f"## {i}. {role}")
+                    if msg['timestamp']:
+                        print(f"*{msg['timestamp']}*\n")
+                    
+                    if msg['text']:
+                        print(msg['text'])
+                    
+                    if msg['tool_uses']:
+                        print(f"\n**Tools called:** {', '.join(t['name'] for t in msg['tool_uses'])}")
+                    
+                    if msg['tool_results']:
+                        error_count = sum(1 for t in msg['tool_results'] if t['is_error'])
+                        if error_count:
+                            print(f"\n**Tool results:** {len(msg['tool_results'])} results ({error_count} errors)")
+                        else:
+                            print(f"\n**Tool results:** {len(msg['tool_results'])} results")
+                    
+                    print("\n" + "─" * 80 + "\n")
+
+            return True
+
+        except Exception as e:
+            print(f"ERROR: Failed to show conversation: {e}", file=sys.stderr)
+            return False
+
 
 def ensure_start(pid: int, log_path: str) -> bool:
     """
@@ -480,6 +659,15 @@ Resume specific session:
 Resume most recent:
   $ claude --continue -p --dangerously-skip-permissions "Continue from where we left off"
 
+Continue conversations safely:
+  Always ensure the task is complete (PID not active) before resuming conversation:
+  
+  $ wait $PID
+  $ echo $?  # Check exit code
+  $ claude -p --resume {session-id} --dangerously-skip-permissions "Continue..."
+  
+  Resuming while task is running may cause context conflicts.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔍 QUERYING SESSIONS (use helper)
@@ -496,6 +684,14 @@ List sessions:
 
 Session details:
   $ claude-helper info 7a2c19a1-8555-4a4b-942f-8a5a5def79ea
+
+View conversation (alternative to reading logs):
+  $ claude-helper show-conversation 7a2c19a1-8555-4a4b-942f-8a5a5def79ea
+  $ claude-helper show-conversation SESSION_ID --format ndjson
+  
+  Note: This shows the actual conversation history with Claude,
+  including user prompts and assistant responses. Useful for checking
+  what work was done in background tasks.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -521,23 +717,13 @@ Log files contain ONLY final response:
   The log file (e.g., /tmp/task.log) will only contain Claude's final response.
   Use this for capturing end results, not for tracking progress.
 
-Track progress with explicit logging:
-  To monitor task progress, ask Claude to write status updates to a separate log:
-  
+Progress tracking:
+  Use show-conversation to read task log:
+  $ claude-helper show-conversation SESSION_ID
+
+  Alternative is to ask Claude to write status updates to a separate log:
   $ claude -p --dangerously-skip-permissions \
       "Create API. Report your step-by-step progress into /tmp/job-progress.log"
-  
-  Then monitor with:
-  $ tail -f /tmp/job-progress.log
-
-Continue conversations safely:
-  Always ensure the task is complete (PID not active) before resuming conversation:
-  
-  $ wait $PID
-  $ echo $?  # Check exit code
-  $ claude -p --resume {session-id} --dangerously-skip-permissions "Continue..."
-  
-  Resuming while task is running may cause context conflicts.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -613,9 +799,10 @@ wait $API_PID $UI_PID $TESTS_PID
 
 🛠️  claude-helper Commands
 
-  get-id [--nth N] [--cwd PATH]               Get Nth most recent session ID
-  list [--limit N] [--cwd PATH] [--json]      List recent sessions
+  get-id [--nth N] [--cwd PATH]                Get Nth most recent session ID
+  list [--limit N] [--cwd PATH] [--json]       List recent sessions
   info <session-id>                            Get detailed session info
+  show-conversation <session-id> [--format]    Display conversation (markdown/ndjson)
   ensure-start --pid <PID> --logs <PATH>       Verify task started successfully
   guide                                        Show this guide
 
@@ -626,6 +813,9 @@ wait $API_PID $UI_PID $TESTS_PID
 
 
 def main():
+    # Handle broken pipe gracefully (e.g., when piping to head)
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    
     parser = argparse.ArgumentParser(
         description="Claude Helper - Read-only utilities for querying Claude CLI sessions",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -687,6 +877,23 @@ def main():
     guide_parser = subparsers.add_parser(
         "guide",
         help="Show comprehensive guide for AI agents"
+    )
+
+    # show-conversation command
+    show_parser = subparsers.add_parser(
+        "show-conversation",
+        help="Display conversation from a session"
+    )
+    show_parser.add_argument(
+        "session_id",
+        help="Session ID to show"
+    )
+    show_parser.add_argument(
+        "--format",
+        type=str,
+        choices=['markdown', 'ndjson'],
+        default='markdown',
+        help="Output format (default: markdown)"
     )
 
     # ensure-start command
@@ -772,6 +979,10 @@ def main():
                 sys.exit(0)
             else:
                 sys.exit(1)
+
+        elif args.command == "show-conversation":
+            result = helper.show_conversation(args.session_id, args.format)
+            sys.exit(0 if result else 1)
 
         elif args.command == "guide":
             print_guide()
