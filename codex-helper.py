@@ -424,6 +424,14 @@ Multiple concurrent with verification:
   $ codex exec "Task 3" --full-auto --cd /path > /tmp/t3.log 2>&1 &
   $ codex-helper ensure-start --pid $! --logs /tmp/t3.log
 
+For complex prompts, use a separate file instead of passing via CLI args
+to avoid string interpolation issues with quotes:
+
+  Good:  codex exec "Read TASK_API.md and implement it" --full-auto --cd /project
+  Bad:   codex exec "Create API with \"auth\" and \"users\" endpoints" --full-auto
+
+Store prompts in files (e.g., TASK_API.md) and reference them in your command.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🛑 INTERRUPTING TASKS
@@ -521,6 +529,7 @@ wait $API_PID $UI_PID $TESTS_PID
 3. Always redirect output for async: > /tmp/task.log 2>&1 &
 4. Always store PIDs: PID=$! or echo $! > /tmp/session_id
 5. Always ensure codex started: codex-helper ensure-start --pid $! --logs /tmp/out.log
+6. Always use a file for complex prompts
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

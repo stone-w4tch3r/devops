@@ -709,6 +709,14 @@ Multiple concurrent with verification:
   $ claude -p --dangerously-skip-permissions "Task 3" > /tmp/t3.log 2>&1 &
   $ claude-helper ensure-start --pid $! --logs /tmp/t3.log
 
+For complex prompts, use a separate file instead of passing via CLI args
+to avoid string interpolation issues with quotes:
+
+  Good:  claude -p "Read TASK_API.md and implement it" --dangerously-skip-permissions
+  Bad:   claude -p "Create API with \"auth\" and \"users\" endpoints" --dangerously-skip-permissions
+
+Store prompts in files (e.g., TASK_API.md) and reference them in your command.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔄 CONTINUING CONVERSATIONS
@@ -854,6 +862,7 @@ wait $API_PID $UI_PID $TESTS_PID
 6. Context is preserved when using --resume or --continue
 7. Always ask claude to log progress of complex tasks
 8. Always ensure previous task is stopped before continuing conversation
+9. Always use files for complex prompts
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
